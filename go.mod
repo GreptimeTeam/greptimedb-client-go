@@ -3,6 +3,7 @@ module GreptimeTeam/greptimedb-client-go
 go 1.19
 
 require (
+	github.com/GreptimeTeam/greptime-proto v0.0.0-20230215071017-36147379c3fd
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40
 	google.golang.org/grpc v1.53.0
 )
