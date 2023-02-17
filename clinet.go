@@ -14,7 +14,6 @@ type Client struct {
 
 // New will create the greptimedb client, which will be responsible Write/Read data To/From GreptimeDB
 func New(ctx context.Context, cfg Config) (*Client, error) {
-
 	return nil, errors.New("")
 }
 
