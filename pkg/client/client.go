@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"GreptimeTeam/greptimedb-client-go/pkg/config"
 	"github.com/apache/arrow/go/arrow/flight"
+
+	"GreptimeTeam/greptimedb-client-go/pkg/config"
+	"GreptimeTeam/greptimedb-client-go/pkg/pb/query"
 )
 
 type Client struct {
@@ -23,11 +25,12 @@ func New(cfg *config.Config) (*Client, error) {
 }
 
 // Write ...
-func (c *Client) Write(ctx context.Context) error {
+func (c *Client) Insert(ctx context.Context) error {
 	return errors.New("")
 }
 
 // Read ...
-func (c *Client) Read(ctx context.Context) error {
+func (c *Client) Query(ctx context.Context, req query.Request) error {
+
 	return errors.New("")
 }
