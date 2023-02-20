@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/apache/arrow/go/arrow/flight"
+	"google.golang.org/protobuf/proto"
 
 	"GreptimeTeam/greptimedb-client-go/pkg/config"
 	"GreptimeTeam/greptimedb-client-go/pkg/pb/query"
@@ -29,8 +30,33 @@ func (c *Client) Insert(ctx context.Context) error {
 	return errors.New("")
 }
 
-// Read ...
-func (c *Client) Query(ctx context.Context, req query.Request) error {
+// Query data from greptimedb via SQL.
+//
+// Release reduces the reference count for the reader.
+//
+// reader, err := client.Query(ctx, req)
+// defer reader.Release()
+func (c *Client) Query(ctx context.Context, req query.Request) (*flight.Reader, error) {
+	request, err := req.IntoGreptimeRequest()
+	if err != nil {
+		return nil, err
+	}
 
-	return errors.New("")
+	b, err := proto.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO(yuanbohan): more options here
+	sr, err := c.Client.DoGet(ctx, &flight.Ticket{Ticket: b})
+	if err != nil {
+		return nil, err
+	}
+
+	reader, err := flight.NewRecordReader(sr)
+	if err != nil {
+		return nil, err
+	}
+
+	return reader, nil
 }
