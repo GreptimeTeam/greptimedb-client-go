@@ -12,10 +12,13 @@ func TestQueryBuilder(t *testing.T) {
 	rb := &Request{}
 	req, err := rb.IntoGreptimeRequest()
 	assert.Nil(t, req)
-	assert.ErrorIs(t, err, pb.EmptyCatalogError)
+	assert.ErrorIs(t, err, pb.EmptyDatabaseError)
 
-	rb.WithCatalog("greptime")
 	rb.WithDatabase("disk_usage")
+	req, err = rb.IntoGreptimeRequest()
+	assert.Nil(t, req)
+	assert.ErrorIs(t, err, pb.EmptySqlError)
+
 	rb.WithSql("select * from monitor")
 	req, err = rb.IntoGreptimeRequest()
 	assert.NotNil(t, req)

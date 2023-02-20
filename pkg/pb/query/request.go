@@ -9,9 +9,9 @@ import (
 )
 
 type Request struct {
-	Catalog  string
-	Datadase string
-	Sql      string
+	Catalog  string // optional
+	Datadase string // required
+	Sql      string // required
 }
 
 func (r *Request) WithCatalog(catalog string) *Request {
@@ -30,10 +30,6 @@ func (r *Request) WithSql(sql string) *Request {
 }
 
 func (r *Request) IntoGreptimeRequest() (*greptime.GreptimeRequest, error) {
-	if len(strings.TrimSpace(r.Catalog)) == 0 {
-		return nil, pb.EmptyCatalogError
-	}
-
 	if len(strings.TrimSpace(r.Datadase)) == 0 {
 		return nil, pb.EmptyDatabaseError
 	}
