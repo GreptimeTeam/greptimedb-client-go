@@ -19,7 +19,7 @@ func New(addr string) *Config {
 }
 
 // AppendDialOption append one grpc dial option
-func (c *Config) AppendDialOptions(options ...grpc.DialOption) *Config {
+func (c *Config) WithDialOptions(options ...grpc.DialOption) *Config {
 	if c.DialOptions == nil {
 		c.DialOptions = []grpc.DialOption{}
 	}
