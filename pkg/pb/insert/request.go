@@ -1,4 +1,4 @@
-package write
+package insert
 
 import (
 	"errors"
@@ -10,21 +10,22 @@ import (
 type WriteRows struct {
 	request *v1.InsertRequest
 
-	// wrap schema(database name) and table(table name) into "TableName" with "with" function, used for requestHeader
-	schema string
-	table  string
+	Catalog  string // optional
+	Database string // required
 }
 
-func InitWriteRowsWithTable(database string, table string) *WriteRows {
+// the catalog field is optional
+func InitWriteRowsWithDatabase(catalog string, database string, table string) *WriteRows {
 	var rows WriteRows
-	rows.schema = database
-	rows.table = table
+	rows.Catalog = catalog
+	rows.Database = database
 
 	rows.request = &v1.InsertRequest{TableName: table, RowCount: 0, RegionNumber: 1}
-	return nil
+
+	return &rows
 }
 
-func (rows *WriteRows) SetColumnDefs(columnDefs []*ColumnDef) (*WriteRows, error) {
+func (rows *WriteRows) WithColumnDefs(columnDefs []*ColumnDef) (*WriteRows, error) {
 	if len(columnDefs) == 0 {
 		return rows, errors.New("No Columns to insert")
 	}
@@ -34,12 +35,12 @@ func (rows *WriteRows) SetColumnDefs(columnDefs []*ColumnDef) (*WriteRows, error
 	rows.request.Columns = make([]*v1.Column, len(columnDefs))
 
 	for i, columnDef := range columnDefs {
-		rows.request.Columns[i] = columnDef.Into()
+		rows.request.Columns[i] = columnDef.buildColumn()
 	}
 	return rows, nil
 }
 
-func (c *ColumnDef) Into() *v1.Column {
+func (c *ColumnDef) buildColumn() *v1.Column {
 	var column v1.Column
 
 	column.ColumnName = c.name
@@ -54,34 +55,57 @@ func (c *ColumnDef) Into() *v1.Column {
 
 // TODO(vinland-avalon): the valueType can only be string so far
 // TODO(vinland-avalon): do not support null so far, must match all columns
-func (rows *WriteRows) Insert(values []any) (*WriteRows, error) {
+func (rows *WriteRows) Insert(values []any) (err error) {
 	if !rows.ensureInitiate() {
-		return rows, errors.New("Have not Initiated Columns yet")
+		err = errors.New("Have not Initiated Columns yet")
+		return err
 	}
 	if len(values) != len(rows.request.Columns) {
-		return rows, errors.New("Doesn't match all columns")
+		err = errors.New("Doesn't match all columns")
+		return err
 	}
 	for i, value := range values {
-		err := rows.fillInColumn(i, value)
+		err = rows.fillInColumn(i, value)
 		if err != nil {
-			return rows, fmt.Errorf("Can not use value: %+v to fill up Column:%v", value, rows.request.Columns[i])
+			err = fmt.Errorf("Can not use value: %+v to fill up Column:%v, err:%+v",
+				value, rows.request.Columns[i], err)
+			return err
 		}
 	}
 	rows.request.RowCount++
-	return rows, nil
+	return nil
 }
 
-// TODO: check if columns are defined before
 func (rows *WriteRows) ensureInitiate() bool {
+	if rows.request == nil || rows.request.Columns == nil {
+		return false
+	}
 	return true
 }
 
 func (rows *WriteRows) fillInColumn(index int, value any) error {
+	// TODO(vinland-avalon): replace it with a pachage
+	// byteIndex := index / 8
+	// bitIndex := index % 8
+	// if bitIndex == 0 {
+	//	rows.request.Columns[index].NullMask = append(rows.request.Columns[index].NullMask, 0)
+	// }
+
+	// if value == nil {
+	//	rows.request.Columns[index].NullMask[byteIndex] &= ^(1 << bitIndex)
+	// } else {
+	//	rows.request.Columns[index].NullMask[byteIndex] |= (1 << bitIndex)
+	// }
+
 	column := rows.request.Columns[index]
 	column.Values.StringValues = append(column.Values.StringValues, value.(string))
+
 	return nil
 }
 
+// Column_TAG       Column_SemanticType = 0
+// Column_FIELD     Column_SemanticType = 1
+// Column_TIMESTAMP Column_SemanticType = 2
 type SemanticType v1.Column_SemanticType
 type DataType v1.ColumnDataType
 
@@ -89,21 +113,22 @@ type ColumnDef struct {
 	semanticType SemanticType
 	dataType     DataType
 	name         string
+	isNullable   bool
 }
 
 // TODO(vinland-avalon): the valueType can only be string so far, so should use 12 for dataType field
-func InitColumnDef(semanticType SemanticType, dataType DataType, columnName string) *ColumnDef {
-	return &ColumnDef{semanticType, dataType, columnName}
+func InitColumnDef(semanticType SemanticType, dataType DataType, columnName string, isNullable bool) *ColumnDef {
+	return &ColumnDef{semanticType, dataType, columnName, isNullable}
 }
 
 func initRequestHeader(rows *WriteRows) (*v1.RequestHeader, error) {
 	if rows == nil {
 		return nil, errors.New("rows is nil")
 	}
-	return &v1.RequestHeader{Catalog: rows.schema, Schema: rows.table}, nil
+	return &v1.RequestHeader{Catalog: rows.Catalog, Schema: rows.Database}, nil
 }
 
-func InitGreptiemRequest(rows *WriteRows) (*v1.GreptimeRequest, error) {
+func IntoGreptimeRequest(rows *WriteRows) (*v1.GreptimeRequest, error) {
 	if rows == nil || rows.request == nil {
 		return nil, errors.New("rows or rows.request is nil")
 	}
