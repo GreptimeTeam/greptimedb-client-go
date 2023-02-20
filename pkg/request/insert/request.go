@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	v1 "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
+	"github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
+
+type Request struct {
+}
 
 type WriteRows struct {
 	request *v1.InsertRequest

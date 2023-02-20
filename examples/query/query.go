@@ -9,7 +9,8 @@ import (
 
 	"GreptimeTeam/greptimedb-client-go/pkg/client"
 	"GreptimeTeam/greptimedb-client-go/pkg/config"
-	"GreptimeTeam/greptimedb-client-go/pkg/pb/query"
+	req "GreptimeTeam/greptimedb-client-go/pkg/request"
+	"GreptimeTeam/greptimedb-client-go/pkg/request/query"
 )
 
 // TODO(yuanbohan): format the docstring in Go way
@@ -43,8 +44,10 @@ func main() {
 	}
 
 	req := query.Request{
-		Datadase: "public",
-		Sql:      "select * from monitor",
+		Header: req.Header{
+			Datadase: "public",
+		},
+		Sql: "select * from monitor",
 	}
 
 	reader, err := client.Query(context.Background(), req)

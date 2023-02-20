@@ -8,7 +8,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"GreptimeTeam/greptimedb-client-go/pkg/config"
-	"GreptimeTeam/greptimedb-client-go/pkg/pb/query"
+	"GreptimeTeam/greptimedb-client-go/pkg/request/query"
 )
 
 type Client struct {
