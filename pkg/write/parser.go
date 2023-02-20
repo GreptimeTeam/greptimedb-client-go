@@ -8,17 +8,19 @@ import (
 )
 
 type WriteRows struct {
-	request v1.InsertRequest
-	schema  string
-	table   string
+	request *v1.InsertRequest
+
+	// wrap schema(database name) and table(table name) into "TableName" with "with" function, used for requestHeader
+	schema string
+	table  string
 }
 
-// TODO: wrap schema(database name) and table(table name) into "TableName" with "with" function, used for requestHeader
-func InitWriteRowsWithTable(schema string, table string) *WriteRows {
+func InitWriteRowsWithTable(database string, table string) *WriteRows {
 	var rows WriteRows
-	rows.request = v1.InsertRequest{TableName: table, RowCount: 0, RegionNumber: 1}
-	rows.schema = schema
+	rows.schema = database
 	rows.table = table
+
+	rows.request = &v1.InsertRequest{TableName: table, RowCount: 0, RegionNumber: 1}
 	return nil
 }
 
@@ -26,21 +28,28 @@ func (rows *WriteRows) SetColumnDefs(columnDefs []*ColumnDef) (*WriteRows, error
 	if len(columnDefs) == 0 {
 		return rows, errors.New("No Columns to insert")
 	}
+	if rows.request == nil {
+		return rows, errors.New("rows.request is nil")
+	}
 	rows.request.Columns = make([]*v1.Column, len(columnDefs))
+
 	for i, columnDef := range columnDefs {
-		var column v1.Column
-
-		// TODO: check each field if valid
-		column.ColumnName = columnDef.name
-		column.SemanticType = v1.Column_SemanticType(columnDef.semanticType)
-		column.Datatype = v1.ColumnDataType(columnDef.dataType)
-		column.Values = &v1.Column_Values{}
-		column.NullMask = make([]byte, 0)
-
-		rows.request.Columns[i] = &column
-
+		rows.request.Columns[i] = columnDef.Into()
 	}
 	return rows, nil
+}
+
+func (c *ColumnDef) Into() *v1.Column {
+	var column v1.Column
+
+	column.ColumnName = c.name
+	column.SemanticType = v1.Column_SemanticType(c.semanticType)
+	column.Datatype = v1.ColumnDataType(c.dataType)
+	column.Values = &v1.Column_Values{}
+	//TODO: think about null
+	column.NullMask = make([]byte, 0)
+
+	return &column
 }
 
 // TODO(vinland-avalon): the valueType can only be string so far
@@ -58,6 +67,7 @@ func (rows *WriteRows) Insert(values []any) (*WriteRows, error) {
 			return rows, fmt.Errorf("Can not use value: %+v to fill up Column:%v", value, rows.request.Columns[i])
 		}
 	}
+	rows.request.RowCount++
 	return rows, nil
 }
 
@@ -84,4 +94,23 @@ type ColumnDef struct {
 // TODO(vinland-avalon): the valueType can only be string so far, so should use 12 for dataType field
 func InitColumnDef(semanticType SemanticType, dataType DataType, columnName string) *ColumnDef {
 	return &ColumnDef{semanticType, dataType, columnName}
+}
+
+func initRequestHeader(rows *WriteRows) (*v1.RequestHeader, error) {
+	if rows == nil {
+		return nil, errors.New("rows is nil")
+	}
+	return &v1.RequestHeader{Catalog: rows.schema, Schema: rows.table}, nil
+}
+
+func InitGreptiemRequest(rows *WriteRows) (*v1.GreptimeRequest, error) {
+	if rows == nil || rows.request == nil {
+		return nil, errors.New("rows or rows.request is nil")
+	}
+	header, err := initRequestHeader(rows)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot init GreptimeRequest with rows:%+v", *rows)
+	}
+	return &v1.GreptimeRequest{Header: header,
+		Request: &v1.GreptimeRequest_Insert{Insert: rows.request}}, nil
 }
