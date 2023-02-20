@@ -30,7 +30,12 @@ func (c *Client) Insert(ctx context.Context) error {
 	return errors.New("")
 }
 
-// Query data from greptimedb via SQL
+// Query data from greptimedb via SQL.
+//
+// Release reduces the reference count for the reader.
+//
+// reader, err := client.Query(ctx, req)
+// defer reader.Release()
 func (c *Client) Query(ctx context.Context, req query.Request) (*flight.Reader, error) {
 	request, err := req.IntoGreptimeRequest()
 	if err != nil {
@@ -41,10 +46,9 @@ func (c *Client) Query(ctx context.Context, req query.Request) (*flight.Reader, 
 	if err != nil {
 		return nil, err
 	}
-	ticket := &flight.Ticket{Ticket: b}
 
 	// TODO(yuanbohan): more options here
-	sr, err := c.Client.DoGet(ctx, ticket)
+	sr, err := c.Client.DoGet(ctx, &flight.Ticket{Ticket: b})
 	if err != nil {
 		return nil, err
 	}
