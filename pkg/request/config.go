@@ -1,4 +1,4 @@
-package config
+package request
 
 import "google.golang.org/grpc"
 
@@ -12,7 +12,7 @@ type Config struct {
 }
 
 // New init Config with addr only
-func New(addr string) *Config {
+func NewCfg(addr string) *Config {
 	return &Config{
 		Address: addr,
 	}

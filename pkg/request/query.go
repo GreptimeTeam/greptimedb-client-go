@@ -1,34 +1,32 @@
-package query
+package request
 
 import (
 	"strings"
 
 	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
-
-	req "GreptimeTeam/greptimedb-client-go/pkg/request"
 )
 
-type Request struct {
-	req.Header        // required
-	Sql        string // required
+type QueryRequest struct {
+	Header        // required
+	Sql    string // required
 }
 
-func (r *Request) WithSql(sql string) *Request {
+func (r *QueryRequest) WithSql(sql string) *QueryRequest {
 	r.Sql = sql
 	return r
 }
 
-func (r *Request) IsSqlEmpty() bool {
+func (r *QueryRequest) IsSqlEmpty() bool {
 	return len(strings.TrimSpace(r.Sql)) == 0
 }
 
-func (r *Request) IntoGreptimeRequest() (*greptime.GreptimeRequest, error) {
+func (r *QueryRequest) Build() (*greptime.GreptimeRequest, error) {
 	if r.IsDatabaseEmpty() {
-		return nil, req.EmptyDatabaseError
+		return nil, EmptyDatabaseError
 	}
 
 	if r.IsSqlEmpty() {
-		return nil, req.EmptySqlError
+		return nil, EmptySqlError
 	}
 
 	header := &greptime.RequestHeader{
