@@ -4,13 +4,13 @@ import "google.golang.org/grpc"
 
 type Config struct {
 	// Address string as host:port
-	Address 	string `json:"address"`
+	Address string `json:"address"`
 
-	UserName 	string `json:"username"`
-	Password 	string `json:"password"`
-	CatalogName	string `json:"catalog"`
-	DBName		string `json:"dbname"`
-	Net			string `json:"net"`
+	UserName string `json:"username"`
+	Password string `json:"password"`
+	Catalog  string `json:"catalog"`
+	Database string `json:"database"`
+	Net      string `json:"net"`
 
 	// DialOptions are passed to grpc.DialContext when a new gRPC connection
 	// is created.
@@ -18,9 +18,11 @@ type Config struct {
 }
 
 // New init Config with addr only
-func NewCfg(addr string) *Config {
+func NewCfg(addr, catalog, database string) *Config {
 	return &Config{
-		Address: addr,
+		Address:  addr,
+		Catalog:  catalog,
+		Database: database,
 	}
 }
 

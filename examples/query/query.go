@@ -1,13 +1,10 @@
 package main
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
-	req "GreptimeTeam/greptimedb-client-go/pkg/request"
+	_ "GreptimeTeam/greptimedb-client-go/pkg/sql"
 )
 
 // TODO(yuanbohan): format the docstring in Go way
@@ -33,33 +30,67 @@ import (
 // INSERT INTO monitor(host, cpu, memory, ts) VALUES ('host3', 88.8, 4096, 1660897957000);
 // ```
 // 5. go run examples/query.go
+// func main() {
+//	options := []grpc.DialOption{
+//		grpc.WithTransportCredentials(insecure.NewCredentials()),
+//	}
+//	cfg := req.NewCfg("127.0.0.1:4001").WithDialOptions(options...)
+
+//	client, err := req.NewClient(cfg)
+//	if err != nil {
+//		fmt.Printf("Fail in client initiation, err: %s", err)
+//	}
+
+//	req := req.QueryRequest{
+//		Header: req.Header{
+//			Datadase: "public",
+//		},
+//		Sql: "select * from monitor",
+//	}
+
+//	reader, err := client.Query(context.Background(), req)
+//	defer reader.Release()
+
+//	if err != nil {
+//		fmt.Printf("Fail in Query, err: %s", err)
+//	}
+
+//		for reader.Next() {
+//			record := reader.Record()
+//			fmt.Printf("--record--: %+v", record)
+//		}
+//	}
+
+type Monitor struct {
+	Host   string
+	Ts     uint64
+	Cpu    float64
+	Memory float64
+}
+
 func main() {
-	options := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	}
-	cfg := req.NewCfg("127.0.0.1:4001").WithDialOptions(options...)
-
-	client, err := req.NewClient(cfg)
-	if err != nil {
-		fmt.Printf("Fail in client initiation, err: %s", err)
-	}
-
-	req := req.QueryRequest{
-		Header: req.Header{
-			Datadase: "public",
-		},
-		Sql: "select * from monitor",
-	}
-
-	reader, err := client.Query(context.Background(), req)
-	defer reader.Release()
+	db, err := sql.Open("greptimedb", "127.0.0.1:4001/monitor")
+	defer db.Close()
 
 	if err != nil {
-		fmt.Printf("Fail in Query, err: %s", err)
+		fmt.Printf("sql.Open err: %v", err)
 	}
 
-	for reader.Next() {
-		record := reader.Record()
-		fmt.Printf("--record--: %+v", record)
+	res, err := db.Query("SELECT * FROM monitor")
+	defer res.Close()
+
+	if err != nil {
+		fmt.Printf("db.Query err: %v", err)
+	}
+
+	for res.Next() {
+		var monitor Monitor
+		err := res.Scan(&monitor.Host, &monitor.Ts, &monitor.Cpu, &monitor.Memory)
+
+		if err != nil {
+			fmt.Printf("res.Scan err: %v", err)
+		}
+
+		fmt.Printf("%#v\n", monitor)
 	}
 }

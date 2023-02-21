@@ -11,19 +11,19 @@ var testDSNs = []struct {
 	out *req.Config
 }{{
 	"username:password@protocol(address)/catalogname:dbname",
-	&req.Config{UserName: "username", Password: "password", Net: "protocol", Address: "address", CatalogName: "catalogname", DBName: "dbname"},
+	&req.Config{UserName: "username", Password: "password", Net: "protocol", Address: "address", Catalog: "catalogname", Database: "dbname"},
 }, {
 	"username:password@protocol(address)/dbname",
-	&req.Config{UserName: "username", Password: "password", Net: "protocol", Address: "address", CatalogName: "", DBName: "dbname"},
+	&req.Config{UserName: "username", Password: "password", Net: "protocol", Address: "address", Catalog: "", Database: "dbname"},
 }, {
 	"/",
-	&req.Config{Net: "", Address: "127.0.0.1", CatalogName: "", DBName: ""},
+	&req.Config{Net: "", Address: "127.0.0.1:4001", Catalog: "", Database: ""},
 },
 }
 
-func TestDSNParser(t *testing.T) {
+func Test_ParseDSNToConfig(t *testing.T) {
 	for i, tst := range testDSNs {
-		cfg, err := ParseDSN(tst.in)
+		cfg, err := ParseDSNToConfig(tst.in)
 		if err != nil {
 			t.Error(err.Error())
 		}
