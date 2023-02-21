@@ -69,7 +69,7 @@ type Monitor struct {
 }
 
 func main() {
-	db, err := sql.Open("greptimedb", "127.0.0.1:4001/monitor")
+	db, err := sql.Open("greptimedb", "127.0.0.1:4001")
 	defer db.Close()
 
 	if err != nil {
