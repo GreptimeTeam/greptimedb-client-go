@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	_ "GreptimeTeam/greptimedb-client-go/pkg/sql"
 )
@@ -33,7 +34,7 @@ import (
 // 5. go run examples/query/query.go
 type Monitor struct {
 	Host   string
-	Ts     uint64
+	Ts     time.Time
 	Cpu    float64
 	Memory float64
 }
@@ -53,14 +54,17 @@ func main() {
 		fmt.Printf("db.Query err: %v", err)
 	}
 
-	// for res.Next() {
-	//	var monitor Monitor
-	//	err := res.Scan(&monitor.Host, &monitor.Ts, &monitor.Cpu, &monitor.Memory)
+	var monitors []Monitor
+	for res.Next() {
+		var monitor Monitor
+		err := res.Scan(&monitor.Host, &monitor.Ts, &monitor.Cpu, &monitor.Memory)
 
-	//	if err != nil {
-	//		fmt.Printf("res.Scan err: %v", err)
-	//	}
+		if err != nil {
+			fmt.Printf("res.Scan err: %v", err)
+			continue
+		}
+		monitors = append(monitors, monitor)
+	}
 
-	//	fmt.Printf("%#v\n", monitor)
-	// }
+	fmt.Printf("%#v\n", monitors)
 }

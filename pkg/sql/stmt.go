@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql/driver"
 	"errors"
-	"fmt"
 
 	req "GreptimeTeam/greptimedb-client-go/pkg/request"
 )
@@ -50,17 +49,14 @@ func (s *stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driv
 	}
 
 	reader, err := s.client.Query(ctx, req)
-	defer reader.Release()
 	if err != nil {
 		return nil, err
 	}
 
-	for reader.Next() {
-		record := reader.Record()
-		fmt.Printf("--record--: %+v", record)
-	}
-
-	return &rows{reader}, nil
+	return &rows{
+		reader: reader,
+		fields: reader.Schema().Fields(),
+	}, nil
 
 }
 
