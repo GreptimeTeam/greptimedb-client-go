@@ -10,14 +10,13 @@ import (
 )
 
 type connection struct {
-	cfg    *req.Config
 	client *req.Client
 }
 
 // Prepare is just the interface needed, greptimedb-client-go has no plan for this.
 // method of driver.Conn interface
 func (c *connection) Prepare(query string) (driver.Stmt, error) {
-	return nil, errors.New("Prepare(string) not implemented!")
+	return nil, driver.ErrSkip
 
 }
 
@@ -30,7 +29,7 @@ func (c *connection) Close() error {
 // Begin is just the interface needed, greptimedb-client-go has no plan for this.
 // method of driver.Conn interface
 func (c *connection) Begin() (driver.Tx, error) {
-	return nil, errors.New("Begin() not implemented!")
+	return nil, driver.ErrSkip
 }
 
 // TODO(yuanbohan): real logic
@@ -38,20 +37,28 @@ func (c *connection) cleanup() {
 
 }
 
-// TODO(yuanbohan): support QueryerContext
 // TODO(yuanbohan): use args
 // method of driver.Queryer interface
-func (c *connection) Query(sql string, args []driver.Value) (*Rows, error) {
+func (c *connection) Query(query string, args []driver.Value) (driver.Rows, error) {
+	if len(args) > 0 {
+		return nil, errors.New("conn Query args not supported")
+	}
+	return c.QueryContext(context.Background(), query, nil)
+}
+
+// method of driver.QueryerContext interface
+func (c *connection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+	if len(args) > 0 {
+		return nil, errors.New("conn QueryContext args not supported")
+	}
 	req := req.QueryRequest{
 		Header: req.Header{
-			Datadase: c.cfg.Database,
+			Datadase: c.client.Cfg.Database,
 		},
-		Sql: sql,
+		Sql: query,
 	}
 
-	fmt.Printf("----connection----: %#v", c)
-
-	reader, err := c.client.Query(context.Background(), req)
+	reader, err := c.client.Query(ctx, req)
 	defer reader.Release()
 	if err != nil {
 		return nil, err

@@ -21,6 +21,21 @@ func (d *Driver) Open(dsn string) (driver.Conn, error) {
 	return c.Connect(context.Background())
 }
 
+// If a Driver implements DriverContext, then sql.DB will call
+// OpenConnector to obtain a Connector and then invoke
+// that Connector's Connect method to obtain each needed connection,
+// instead of invoking the Driver's Open method for each connection.
+// The two-step sequence allows drivers to parse the name just once
+// and also provides access to per-Conn contexts.
+func (d *Driver) OpenConnector(dsn string) (driver.Connector, error) {
+	cfg, err := ParseDSN(dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	return &connector{cfg}, nil
+}
+
 func init() {
 	sql.Register("greptimedb", &Driver{})
 }

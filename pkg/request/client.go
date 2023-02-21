@@ -10,6 +10,7 @@ import (
 
 type Client struct {
 	Client flight.Client
+	Cfg    *Config
 }
 
 // New will create the greptimedb client, which will be responsible Write/Read data To/From GreptimeDB
@@ -19,7 +20,10 @@ func NewClient(cfg *Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{client}, nil
+	return &Client{
+		Client: client,
+		Cfg:    cfg,
+	}, nil
 }
 
 // Write ...

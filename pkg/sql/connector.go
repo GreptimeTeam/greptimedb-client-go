@@ -29,12 +29,7 @@ func (c *connector) Connect(ctx context.Context) (driver.Conn, error) {
 		return nil, err
 	}
 
-	conn := &connection{
-		client: client,
-		cfg:    c.cfg,
-	}
-
-	return conn, nil
+	return &connection{client}, nil
 }
 
 // method of driver.Connector interface
