@@ -8,14 +8,13 @@ import (
 )
 
 type connection struct {
-	cfg    *req.Config
 	client *req.Client
 }
 
 // Prepare is just the interface needed, greptimedb-client-go has no plan for this.
 // method of driver.Conn interface
 func (c *connection) Prepare(query string) (driver.Stmt, error) {
-	return nil, errors.New("Prepare(string) not implemented!")
+	return nil, driver.ErrSkip
 
 }
 
@@ -28,7 +27,7 @@ func (c *connection) Close() error {
 // Begin is just the interface needed, greptimedb-client-go has no plan for this.
 // method of driver.Conn interface
 func (c *connection) Begin() (driver.Tx, error) {
-	return nil, errors.New("Begin() not implemented!")
+	return nil, driver.ErrSkip
 }
 
 // TODO(yuanbohan): real logic
