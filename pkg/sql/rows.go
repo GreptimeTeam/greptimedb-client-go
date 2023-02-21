@@ -6,21 +6,21 @@ import (
 	"github.com/apache/arrow/go/arrow/flight"
 )
 
-type Rows struct {
+type rows struct {
 	reader *flight.Reader
 }
 
 // method of driver.Rows interface
-func (r *Rows) Columns() []string {
+func (r *rows) Columns() []string {
 	return nil
 }
 
 // method of driver.Rows interface
-func (r *Rows) Close() error {
+func (r *rows) Close() error {
 	return nil
 }
 
 // method of driver.Rows interface
-func (r *Rows) Next(dest []driver.Value) error {
+func (r *rows) Next(dest []driver.Value) error {
 	return nil
 }

@@ -1,8 +1,8 @@
 package sql
 
 import (
+	"context"
 	"database/sql/driver"
-	"errors"
 
 	req "GreptimeTeam/greptimedb-client-go/pkg/request"
 )
@@ -14,8 +14,7 @@ type connection struct {
 // Prepare is just the interface needed, greptimedb-client-go has no plan for this.
 // method of driver.Conn interface
 func (c *connection) Prepare(query string) (driver.Stmt, error) {
-	return nil, driver.ErrSkip
-
+	return c.PrepareContext(context.Background(), query)
 }
 
 // FIXME(yuanbohan): real logic
@@ -30,7 +29,11 @@ func (c *connection) Begin() (driver.Tx, error) {
 	return nil, driver.ErrSkip
 }
 
-// TODO(yuanbohan): real logic
-func (c *connection) cleanup() {
-
+// driver.ConnPrepareContext interface
+func (c *connection) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
+	// TODO(yuanbohan): use the ctx parameter
+	return &stmt{
+		client: c.client,
+		query:  query,
+	}, nil
 }
