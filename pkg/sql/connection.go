@@ -35,7 +35,17 @@ func (c *connection) cleanup() {
 
 }
 
+// TODO(yuanbohan): support QueryerContext
+// TODO(yuanbohan): use args
+// method of driver.Queryer interface
 func (c *connection) Query(query string, args []driver.Value) (Rows, error) {
-	// TODO(yuanbohan): use args
+	req := req.QueryRequest{
+		Header: req.Header{
+			Datadase: "public",
+		},
+		Sql: "select * from monitor",
+	}
+
+	reader, err := client.Query(context.Background(), req)
 	return Rows{}, nil
 }
