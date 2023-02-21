@@ -1,4 +1,4 @@
-package client
+package request
 
 import (
 	"context"
@@ -6,9 +6,6 @@ import (
 
 	"github.com/apache/arrow/go/arrow/flight"
 	"google.golang.org/protobuf/proto"
-
-	"GreptimeTeam/greptimedb-client-go/pkg/config"
-	"GreptimeTeam/greptimedb-client-go/pkg/pb/query"
 )
 
 type Client struct {
@@ -16,7 +13,7 @@ type Client struct {
 }
 
 // New will create the greptimedb client, which will be responsible Write/Read data To/From GreptimeDB
-func New(cfg *config.Config) (*Client, error) {
+func NewClient(cfg *Config) (*Client, error) {
 	// FIXME(yuanbohan): use real auth and middleware parameters
 	client, err := flight.NewClientWithMiddleware(cfg.Address, nil, nil, cfg.DialOptions...)
 	if err != nil {
@@ -36,8 +33,8 @@ func (c *Client) Insert(ctx context.Context) error {
 //
 // reader, err := client.Query(ctx, req)
 // defer reader.Release()
-func (c *Client) Query(ctx context.Context, req query.Request) (*flight.Reader, error) {
-	request, err := req.IntoGreptimeRequest()
+func (c *Client) Query(ctx context.Context, req QueryRequest) (*flight.Reader, error) {
+	request, err := req.Build()
 	if err != nil {
 		return nil, err
 	}
