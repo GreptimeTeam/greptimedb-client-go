@@ -15,12 +15,10 @@ var (
 // ParseDSN parses the DSN string to a Config
 func ParseDSNToConfig(dsn string) (cfg *req.Config, err error) {
 	// New config with some default values
-	cfg = &req.Config{
-		Address: "127.0.0.1:4001",
-	}
+	cfg = &req.Config{}
 
-	// [user[:password]@][net[(addr)]]/[catalogname:]dbname[?param1=value1&paramN=valueN]
-	// Find the last '/' (since the password or the net addr might contain a '/')
+	// [user[:password]@][net[(addr)]]/[catalogname:][dbname]
+	// Find the last '/' (since the password or the net addr might contain a '/', we need the "last")
 	foundSlash := false
 	for i := len(dsn) - 1; i >= 0; i-- {
 		if dsn[i] == '/' {
@@ -65,7 +63,7 @@ func ParseDSNToConfig(dsn string) (cfg *req.Config, err error) {
 				cfg.Net = dsn[j+1 : k]
 			}
 
-			// [catalog:]dbname
+			// [catalog:][dbname]
 			// Find the ':' in dsn[i+1:]
 			foundColon := false
 			for j = i + 1; j < len(dsn); j++ {
@@ -74,7 +72,8 @@ func ParseDSNToConfig(dsn string) (cfg *req.Config, err error) {
 					break
 				}
 			}
-			// if ':' not exists, only dataname, or also contains a catalog
+			// if ':' not exists, only database, 
+			// or also contains a catalog
 			if !foundColon {
 				cfg.Database = dsn[i+1:]
 				cfg.Catalog = ""
@@ -88,6 +87,10 @@ func ParseDSNToConfig(dsn string) (cfg *req.Config, err error) {
 
 	if !foundSlash && len(dsn) > 0 {
 		return nil, errInvalidDSNNoSlash
+	}
+
+	if len(cfg.Address) == 0 {
+		cfg.Address = "127.0.0.1:4001"
 	}
 
 	return
