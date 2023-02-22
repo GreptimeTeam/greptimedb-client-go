@@ -17,21 +17,19 @@ type connector struct {
 // TODO(yuanbohan): auth(handshake), timeout, etc.
 // method of driver.Connector interface
 func (c *connector) Connect(ctx context.Context) (driver.Conn, error) {
-
-	// FIXME(yuanbohan): move the options to be parameter
+	// FIXME(yuanbohan): move the options to be parameterr
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 	c.cfg.WithDialOptions(options...)
 
+	// FIXME(yuanbohan): use connection pool
 	client, err := req.NewClient(c.cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	conn := &connection{client}
-
-	return conn, nil
+	return &connection{client}, nil
 }
 
 // method of driver.Connector interface

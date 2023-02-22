@@ -3,7 +3,6 @@ package sql
 import (
 	"context"
 	"database/sql/driver"
-	"errors"
 
 	req "GreptimeTeam/greptimedb-client-go/pkg/request"
 )
@@ -15,8 +14,7 @@ type connection struct {
 // Prepare is just the interface needed, greptimedb-client-go has no plan for this.
 // method of driver.Conn interface
 func (c *connection) Prepare(query string) (driver.Stmt, error) {
-	return nil, errors.New("Prepare(string) not implemented!")
-
+	return c.PrepareContext(context.Background(), query)
 }
 
 // FIXME(yuanbohan): real logic
@@ -28,28 +26,14 @@ func (c *connection) Close() error {
 // Begin is just the interface needed, greptimedb-client-go has no plan for this.
 // method of driver.Conn interface
 func (c *connection) Begin() (driver.Tx, error) {
-	return nil, errors.New("Begin() not implemented!")
+	return nil, driver.ErrSkip
 }
 
-// TODO(yuanbohan): real logic
-func (c *connection) cleanup() {
-
-}
-
-// TODO(yuanbohan): support QueryerContext
-// TODO(yuanbohan): use args
-// method of driver.Queryer interface
-func (c *connection) Query(query string, args []driver.Value) (Rows, error) {
-	req := req.QueryRequest{
-		Header: req.Header{
-			Datadase: "public",
-		},
-		Sql: "select * from monitor",
-	}
-
-	reader, err := c.client.Query(context.Background(), req)
-	if reader == nil || err != nil {
-		return Rows{}, err
-	}
-	return Rows{}, nil
+// driver.ConnPrepareContext interface
+func (c *connection) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
+	// TODO(yuanbohan): use the ctx parameter
+	return &stmt{
+		client: c.client,
+		query:  query,
+	}, nil
 }
