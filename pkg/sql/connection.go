@@ -1,6 +1,7 @@
 package sql
 
 import (
+	"context"
 	"database/sql/driver"
 	"errors"
 
@@ -46,6 +47,9 @@ func (c *connection) Query(query string, args []driver.Value) (Rows, error) {
 		Sql: "select * from monitor",
 	}
 
-	reader, err := client.Query(context.Background(), req)
+	reader, err := c.client.Query(context.Background(), req)
+	if reader == nil || err != nil {
+		return Rows{}, err
+	}
 	return Rows{}, nil
 }

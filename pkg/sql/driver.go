@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
-
-	req "GreptimeTeam/greptimedb-client-go/pkg/request"
 )
 
 type Driver struct {
@@ -30,8 +28,11 @@ func init() {
 func ParseDSN(dsn string) (*connector, error) {
 	// TODO(yuanbohan): catalog and database SHOULD be initiated here
 	// `public` is just for example
-	cfg := req.NewCfg(dsn, "", "public")
-
+	// cfg := req.NewCfg(dsn, "", "public")
+	cfg, err := ParseDSNToConfig(dsn)
+	if err != nil {
+		return nil, err
+	}
 	c := &connector{
 		cfg: cfg,
 	}
