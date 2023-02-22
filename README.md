@@ -6,7 +6,7 @@
 
 The Data Source Name has a common format, like e.g. [PEAR DB](http://pear.php.net/manual/en/package.database.db.intro-dsn.php) uses it, but without type-prefix (optional parts marked by squared brackets):
 ```
-[username[:password]@][protocol[(address)]]/[catalogname:]dbname
+[username[:password]@][protocol[(address)]]/[catalogname:][dbname]
 ```
 
 A DSN in its fullest form:

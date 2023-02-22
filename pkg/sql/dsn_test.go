@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// TODO: more test cases
 var testDSNs = []struct {
 	in  string
 	out *req.Config
@@ -18,6 +19,9 @@ var testDSNs = []struct {
 }, {
 	"/",
 	&req.Config{Net: "", Address: "127.0.0.1:4001", Catalog: "", Database: ""},
+}, {
+	"(address)/",
+	&req.Config{Net: "", Address: "address", Catalog: "", Database: ""},
 },
 }
 
