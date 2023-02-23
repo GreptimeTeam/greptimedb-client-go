@@ -7,6 +7,6 @@ import (
 type Monitor struct {
 	Host   string    `db: "host, TAG"`
 	Ts     time.Time `db: "ts, TIMESTAMP"`
-	Cpu    string    `db: "cpu, FIELD"`
-	Memory string    `db: "memory, FIELD"`
+	Cpu    float64    `db: "cpu, FIELD"`
+	Memory float64    `db: "memory, FIELD"`
 }

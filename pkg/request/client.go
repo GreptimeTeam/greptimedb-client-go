@@ -7,6 +7,13 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type greptimeContextKey string
+
+const (
+	ContextKeyTable	greptimeContextKey = greptimeContextKey("table")
+	ContextKeyData	greptimeContextKey = greptimeContextKey("data")
+)
+
 type Client struct {
 	Client flight.Client
 	Cfg    *Config
