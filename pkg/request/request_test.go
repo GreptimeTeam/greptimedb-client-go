@@ -1,7 +1,9 @@
 package request
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -38,4 +40,36 @@ func TestInsertBuilder(t *testing.T) {
 	// req, err := IntoGreptimeRequest(rows)
 	// assert.Nil(t, err)
 	// assert.NotNil(t, req)
+}
+
+func TestBuildInsertRequest(t *testing.T) {
+	type Monitor struct {
+		Host   string    `db:"host,INDEX"`
+		Ts     time.Time `db:"ts,TIMESTAMP"`
+		Cpu    float64   `db:"cpu"`
+		Memory float64   `db:"memory"`
+	}
+
+	monitors := []Monitor{
+		{"host1", time.Now(), 1, 1},
+		{"host2", time.Now(), 2, 2},
+	}
+
+	data := make([]any, len(monitors))
+	for idx, monitor := range monitors {
+		data[idx] = monitor
+	}
+
+	req := InsertRequest{
+		Header: Header{
+			Catalog:  "catalog",
+			Database: "database",
+		},
+		Table: "table",
+		Data:  data,
+	}
+
+	cols, err := req.Build()
+	fmt.Println(err)
+	fmt.Println(cols)
 }

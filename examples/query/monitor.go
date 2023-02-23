@@ -5,8 +5,8 @@ import (
 )
 
 type Monitor struct {
-	Host   string    `db: "host, TAG"`
-	Ts     time.Time `db: "ts, TIMESTAMP"`
-	Cpu    string    `db: "cpu, FIELD"`
-	Memory string    `db: "memory, FIELD"`
+	Host   string    `db:"host,INDEX"`
+	Ts     time.Time `db:"ts,TIMESTAMP"`
+	Cpu    string    `db:"cpu"`
+	Memory string    `db:"memory"`
 }

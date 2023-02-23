@@ -11,6 +11,6 @@ var (
 	ErrType          = errors.New("type err")
 )
 
-func UndefinedTypeError(typeName string) error {
-	return fmt.Errorf("undefined: %v", typeName)
+func UnsupportedTypeError(typeName string) error {
+	return fmt.Errorf("type '%v' unsupported.", typeName)
 }
