@@ -2,7 +2,6 @@ package request
 
 import (
 	"context"
-	"errors"
 
 	"github.com/apache/arrow/go/arrow/flight"
 	"google.golang.org/protobuf/proto"
@@ -26,9 +25,28 @@ func NewClient(cfg *Config) (*Client, error) {
 	}, nil
 }
 
-// Write ...
-func (c *Client) Insert(ctx context.Context) error {
-	return errors.New("")
+// Write data to greptime
+func (c *Client) Insert(ctx context.Context, req InsertRequest) (*flight.Reader, error) {
+	request, err := req.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := proto.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	sr, err := c.Client.DoGet(ctx, &flight.Ticket{Ticket: b})
+	if err != nil {
+		return nil, err
+	}
+
+	reader, err := flight.NewRecordReader(sr)
+	if err != nil {
+		return nil, err
+	}
+	return reader, nil
 }
 
 // Query data from greptimedb via SQL.

@@ -3,17 +3,11 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"time"
 
 	_ "GreptimeTeam/greptimedb-client-go/pkg/sql"
 )
 
-type Monitor struct {
-	Host   string
-	Ts     time.Time
-	Cpu    float64
-	Memory float64
-}
+
 
 func main() {
 	db, err := sql.Open("greptimedb", "(127.0.0.1:4001)/public")
