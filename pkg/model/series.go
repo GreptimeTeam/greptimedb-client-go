@@ -1,20 +1,26 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
+)
 
 type Series struct {
-	Name string
-	Tags []Tag
-	Vals []Value
-	Time *time.Time
+	Table     string
+	Tags      []Tag
+	Fields    []Field
+	Timestamp *time.Time
 }
 
 type Tag struct {
-	Key string
-	Val any
+	dataType greptime.ColumnDataType
+	Key      string
+	Value    any
 }
 
-type Value struct {
-	Key string
-	Val any
+type Field struct {
+	dataType greptime.ColumnDataType
+	Key      string
+	Value    any
 }
