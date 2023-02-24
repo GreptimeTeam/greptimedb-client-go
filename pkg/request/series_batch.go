@@ -1,19 +1,21 @@
-package model
+package request
 
 import (
 	"errors"
+
+	model "GreptimeTeam/greptimedb-client-go/pkg/model"
 
 	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
 
 // TODO(vinland-avalon): could be wrapped into struct implemented with `insert`, to make sure users transparent
 type SeriesBatch struct {
-	Series         []*Series
+	Series         []*model.Series
 	TagSchemaMap   map[string]greptime.ColumnDataType
 	FieldSchemaMap map[string]greptime.ColumnDataType
 }
 
-func (batch *SeriesBatch) addSeries(series *Series) error {
+func (batch *SeriesBatch) addSeries(series *model.Series) error {
 	var err error
 	if series == nil {
 		return NilPointerErr
@@ -48,7 +50,7 @@ func (batch *SeriesBatch) addSeries(series *Series) error {
 		}
 
 		// fill dataType into the tag of series
-		series.Tags[i].dataType = dataType
+		series.Tags[i].SetDataType(dataType)
 		// update the Value to the formatted Value
 		series.Tags[i].Value = value
 	}
@@ -78,7 +80,7 @@ func (batch *SeriesBatch) addSeries(series *Series) error {
 			batch.FieldSchemaMap[field.Key] = dataType
 		}
 
-		series.Fields[i].dataType = dataType
+		series.Fields[i].SetDataType(dataType)
 		series.Fields[i].Value = value
 	}
 	return nil

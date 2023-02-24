@@ -1,4 +1,4 @@
-package model
+package request
 
 import (
 	"fmt"
@@ -14,7 +14,6 @@ func intoGreptimeDataType(v any) (any, greptime.ColumnDataType, error) {
 	switch v := v.(type) {
 	case bool:
 		return v, greptime.ColumnDataType_BOOLEAN, nil
-
 	case string:
 		return v, greptime.ColumnDataType_STRING, nil
 	case []byte:
@@ -24,7 +23,6 @@ func intoGreptimeDataType(v any) (any, greptime.ColumnDataType, error) {
 		return v, greptime.ColumnDataType_FLOAT64, nil
 	case float32:
 		return v, greptime.ColumnDataType_FLOAT32, nil
-
 	case uint:
 		return uint64(v), greptime.ColumnDataType_UINT64, nil
 	case uint64:
@@ -35,7 +33,6 @@ func intoGreptimeDataType(v any) (any, greptime.ColumnDataType, error) {
 		return v, greptime.ColumnDataType_UINT16, nil
 	case uint8:
 		return v, greptime.ColumnDataType_UINT8, nil
-
 	case int:
 		return int64(v), greptime.ColumnDataType_INT64, nil
 	case int64:
@@ -46,7 +43,6 @@ func intoGreptimeDataType(v any) (any, greptime.ColumnDataType, error) {
 		return v, greptime.ColumnDataType_INT16, nil
 	case int8:
 		return v, greptime.ColumnDataType_INT8, nil
-
 	// TODO(vinland-avalon): convert with different precision
 	case time.Time:
 		return time.Time(v).UnixMilli(), greptime.ColumnDataType_TIMESTAMP_MILLISECOND, nil

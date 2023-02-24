@@ -24,3 +24,19 @@ type Field struct {
 	Key      string
 	Value    any
 }
+
+func (f *Field) GetDataType() greptime.ColumnDataType {
+	return f.dataType
+}
+
+func (f *Field) SetDataType(dataType greptime.ColumnDataType) {
+	f.dataType = dataType
+}
+
+func (t *Tag) GetDataType() greptime.ColumnDataType {
+	return t.dataType
+}
+
+func (t *Tag) SetDataType(dataType greptime.ColumnDataType) {
+	t.dataType = dataType
+}
