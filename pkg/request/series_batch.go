@@ -11,8 +11,18 @@ import (
 // TODO(vinland-avalon): could be wrapped into struct implemented with `insert`, to make sure users transparent
 type SeriesBatch struct {
 	Series         []*model.Series
+	Table          *string
 	TagSchemaMap   map[string]greptime.ColumnDataType
 	FieldSchemaMap map[string]greptime.ColumnDataType
+}
+
+func InitSeriesBatch() *SeriesBatch {
+	return &SeriesBatch{
+		[]*model.Series{},
+		nil,
+		map[string]greptime.ColumnDataType{},
+		map[string]greptime.ColumnDataType{},
+	}
 }
 
 func (batch *SeriesBatch) addSeries(series *model.Series) error {
@@ -21,67 +31,74 @@ func (batch *SeriesBatch) addSeries(series *model.Series) error {
 		return NilPointerErr
 	}
 
-	// TODO(vinland-avalon): the logic to deal with `tag` and `field` is same, try to simplify it
-	for i, tag := range series.Tags {
-		var value any
-		var dataType greptime.ColumnDataType
-		// if the key has been defined as a key of field, it should not be defined twice
-		if _, ok := batch.FieldSchemaMap[tag.Key]; ok {
-			return errors.New("the key should not be defined as both tag and field")
+	// check table name
+	if batch.Table == nil {
+		batch.Table = &series.Table
+	} else {
+		if *batch.Table != series.Table {
+			return errors.New("different tables in one batch is not allowed")
+		}
+	}
+
+	// ckeck data type of both tags column and field columns
+	isColumnTypeConsistent := func(preDefinedColumns *map[string]greptime.ColumnDataType,
+		pair model.KeyValuePair) error {
+		dataType, err := intoGreptimeDataTypeEnum(pair.GetValue())
+		if err != nil {
+			return err
 		}
 		// if the tag's type has been defined for previous series
-		// then 1)check if the type is valid, 2)check if the two types are same
-		if existType, ok := batch.TagSchemaMap[tag.Key]; ok {
-			value, dataType, err = intoGreptimeDataType(tag.Value)
-			if err != nil {
-				return err
-			}
+		// then check if the two types are same
+		// else if the tag's type has not been defined for previous series
+		// then add to map
+		if existType, ok := (*preDefinedColumns)[pair.GetKey()]; ok {
 			if existType != dataType {
 				return TypeNotMatchErr
 			}
-			// else if the tag's type has not been defined for previous series
-			// then 1)check if the type is valid, 2)add to map
 		} else {
-			value, dataType, err = intoGreptimeDataType(tag.Value)
-			if err != nil {
-				return err
-			}
-			batch.TagSchemaMap[tag.Key] = dataType
+			(*preDefinedColumns)[pair.GetKey()] = dataType
+		}
+		return nil
+	}
+
+	for i, tag := range series.Tags {
+		// if the key has been defined as a key of field, it should not be defined twice
+		if _, ok := batch.FieldSchemaMap[tag.Key]; ok {
+			return DuplicatedKeyErr
 		}
 
-		// fill dataType into the tag of series
-		series.Tags[i].SetDataType(dataType)
+		err = isColumnTypeConsistent((&batch.TagSchemaMap), tag)
+		if err != nil {
+			return err
+		}
+
 		// update the Value to the formatted Value
+		value, err := intoGreptimeDataType(tag.Value)
+		if err != nil {
+			return err
+		}
 		series.Tags[i].Value = value
 	}
 
 	// just the same process as tags
 	for i, field := range series.Fields {
-		var value any
-		var dataType greptime.ColumnDataType
-
 		if _, ok := batch.TagSchemaMap[field.Key]; ok {
-			return errors.New("the key should not be defined as both tag and field")
+			return DuplicatedKeyErr
 		}
 
-		if existType, ok := batch.FieldSchemaMap[field.Key]; ok {
-			value, dataType, err = intoGreptimeDataType(field.Value)
-			if err != nil {
-				return err
-			}
-			if existType != dataType {
-				return TypeNotMatchErr
-			}
-		} else {
-			value, dataType, err = intoGreptimeDataType(field.Value)
-			if err != nil {
-				return err
-			}
-			batch.FieldSchemaMap[field.Key] = dataType
+		err = isColumnTypeConsistent((&batch.FieldSchemaMap), field)
+		if err != nil {
+			return err
 		}
 
-		series.Fields[i].SetDataType(dataType)
+		value, err := intoGreptimeDataType(field.Value)
+		if err != nil {
+			return err
+		}
 		series.Fields[i].Value = value
 	}
+
+	batch.Series = append(batch.Series, series)
+
 	return nil
 }

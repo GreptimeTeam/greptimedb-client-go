@@ -2,8 +2,6 @@ package model
 
 import (
 	"time"
-
-	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
 
 type Series struct {
@@ -14,29 +12,34 @@ type Series struct {
 }
 
 type Tag struct {
-	dataType greptime.ColumnDataType
-	Key      string
-	Value    any
+	// dataType greptime.ColumnDataType
+	Key   string
+	Value any
 }
 
 type Field struct {
-	dataType greptime.ColumnDataType
-	Key      string
-	Value    any
+	// dataType greptime.ColumnDataType
+	Key   string
+	Value any
 }
 
-func (f *Field) GetDataType() greptime.ColumnDataType {
-	return f.dataType
+type KeyValuePair interface {
+	GetValue() any
+	GetKey() string
 }
 
-func (f *Field) SetDataType(dataType greptime.ColumnDataType) {
-	f.dataType = dataType
+func (f Field) GetValue() any {
+	return f.Value
 }
 
-func (t *Tag) GetDataType() greptime.ColumnDataType {
-	return t.dataType
+func (f Field) GetKey() string {
+	return f.Key
 }
 
-func (t *Tag) SetDataType(dataType greptime.ColumnDataType) {
-	t.dataType = dataType
+func (t Tag) GetValue() any {
+	return t.Value
+}
+
+func (t Tag) GetKey() string {
+	return t.Key
 }
