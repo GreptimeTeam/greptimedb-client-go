@@ -1,8 +1,6 @@
 package request
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"time"
 
@@ -60,19 +58,4 @@ func convert(v any) (*value, error) {
 	default:
 		return nil, fmt.Errorf("the type '%v' not supported", t)
 	}
-}
-
-// convertUintToBytes using BigEndian
-func convertUintToBytes(num uint32) ([]byte, error) {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.BigEndian, num)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-// convertBytesToUint using BigEndian
-func convertBytesToUint(b []byte) uint32 {
-	return binary.BigEndian.Uint32(b)
 }

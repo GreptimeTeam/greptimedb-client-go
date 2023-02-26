@@ -1,7 +1,9 @@
 package request
 
 import (
+	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
@@ -103,6 +105,10 @@ func (m *Metric) AddSeries(s Series) error {
 }
 
 func (m *Metric) IntoGreptimeColumn() ([]*greptime.Column, error) {
+	if len(m.series) == 0 {
+		return nil, errors.New("empty series")
+	}
+
 	mappedCols := map[string]*greptime.Column{}
 	for name, col := range m.columns {
 		column := greptime.Column{
@@ -110,11 +116,12 @@ func (m *Metric) IntoGreptimeColumn() ([]*greptime.Column, error) {
 			SemanticType: col.semantic,
 			Datatype:     col.typ,
 			Values:       &greptime.Column_Values{},
-			NullMask:     []byte{},
+			NullMask:     nil,
 		}
 		mappedCols[name] = &column
 	}
 
+	nullMasks := map[string]*NullMask{}
 	for rowIdx, s := range m.series {
 		for name, col := range mappedCols {
 			if val, exist := s.vals[name]; exist {
@@ -122,11 +129,20 @@ func (m *Metric) IntoGreptimeColumn() ([]*greptime.Column, error) {
 					return nil, err
 				}
 			} else {
-				if err := setNull(col, rowIdx); err != nil {
-					return nil, err
+				mask, exist := nullMasks[name]
+				if !exist {
+					mask = &NullMask{}
+					nullMasks[name] = mask
 				}
+				mask.set(uint(rowIdx))
 			}
 		}
+	}
+
+	size := int(math.Ceil(float64(len(m.series)) / 8.0))
+	err := setNullMask(mappedCols, nullMasks, size)
+	if err != nil {
+		return nil, err
 	}
 
 	result := make([]*greptime.Column, 0, len(mappedCols))
@@ -162,22 +178,19 @@ func setColumn(col *greptime.Column, val any) error {
 	return nil
 }
 
-// FIXME(yuanbohan): this logic is wrong
-func setNull(col *greptime.Column, idx int) error {
-	var mask uint32
-	if len(col.NullMask) == 0 {
-		mask = uint32(0)
-	} else {
-		mask = convertBytesToUint(col.NullMask)
-	}
+func setNullMask(cols map[string]*greptime.Column, masks map[string]*NullMask, size int) error {
+	for name, mask := range masks {
+		b, err := mask.shrink(size)
+		if err != nil {
+			return err
+		}
 
-	// the first position of mask is from one, not zero
-	newMask, err := convertUintToBytes(mask | uint32(idx+1))
-	if err != nil {
-		return err
+		col, exist := cols[name]
+		if !exist {
+			return fmt.Errorf("%v column not found when set null mask", name)
+		}
+		col.NullMask = b
 	}
-
-	col.NullMask = newMask
 
 	return nil
 }

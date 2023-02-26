@@ -171,46 +171,54 @@ func TestGreptimeColumn(t *testing.T) {
 	assert.Equal(t, greptime.ColumnDataType_STRING, col1.Datatype)
 	assert.Equal(t, greptime.Column_TAG, col1.SemanticType)
 	assert.Equal(t, []string{"tag1", "tag2"}, col1.Values.StringValues)
+	assert.Empty(t, col1.NullMask)
 
 	col2 := cols[1]
 	assert.Equal(t, "tag2", col2.ColumnName)
 	assert.Equal(t, greptime.ColumnDataType_BOOLEAN, col2.Datatype)
 	assert.Equal(t, greptime.Column_TAG, col2.SemanticType)
 	assert.Equal(t, []bool{true, false}, col2.Values.BoolValues)
+	assert.Empty(t, col2.NullMask)
 
 	col3 := cols[2]
 	assert.Equal(t, "tag3", col3.ColumnName)
 	assert.Equal(t, greptime.ColumnDataType_INT32, col3.Datatype)
 	assert.Equal(t, greptime.Column_TAG, col3.SemanticType)
 	assert.Equal(t, []int32{32}, col3.Values.I32Values)
+	assert.Equal(t, []byte{2}, col3.NullMask)
 
 	col4 := cols[3]
 	assert.Equal(t, "tag4", col4.ColumnName)
 	assert.Equal(t, greptime.ColumnDataType_FLOAT64, col4.Datatype)
 	assert.Equal(t, greptime.Column_TAG, col4.SemanticType)
 	assert.Equal(t, []float64{32}, col4.Values.F64Values)
+	assert.Equal(t, []byte{2}, col4.NullMask)
 
 	col5 := cols[4]
 	assert.Equal(t, "field1", col5.ColumnName)
 	assert.Equal(t, greptime.ColumnDataType_UINT32, col5.Datatype)
 	assert.Equal(t, greptime.Column_FIELD, col5.SemanticType)
 	assert.Equal(t, []uint32{8, 8}, col5.Values.U32Values)
+	assert.Empty(t, col5.NullMask)
 
 	col6 := cols[5]
 	assert.Equal(t, "field2", col6.ColumnName)
 	assert.Equal(t, greptime.ColumnDataType_UINT64, col6.Datatype)
 	assert.Equal(t, greptime.Column_FIELD, col6.SemanticType)
 	assert.Equal(t, []uint64{64, 64}, col6.Values.U64Values)
+	assert.Empty(t, col6.NullMask)
 
 	col7 := cols[6]
 	assert.Equal(t, "field3", col7.ColumnName)
 	assert.Equal(t, greptime.ColumnDataType_STRING, col7.Datatype)
 	assert.Equal(t, greptime.Column_FIELD, col7.SemanticType)
 	assert.Equal(t, []string{"field3"}, col7.Values.StringValues)
+	assert.Equal(t, []byte{1}, col7.NullMask)
 
 	col8 := cols[7]
 	assert.Equal(t, "field4", col8.ColumnName)
 	assert.Equal(t, greptime.ColumnDataType_FLOAT64, col8.Datatype)
 	assert.Equal(t, greptime.Column_FIELD, col8.SemanticType)
 	assert.Equal(t, []float64{32}, col8.Values.F64Values)
+	assert.Equal(t, []byte{1}, col8.NullMask)
 }

@@ -9,14 +9,6 @@ import (
 	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
 
-func TestConvertBytes(t *testing.T) {
-	var i uint32 = 0
-	b, err := convertUintToBytes(i)
-	assert.Nil(t, err)
-
-	assert.Equal(t, i, convertBytesToUint(b))
-}
-
 func TestConvertValue(t *testing.T) {
 	// bool
 	var expectBool bool = true
