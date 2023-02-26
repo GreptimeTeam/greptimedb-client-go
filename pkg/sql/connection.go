@@ -17,7 +17,7 @@ func (c *connection) Prepare(query string) (driver.Stmt, error) {
 	return c.PrepareContext(context.Background(), query)
 }
 
-// FIXME(yuanbohan): real logic
+// TODO(yuanbohan): real logic
 // method of driver.Conn interface
 func (c *connection) Close() error {
 	return nil

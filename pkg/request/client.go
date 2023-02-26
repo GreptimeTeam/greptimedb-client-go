@@ -14,7 +14,7 @@ type Client struct {
 
 // New will create the greptimedb client, which will be responsible Write/Read data To/From GreptimeDB
 func NewClient(cfg *Config) (*Client, error) {
-	// FIXME(yuanbohan): use real auth and middleware parameters
+	// TODO(yuanbohan): use real auth and middleware parameters
 	client, err := flight.NewClientWithMiddleware(cfg.Address, nil, nil, cfg.DialOptions...)
 	if err != nil {
 		return nil, err
