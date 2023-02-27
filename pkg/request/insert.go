@@ -1,6 +1,7 @@
 package request
 
 import (
+	"errors"
 	"strings"
 
 	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
@@ -8,8 +9,8 @@ import (
 
 type InsertRequest struct {
 	Header
-	Table string
-	Data  []any
+	Table  string
+	Metric Metric
 }
 
 func (r *InsertRequest) WithTable(table string) *InsertRequest {
@@ -17,8 +18,8 @@ func (r *InsertRequest) WithTable(table string) *InsertRequest {
 	return r
 }
 
-func (r *InsertRequest) WithData(data []any) *InsertRequest {
-	r.Data = data
+func (r *InsertRequest) WithMetric(metric Metric) *InsertRequest {
+	r.Metric = metric
 	return r
 }
 
@@ -28,5 +29,5 @@ func (r *InsertRequest) IsTableEmpty() bool {
 
 func (r *InsertRequest) Build() (*greptime.GreptimeRequest, error) {
 
-	return nil, nil
+	return nil, errors.New("not implemented")
 }

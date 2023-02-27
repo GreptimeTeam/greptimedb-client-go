@@ -22,11 +22,11 @@ func (r *QueryRequest) IsSqlEmpty() bool {
 
 func (r *QueryRequest) Build() (*greptime.GreptimeRequest, error) {
 	if r.IsDatabaseEmpty() {
-		return nil, EmptyDatabaseError
+		return nil, ErrEmptyDatabase
 	}
 
 	if r.IsSqlEmpty() {
-		return nil, EmptySqlError
+		return nil, ErrEmptySql
 	}
 
 	header := &greptime.RequestHeader{

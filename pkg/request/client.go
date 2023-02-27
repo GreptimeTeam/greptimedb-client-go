@@ -2,7 +2,6 @@ package request
 
 import (
 	"context"
-	"errors"
 
 	"github.com/apache/arrow/go/arrow/flight"
 	"google.golang.org/protobuf/proto"
@@ -15,7 +14,7 @@ type Client struct {
 
 // New will create the greptimedb client, which will be responsible Write/Read data To/From GreptimeDB
 func NewClient(cfg *Config) (*Client, error) {
-	// FIXME(yuanbohan): use real auth and middleware parameters
+	// TODO(yuanbohan): use real auth and middleware parameters
 	client, err := flight.NewClientWithMiddleware(cfg.Address, nil, nil, cfg.DialOptions...)
 	if err != nil {
 		return nil, err
@@ -26,9 +25,20 @@ func NewClient(cfg *Config) (*Client, error) {
 	}, nil
 }
 
-// Write ...
-func (c *Client) Insert(ctx context.Context) error {
-	return errors.New("")
+func (c *Client) Insert(ctx context.Context, req InsertRequest) error {
+	request, err := req.Build()
+	if err != nil {
+		return err
+	}
+
+	_, err = proto.Marshal(request)
+	if err != nil {
+		return err
+	}
+
+	// TODO(yuanbohan): real logic here
+
+	return nil
 }
 
 // Query data from greptimedb via SQL.
