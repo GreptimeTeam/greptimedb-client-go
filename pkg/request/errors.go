@@ -5,6 +5,7 @@ import (
 )
 
 var (
-	ErrEmptyDatabase = errors.New("database is required")
+	ErrEmptyDatabase = errors.New("have not set database")
+	ErrEmptyTable = errors.New("have not set table")
 	ErrEmptySql      = errors.New("sql is required in querying")
 )

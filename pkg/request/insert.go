@@ -27,6 +27,9 @@ func (r *InsertRequest) IsTableEmpty() bool {
 }
 
 func (r *InsertRequest) Build() (*greptime.GreptimeRequest, error) {
+	if len(r.Database) == 0 {
+		return nil, ErrEmptyDatabase
+	}
 	header := greptime.RequestHeader{Catalog: r.Catalog,
 		Schema: r.Database}
 
@@ -35,6 +38,9 @@ func (r *InsertRequest) Build() (*greptime.GreptimeRequest, error) {
 		return nil, err
 	}
 
+	if len(r.Table) == 0 {
+		return nil, ErrEmptyTable
+	} 
 	req := greptime.GreptimeRequest_Insert{
 		Insert: &greptime.InsertRequest{
 			TableName:    r.Table,
