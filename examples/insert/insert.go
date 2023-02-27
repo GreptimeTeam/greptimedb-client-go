@@ -24,8 +24,8 @@ func main() {
 	}
 
 	series := request.Series{}
-	series.AddTag("host", "localhost")
-	series.SetTimeWithKey("timestamp", time.Now())
+	series.AddTag("host", "localhost10")
+	series.SetTimeWithKey("ts", time.Now())
 	series.AddField("cpu", 0.90)
 	series.AddField("memory", 1024.0)
 	// series.SetTime(time.Now())
