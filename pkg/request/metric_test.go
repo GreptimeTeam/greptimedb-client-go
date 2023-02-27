@@ -15,13 +15,15 @@ func TestSeries(t *testing.T) {
 	s.AddTag("tag2", true)
 	s.AddTag("tag3", int32(32))
 	s.AddTag("tag4", float64(32.0))
+	timestamp := time.Now()
+	s.SetTimeWithKey("timestamp", timestamp)
 	s.AddField("field1", []byte("field val"))
 	s.AddField("field2", float32(32.0))
 	s.AddField("field3", uint8(8))
 	s.AddField("field4", uint64(64))
 
 	// check columns
-	assert.Equal(t, 8, len(s.columns))
+	assert.Equal(t, 9, len(s.columns))
 	assert.Equal(t, greptime.ColumnDataType_STRING, s.columns["tag1"].typ)
 	assert.Equal(t, greptime.Column_TAG, s.columns["tag1"].semantic)
 	assert.Equal(t, greptime.ColumnDataType_BOOLEAN, s.columns["tag2"].typ)
@@ -38,9 +40,11 @@ func TestSeries(t *testing.T) {
 	assert.Equal(t, greptime.Column_FIELD, s.columns["field3"].semantic)
 	assert.Equal(t, greptime.ColumnDataType_UINT64, s.columns["field4"].typ)
 	assert.Equal(t, greptime.Column_FIELD, s.columns["field4"].semantic)
+	assert.Equal(t, greptime.ColumnDataType_TIMESTAMP_MILLISECOND, s.columns["timestamp"].typ)
+	assert.Equal(t, greptime.Column_TIMESTAMP, s.columns["timestamp"].semantic)
 
 	// check values
-	assert.Equal(t, 8, len(s.vals))
+	assert.Equal(t, 9, len(s.vals))
 	assert.Equal(t, "tag val", s.vals["tag1"])
 	assert.Equal(t, true, s.vals["tag2"])
 	assert.Equal(t, int32(32), s.vals["tag3"])
@@ -49,6 +53,11 @@ func TestSeries(t *testing.T) {
 	assert.Equal(t, float64(32.0), s.vals["field2"])
 	assert.Equal(t, uint32(8), s.vals["field3"])
 	assert.Equal(t, uint64(64), s.vals["field4"])
+
+	// check if the timestamp column is the last
+	err := s.moveTimeStampColumnToLast()
+	assert.Nil(t, err)
+	assert.Equal(t, s.order[len(s.order)-1], "timestamp")
 }
 
 func TestValueReplaced(t *testing.T) {

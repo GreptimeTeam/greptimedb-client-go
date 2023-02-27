@@ -30,8 +30,10 @@ func (r *InsertRequest) Build() (*greptime.GreptimeRequest, error) {
 	if len(r.Database) == 0 {
 		return nil, ErrEmptyDatabase
 	}
-	header := greptime.RequestHeader{Catalog: r.Catalog,
-		Schema: r.Database}
+	header := greptime.RequestHeader{
+		Catalog: r.Catalog,
+		Schema:  r.Database,
+	}
 
 	columns, err := r.Metric.IntoGreptimeColumn()
 	if err != nil {
@@ -40,7 +42,7 @@ func (r *InsertRequest) Build() (*greptime.GreptimeRequest, error) {
 
 	if len(r.Table) == 0 {
 		return nil, ErrEmptyTable
-	} 
+	}
 	req := greptime.GreptimeRequest_Insert{
 		Insert: &greptime.InsertRequest{
 			TableName:    r.Table,

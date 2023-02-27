@@ -89,6 +89,24 @@ func (s *Series) SetTimeWithKey(key string, t time.Time) error {
 	return s.addVal(key, t, greptime.Column_TIMESTAMP)
 }
 
+func (s *Series) moveTimeStampColumnToLast() error {
+	if len(s.timestampAlias) == 0 {
+		return ErrEmptyTimestamp
+	}
+	index := 0
+	for ; index < len(s.order); index++ {
+		if s.order[index] == s.timestampAlias {
+			break;
+		}
+	}
+	if index == len(s.order) {
+		return ErrEmptyTimestamp
+	}
+	s.order = append(s.order[:index], s.order[index + 1:]...)
+	s.order = append(s.order, s.timestampAlias)
+	return nil
+}
+
 type Metric struct {
 	order   []string
 	columns map[string]column
@@ -97,12 +115,13 @@ type Metric struct {
 
 func (m *Metric) AddSeries(s Series) error {
 	if len(s.timestampAlias) == 0 {
-		return errors.New("have not set timestamp")
+		return ErrEmptyTimestamp
 	}
 	if len(m.series) != 0 &&
 		m.series[0].timestampAlias != s.timestampAlias {
 			return errors.New("should not add a series that has a different timestamp key")
 	}
+	s.moveTimeStampColumnToLast()
 
 	if m.columns == nil {
 		m.columns = map[string]column{}
