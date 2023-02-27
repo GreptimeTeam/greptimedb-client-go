@@ -18,7 +18,6 @@ type Series struct {
 	order   []string
 	columns map[string]column
 	vals    map[string]any
-	ts      *time.Time
 }
 
 func checkColumnEquality(key string, col1, col2 column) error {
@@ -73,8 +72,8 @@ func (s *Series) AddField(key string, val any) error {
 	return s.addVal(key, val, greptime.Column_FIELD)
 }
 
-func (s *Series) SetTime(t time.Time) {
-	s.ts = &t
+func (s *Series) SetTime(t time.Time) error {
+	return s.addVal("ts", t, greptime.Column_TIMESTAMP)
 }
 
 type Metric struct {

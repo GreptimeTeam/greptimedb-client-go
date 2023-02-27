@@ -49,11 +49,6 @@ func TestSeries(t *testing.T) {
 	assert.Equal(t, float64(32.0), s.vals["field2"])
 	assert.Equal(t, uint32(8), s.vals["field3"])
 	assert.Equal(t, uint64(64), s.vals["field4"])
-
-	// check ts
-	assert.Nil(t, s.ts)
-	s.SetTime(time.Now())
-	assert.NotNil(t, s.ts)
 }
 
 func TestValueReplaced(t *testing.T) {
