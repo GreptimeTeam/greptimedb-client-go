@@ -40,3 +40,19 @@ func TestConvertValue(t *testing.T) {
 	_, err = convert(time.April)
 	assert.NotNil(t, err)
 }
+
+func TestEmptyString(t *testing.T) {
+	assert.True(t, IsEmptyString(""))
+	assert.True(t, IsEmptyString(" "))
+	assert.True(t, IsEmptyString("  "))
+	assert.True(t, IsEmptyString("\t"))
+}
+
+func TestColumnName(t *testing.T) {
+	assert.Equal(t, "ts", ToColumnName("ts "))
+	assert.Equal(t, "ts", ToColumnName(" TS"))
+	assert.Equal(t, "ts", ToColumnName(" Ts "))
+
+	assert.Equal(t, "disk_usage", ToColumnName("DiskUsage"))
+	assert.Equal(t, "disk_usage", ToColumnName("Disk-Usage"))
+}

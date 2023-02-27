@@ -2,7 +2,10 @@ package request
 
 import (
 	"fmt"
+	"strings"
 	"time"
+
+	strcase "github.com/stoewer/go-strcase"
 
 	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
@@ -58,4 +61,12 @@ func convert(v any) (*value, error) {
 	default:
 		return nil, fmt.Errorf("the type '%v' not supported", t)
 	}
+}
+
+func IsEmptyString(s string) bool {
+	return len(strings.TrimSpace(s)) == 0
+}
+
+func ToColumnName(s string) string {
+	return strings.ToLower(strings.TrimSpace(strcase.SnakeCase(s)))
 }

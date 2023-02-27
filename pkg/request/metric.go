@@ -16,9 +16,11 @@ type column struct {
 }
 
 type Series struct {
-	order          []string
-	columns        map[string]column
-	vals           map[string]any
+	// order, columns and vals SHOULD NOT contain timestampAlias
+	order   []string
+	columns map[string]column
+	vals    map[string]any
+
 	timestampAlias string
 	timestamp      time.Time
 }
@@ -35,10 +37,11 @@ func checkColumnEquality(key string, col1, col2 column) error {
 }
 
 func (s *Series) addVal(key string, val any, semantic greptime.Column_SemanticType) error {
-	key = strings.TrimSpace(key)
-	if len(key) == 0 {
+	if IsEmptyString(key) {
 		return ErrEmptyKey
 	}
+	key = ToColumnName(key)
+
 	if s.columns == nil {
 		s.columns = map[string]column{}
 	}
@@ -71,19 +74,11 @@ func (s *Series) addVal(key string, val any, semantic greptime.Column_SemanticTy
 
 // AddTag prepate tag column, and old value will be replaced if same tag is set
 func (s *Series) AddTag(key string, val any) error {
-	key = strings.TrimSpace(key)
-	if len(key) == 0 {
-		return ErrEmptyKey
-	}
 	return s.addVal(key, val, greptime.Column_TAG)
 }
 
 // AddField prepate field column, and old value will be replaced if same field is set
 func (s *Series) AddField(key string, val any) error {
-	key = strings.TrimSpace(key)
-	if len(key) == 0 {
-		return ErrEmptyKey
-	}
 	return s.addVal(key, val, greptime.Column_FIELD)
 }
 
@@ -93,30 +88,34 @@ func (s *Series) SetTime(t time.Time) error {
 
 func (s *Series) SetTimeWithKey(key string, t time.Time) error {
 	if len(s.timestampAlias) != 0 {
-		return errors.New("already set a key for timestamp column name")
+		return errors.New("timestamp column name CAN NOT be set twice")
 	}
-	key = strings.TrimSpace(key)
-	if len(key) == 0 {
+
+	if IsEmptyString(key) {
 		return ErrEmptyKey
 	}
-	s.timestampAlias = key
+
+	s.timestampAlias = ToColumnName(key)
 	s.timestamp = t
 	return nil
 }
 
 type Metric struct {
+	timestampAlias string
+	// order and columns SHOULD NOT contain timestampAlias key
 	order   []string
 	columns map[string]column
-	series  []Series
+
+	series []Series
 }
 
 func (m *Metric) AddSeries(s Series) error {
-	timestampAlias := s.timestampAlias
-	if len(m.columns) != 0 {
-		if m.order[len(m.order)-1] != timestampAlias {
-			return errors.New("should not add a series that has a different timestamp key")
-		}
-		m.order = m.order[:len(m.order)-1]
+	if !IsEmptyString(m.timestampAlias) && !IsEmptyString(s.timestampAlias) &&
+		!strings.EqualFold(m.timestampAlias, s.timestampAlias) {
+		return fmt.Errorf("different series MUST share same timestamp key, '%s' and '%s' does not match",
+			m.timestampAlias, s.timestampAlias)
+	} else if IsEmptyString(m.timestampAlias) && !IsEmptyString(s.timestampAlias) {
+		m.timestampAlias = s.timestampAlias
 	}
 
 	if m.columns == nil {
@@ -135,24 +134,36 @@ func (m *Metric) AddSeries(s Series) error {
 		}
 	}
 
-	m.order = append(m.order, timestampAlias)
-	s.addVal(timestampAlias, s.timestamp, greptime.Column_TIMESTAMP)
-	if _, ok := m.columns[timestampAlias]; !ok {
-		m.columns[timestampAlias] = column{
-			typ:      greptime.ColumnDataType_TIMESTAMP_MILLISECOND,
-			semantic: greptime.Column_TIMESTAMP,
-		}
-	}
-
 	m.series = append(m.series, s)
 	return nil
 }
 
 func (m *Metric) IntoGreptimeColumn() ([]*greptime.Column, error) {
 	if len(m.series) == 0 {
-		return nil, errors.New("empty series")
+		return nil, errors.New("empty series in Metric")
 	}
 
+	result, err := m.normalColumns()
+	if err != nil {
+		return nil, err
+	}
+
+	tsColumn, err := m.timestampColumn()
+	if err != nil {
+		return nil, err
+	}
+
+	result = append(result, tsColumn)
+	return result, nil
+}
+
+func (m *Metric) nullMaskByteSize() int {
+	return int(math.Ceil(float64(len(m.series)) / 8.0))
+}
+
+// normalColumns does not contain timestamp semantic column
+func (m *Metric) normalColumns() ([]*greptime.Column, error) {
+	nullMasks := map[string]*Mask{}
 	mappedCols := map[string]*greptime.Column{}
 	for name, col := range m.columns {
 		column := greptime.Column{
@@ -165,7 +176,6 @@ func (m *Metric) IntoGreptimeColumn() ([]*greptime.Column, error) {
 		mappedCols[name] = &column
 	}
 
-	nullMasks := map[string]*Mask{}
 	for rowIdx, s := range m.series {
 		for name, col := range mappedCols {
 			if val, exist := s.vals[name]; exist {
@@ -183,17 +193,44 @@ func (m *Metric) IntoGreptimeColumn() ([]*greptime.Column, error) {
 		}
 	}
 
-	size := int(math.Ceil(float64(len(m.series)) / 8.0))
-	err := setNullMask(mappedCols, nullMasks, size)
-	if err != nil {
-		return nil, err
+	if len(nullMasks) > 0 {
+		if err := setNullMask(mappedCols, nullMasks, m.nullMaskByteSize()); err != nil {
+			return nil, err
+		}
 	}
 
 	result := make([]*greptime.Column, 0, len(mappedCols))
 	for _, key := range m.order {
 		result = append(result, mappedCols[key])
 	}
+
 	return result, nil
+}
+
+func (m *Metric) timestampColumn() (*greptime.Column, error) {
+	tsColumn := &greptime.Column{
+		ColumnName:   m.timestampAlias,
+		SemanticType: greptime.Column_TIMESTAMP,
+		Datatype:     greptime.ColumnDataType_TIMESTAMP_MILLISECOND,
+		Values:       &greptime.Column_Values{},
+		NullMask:     nil,
+	}
+	nullMask := Mask{}
+	for rowIdx, s := range m.series {
+		if !IsEmptyString(s.timestampAlias) {
+			setColumn(tsColumn, s.timestamp.UnixMilli())
+		} else {
+			nullMask.set(uint(rowIdx))
+		}
+	}
+
+	if b, err := nullMask.shrink(m.nullMaskByteSize()); err != nil {
+		return nil, err
+	} else {
+		tsColumn.NullMask = b
+	}
+
+	return tsColumn, nil
 }
 
 func setColumn(col *greptime.Column, val any) error {
