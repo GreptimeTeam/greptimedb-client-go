@@ -5,8 +5,9 @@ import (
 )
 
 var (
-	ErrEmptyDatabase  = errors.New("have not set database")
-	ErrEmptyTable     = errors.New("have not set table")
-	ErrEmptyTimestamp = errors.New("have not set timestamp")
+	ErrEmptyDatabase  = errors.New("name of database should not empty")
+	ErrEmptyTable     = errors.New("name of table should not be empty")
+	ErrEmptyTimestamp = errors.New("key of timestamp should not be empty")
+	ErrEmptyKey       = errors.New("key should not be an empty string")
 	ErrEmptySql       = errors.New("sql is required in querying")
 )

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
@@ -33,6 +34,10 @@ func checkColumnEquality(key string, col1, col2 column) error {
 }
 
 func (s *Series) addVal(key string, val any, semantic greptime.Column_SemanticType) error {
+	key = strings.TrimSpace(key)
+	if len(key) == 0 {
+		return ErrEmptyKey
+	}
 	if s.columns == nil {
 		s.columns = map[string]column{}
 	}
@@ -65,11 +70,19 @@ func (s *Series) addVal(key string, val any, semantic greptime.Column_SemanticTy
 
 // AddTag prepate tag column, and old value will be replaced if same tag is set
 func (s *Series) AddTag(key string, val any) error {
+	key = strings.TrimSpace(key)
+	if len(key) == 0 {
+		return ErrEmptyKey
+	}
 	return s.addVal(key, val, greptime.Column_TAG)
 }
 
 // AddField prepate field column, and old value will be replaced if same field is set
 func (s *Series) AddField(key string, val any) error {
+	key = strings.TrimSpace(key)
+	if len(key) == 0 {
+		return ErrEmptyKey
+	}
 	return s.addVal(key, val, greptime.Column_FIELD)
 }
 
@@ -84,6 +97,10 @@ func (s *Series) SetTime(t time.Time) error {
 func (s *Series) SetTimeWithKey(key string, t time.Time) error {
 	if len(s.timestampAlias) != 0 {
 		return errors.New("already set a key for timestamp column name")
+	}
+	key = strings.TrimSpace(key)
+	if len(key) == 0 {
+		return ErrEmptyKey
 	}
 	s.timestampAlias = key
 	return s.addVal(key, t, greptime.Column_TIMESTAMP)
