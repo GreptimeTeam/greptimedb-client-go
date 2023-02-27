@@ -31,12 +31,16 @@ func (c *Client) Insert(ctx context.Context, req InsertRequest) error {
 		return err
 	}
 
-	_, err = proto.Marshal(request)
+	b, err := proto.Marshal(request)
 	if err != nil {
 		return err
 	}
 
-	// TODO(yuanbohan): real logic here
+	// TODO(vinland-avalon): return information like `AffectedRows`
+	_, err = c.Client.DoGet(ctx, &flight.Ticket{Ticket: b})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

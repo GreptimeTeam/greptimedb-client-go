@@ -4,7 +4,7 @@ import "strings"
 
 type Header struct {
 	Catalog  string // optional
-	Datadase string // required
+	Database string // required
 }
 
 func (h *Header) WithCatalog(catalog string) *Header {
@@ -13,10 +13,14 @@ func (h *Header) WithCatalog(catalog string) *Header {
 }
 
 func (h *Header) WithDatabase(database string) *Header {
-	h.Datadase = database
+	h.Database = database
 	return h
 }
 
 func (h *Header) IsDatabaseEmpty() bool {
-	return len(strings.TrimSpace(h.Datadase)) == 0
+	return len(strings.TrimSpace(h.Database)) == 0
+}
+
+func (h *Header) IsTableEmpty() bool {
+	return len(strings.TrimSpace(h.Database)) == 0
 }

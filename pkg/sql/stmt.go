@@ -43,7 +43,7 @@ func (s *stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driv
 	}
 	req := req.QueryRequest{
 		Header: req.Header{
-			Datadase: s.client.Cfg.Database,
+			Database: s.client.Cfg.Database,
 		},
 		Sql: s.query,
 	}

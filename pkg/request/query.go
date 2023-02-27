@@ -31,7 +31,7 @@ func (r *QueryRequest) Build() (*greptime.GreptimeRequest, error) {
 
 	header := &greptime.RequestHeader{
 		Catalog: r.Catalog,
-		Schema:  r.Datadase,
+		Schema:  r.Database,
 	}
 
 	query := &greptime.GreptimeRequest_Query{
