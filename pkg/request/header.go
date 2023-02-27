@@ -20,3 +20,7 @@ func (h *Header) WithDatabase(database string) *Header {
 func (h *Header) IsDatabaseEmpty() bool {
 	return len(strings.TrimSpace(h.Database)) == 0
 }
+
+func (h *Header) IsTableEmpty() bool {
+	return len(strings.TrimSpace(h.Database)) == 0
+}

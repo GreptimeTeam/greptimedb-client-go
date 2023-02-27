@@ -26,8 +26,12 @@ func (r *InsertRequest) IsTableEmpty() bool {
 	return len(strings.TrimSpace(r.Table)) == 0
 }
 
+func (r *InsertRequest) RowCount() uint32 {
+	return uint32(len(r.Metric.series))
+}
+
 func (r *InsertRequest) Build() (*greptime.GreptimeRequest, error) {
-	if len(r.Database) == 0 {
+	if r.IsDatabaseEmpty() {
 		return nil, ErrEmptyDatabase
 	}
 	header := greptime.RequestHeader{
@@ -40,14 +44,14 @@ func (r *InsertRequest) Build() (*greptime.GreptimeRequest, error) {
 		return nil, err
 	}
 
-	if len(r.Table) == 0 {
+	if r.IsTableEmpty() {
 		return nil, ErrEmptyTable
 	}
 	req := greptime.GreptimeRequest_Insert{
 		Insert: &greptime.InsertRequest{
 			TableName:    r.Table,
 			Columns:      columns,
-			RowCount:     uint32(len(r.Metric.series)),
+			RowCount:     r.RowCount(),
 			RegionNumber: 0,
 		}}
 
