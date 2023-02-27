@@ -27,19 +27,21 @@ func (r *InsertRequest) IsTableEmpty() bool {
 }
 
 func (r *InsertRequest) Build() (*greptime.GreptimeRequest, error) {
-	header := greptime.RequestHeader{Catalog: r.Catalog, Schema: r.Datadase}
+	header := greptime.RequestHeader{Catalog: r.Catalog,
+		Schema: r.Database}
 
 	columns, err := r.Metric.IntoGreptimeColumn()
 	if err != nil {
 		return nil, err
 	}
 
-	req := greptime.GreptimeRequest_Insert{Insert: &greptime.InsertRequest{
-		TableName:    r.Table,
-		Columns:      columns,
-		RowCount:     uint32(len(r.Metric.series)),
-		RegionNumber: 0,
-	}}
+	req := greptime.GreptimeRequest_Insert{
+		Insert: &greptime.InsertRequest{
+			TableName:    r.Table,
+			Columns:      columns,
+			RowCount:     uint32(len(r.Metric.series)),
+			RegionNumber: 0,
+		}}
 
 	return &greptime.GreptimeRequest{Header: &header, Request: &req}, nil
 }
