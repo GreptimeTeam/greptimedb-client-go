@@ -153,8 +153,7 @@ func (m *Metric) IntoGreptimeColumn() ([]*greptime.Column, error) {
 		return nil, err
 	}
 
-	result = append(result, tsColumn)
-	return result, nil
+	return append(result, tsColumn), nil
 }
 
 func (m *Metric) nullMaskByteSize() int {

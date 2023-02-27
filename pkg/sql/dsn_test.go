@@ -25,7 +25,7 @@ var testDSNs = []struct {
 },
 }
 
-func Test_ParseDSNToConfig(t *testing.T) {
+func TestParseDSNToConfig(t *testing.T) {
 	for i, tst := range testDSNs {
 		cfg, err := ParseDSNToConfig(tst.in)
 		if err != nil {
