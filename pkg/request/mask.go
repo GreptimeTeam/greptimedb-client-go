@@ -17,6 +17,10 @@ func (n *Mask) set(idx uint) *Mask {
 }
 
 func (n *Mask) shrink(bSize int) ([]byte, error) {
+	if n.bs.Len() == 0 {
+		return nil, nil
+	}
+
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.LittleEndian, n.bs.Bytes())
 	if err != nil {

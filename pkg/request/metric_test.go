@@ -11,9 +11,9 @@ import (
 
 func TestSeries(t *testing.T) {
 	s := Series{}
-	s.AddTag("tag1", "tag val")
-	s.AddTag("tag2", true)
-	s.AddTag("tag3", int32(32))
+	s.AddTag("Tag1", "tag val")
+	s.AddTag("tag2 ", true)
+	s.AddTag(" tag3", int32(32))
 	s.AddTag("tag4", float64(32.0))
 	timestamp := time.Now()
 	s.SetTimeWithKey("timestamp", timestamp)
@@ -23,7 +23,7 @@ func TestSeries(t *testing.T) {
 	s.AddField("field4", uint64(64))
 
 	// check columns
-	assert.Equal(t, 9, len(s.columns))
+	assert.Equal(t, 8, len(s.columns))
 	assert.Equal(t, greptime.ColumnDataType_STRING, s.columns["tag1"].typ)
 	assert.Equal(t, greptime.Column_TAG, s.columns["tag1"].semantic)
 	assert.Equal(t, greptime.ColumnDataType_BOOLEAN, s.columns["tag2"].typ)
@@ -40,11 +40,9 @@ func TestSeries(t *testing.T) {
 	assert.Equal(t, greptime.Column_FIELD, s.columns["field3"].semantic)
 	assert.Equal(t, greptime.ColumnDataType_UINT64, s.columns["field4"].typ)
 	assert.Equal(t, greptime.Column_FIELD, s.columns["field4"].semantic)
-	assert.Equal(t, greptime.ColumnDataType_TIMESTAMP_MILLISECOND, s.columns["timestamp"].typ)
-	assert.Equal(t, greptime.Column_TIMESTAMP, s.columns["timestamp"].semantic)
 
 	// check values
-	assert.Equal(t, 9, len(s.vals))
+	assert.Equal(t, 8, len(s.vals))
 	assert.Equal(t, "tag val", s.vals["tag1"])
 	assert.Equal(t, true, s.vals["tag2"])
 	assert.Equal(t, int32(32), s.vals["tag3"])
@@ -54,10 +52,9 @@ func TestSeries(t *testing.T) {
 	assert.Equal(t, uint32(8), s.vals["field3"])
 	assert.Equal(t, uint64(64), s.vals["field4"])
 
-	// check if the timestamp column is the last
-	err := s.moveTimeStampColumnToLast()
-	assert.Nil(t, err)
-	assert.Equal(t, s.order[len(s.order)-1], "timestamp")
+	// check timestamp
+	assert.Equal(t, timestamp, s.timestamp)
+	assert.Equal(t, "timestamp", s.timestampAlias)
 }
 
 func TestValueReplaced(t *testing.T) {
@@ -144,23 +141,24 @@ func TestMetricSemanticNotMatch(t *testing.T) {
 // row1: 4 tags, 2 fields (with 2 null column)
 // row2: 2 tags, 4 fields (with 2 null column)
 func TestGreptimeColumn(t *testing.T) {
+	timestamp := time.Now()
+
 	s1 := Series{}
-	s1.AddTag("tag1", "tag1")
-	s1.AddTag("tag2", true)
-	s1.AddTag("tag3", int32(32))
-	s1.AddTag("tag4", float64(32.0))
-	s1.AddField("field1", uint8(8))
-	s1.AddField("field2", uint64(64))
-	s1.SetTime(time.Now())
+	s1.AddTag(" tag1", "tag1")
+	s1.AddTag("tag2 ", true)
+	s1.AddTag("Tag3", int32(32))
+	s1.AddTag("TAG4", float64(32.0))
+	s1.AddField("Field1", uint8(8))
+	s1.AddField("FIELD2", uint64(64))
+	s1.SetTime(timestamp)
 
 	s2 := Series{}
 	s2.AddTag("tag1", "tag2")
 	s2.AddTag("tag2", false)
 	s2.AddField("field1", uint8(8))
 	s2.AddField("field2", uint64(64))
-	s2.AddField("field3", []byte("field3"))
-	s2.AddField("field4", float32(32.0))
-	s2.SetTime(time.Now())
+	s2.AddField("fieldName3", []byte("field3"))
+	s2.AddField("Field-Name4", float32(32.0))
 
 	m := Metric{}
 	assert.Nil(t, m.AddSeries(s1))
@@ -168,7 +166,7 @@ func TestGreptimeColumn(t *testing.T) {
 
 	cols, err := m.IntoGreptimeColumn()
 	assert.Nil(t, err)
-	assert.Equal(t, 8, len(cols))
+	assert.Equal(t, 9, len(cols))
 
 	col1 := cols[0]
 	assert.Equal(t, "tag1", col1.ColumnName)
@@ -213,16 +211,23 @@ func TestGreptimeColumn(t *testing.T) {
 	assert.Empty(t, col6.NullMask)
 
 	col7 := cols[6]
-	assert.Equal(t, "field3", col7.ColumnName)
+	assert.Equal(t, "field_name3", col7.ColumnName)
 	assert.Equal(t, greptime.ColumnDataType_STRING, col7.Datatype)
 	assert.Equal(t, greptime.Column_FIELD, col7.SemanticType)
 	assert.Equal(t, []string{"field3"}, col7.Values.StringValues)
 	assert.Equal(t, []byte{1}, col7.NullMask)
 
 	col8 := cols[7]
-	assert.Equal(t, "field4", col8.ColumnName)
+	assert.Equal(t, "field_name4", col8.ColumnName)
 	assert.Equal(t, greptime.ColumnDataType_FLOAT64, col8.Datatype)
 	assert.Equal(t, greptime.Column_FIELD, col8.SemanticType)
 	assert.Equal(t, []float64{32}, col8.Values.F64Values)
 	assert.Equal(t, []byte{1}, col8.NullMask)
+
+	col9 := cols[8]
+	assert.Equal(t, "ts", col9.ColumnName)
+	assert.Equal(t, greptime.ColumnDataType_TIMESTAMP_MILLISECOND, col9.Datatype)
+	assert.Equal(t, greptime.Column_TIMESTAMP, col9.SemanticType)
+	assert.Equal(t, []int64{timestamp.UnixMilli()}, col9.Values.TsMillisecondValues)
+	assert.Equal(t, []byte{2}, col9.NullMask)
 }

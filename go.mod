@@ -6,7 +6,8 @@ require (
 	github.com/GreptimeTeam/greptime-proto v0.0.0-20230215071017-36147379c3fd
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40
 	github.com/bits-and-blooms/bitset v1.5.0
-	github.com/stretchr/testify v1.7.0
+	github.com/stoewer/go-strcase v1.2.1
+	github.com/stretchr/testify v1.8.1
 	google.golang.org/grpc v1.53.0
 	google.golang.org/protobuf v1.28.1
 )
