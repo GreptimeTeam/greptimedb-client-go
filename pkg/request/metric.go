@@ -15,9 +15,10 @@ type column struct {
 }
 
 type Series struct {
-	order   []string
-	columns map[string]column
-	vals    map[string]any
+	order          []string
+	columns        map[string]column
+	vals           map[string]any
+	timestampAlias string
 }
 
 func checkColumnEquality(key string, col1, col2 column) error {
@@ -73,7 +74,19 @@ func (s *Series) AddField(key string, val any) error {
 }
 
 func (s *Series) SetTime(t time.Time) error {
-	return s.addVal("ts", t, greptime.Column_TIMESTAMP)
+	if len(s.timestampAlias) != 0 {
+		return errors.New("already set a key for timestamp column name")
+	}
+	s.timestampAlias = "ts"
+	return s.addVal(s.timestampAlias, t, greptime.Column_TIMESTAMP)
+}
+
+func (s *Series) SetTimeWithKey(key string, t time.Time) error {
+	if len(s.timestampAlias) != 0 {
+		return errors.New("already set a key for timestamp column name")
+	}
+	s.timestampAlias = key
+	return s.addVal(key, t, greptime.Column_TIMESTAMP)
 }
 
 type Metric struct {
@@ -83,6 +96,14 @@ type Metric struct {
 }
 
 func (m *Metric) AddSeries(s Series) error {
+	if len(s.timestampAlias) == 0 {
+		return errors.New("have not set timestamp")
+	}
+	if len(m.series) != 0 &&
+		m.series[0].timestampAlias != s.timestampAlias {
+			return errors.New("should not add a series that has a different timestamp key")
+	}
+
 	if m.columns == nil {
 		m.columns = map[string]column{}
 	}
