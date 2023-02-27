@@ -104,24 +104,6 @@ func (s *Series) SetTimeWithKey(key string, t time.Time) error {
 	return nil
 }
 
-func (s *Series) moveTimeStampColumnToLast() error {
-	if len(s.timestampAlias) == 0 {
-		return ErrEmptyTimestamp
-	}
-	index := 0
-	for ; index < len(s.order); index++ {
-		if s.order[index] == s.timestampAlias {
-			break
-		}
-	}
-	if index == len(s.order) {
-		return ErrEmptyTimestamp
-	}
-	s.order = append(s.order[:index], s.order[index+1:]...)
-	s.order = append(s.order, s.timestampAlias)
-	return nil
-}
-
 type Metric struct {
 	order   []string
 	columns map[string]column
@@ -129,23 +111,14 @@ type Metric struct {
 }
 
 func (m *Metric) AddSeries(s Series) error {
-	// if len(s.timestampAlias) == 0 {
-	// 	return ErrEmptyTimestamp
-	// }
-	// if len(m.series) != 0 &&
-	// 	m.series[0].timestampAlias != s.timestampAlias {
-	// 	return errors.New("should not add a series that has a different timestamp key")
-	// }
-	// s.moveTimeStampColumnToLast()
-
 	timestampAlias := s.timestampAlias
 	if len(m.columns) != 0 {
-		if m.order[len(m.order) - 1] != timestampAlias {
+		if m.order[len(m.order)-1] != timestampAlias {
 			return errors.New("should not add a series that has a different timestamp key")
 		}
-		m.order = m.order[:len(m.order) - 1]
+		m.order = m.order[:len(m.order)-1]
 	}
-	
+
 	if m.columns == nil {
 		m.columns = map[string]column{}
 	}
@@ -164,6 +137,12 @@ func (m *Metric) AddSeries(s Series) error {
 
 	m.order = append(m.order, timestampAlias)
 	s.addVal(timestampAlias, s.timestamp, greptime.Column_TIMESTAMP)
+	if _, ok := m.columns[timestampAlias]; !ok {
+		m.columns[timestampAlias] = column{
+			typ:      greptime.ColumnDataType_TIMESTAMP_MILLISECOND,
+			semantic: greptime.Column_TIMESTAMP,
+		}
+	}
 
 	m.series = append(m.series, s)
 	return nil

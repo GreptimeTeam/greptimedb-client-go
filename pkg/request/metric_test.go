@@ -141,6 +141,8 @@ func TestMetricSemanticNotMatch(t *testing.T) {
 // row1: 4 tags, 2 fields (with 2 null column)
 // row2: 2 tags, 4 fields (with 2 null column)
 func TestGreptimeColumn(t *testing.T) {
+	timestamp := time.Now()
+
 	s1 := Series{}
 	s1.AddTag("tag1", "tag1")
 	s1.AddTag("tag2", true)
@@ -148,7 +150,7 @@ func TestGreptimeColumn(t *testing.T) {
 	s1.AddTag("tag4", float64(32.0))
 	s1.AddField("field1", uint8(8))
 	s1.AddField("field2", uint64(64))
-	s1.SetTime(time.Now())
+	s1.SetTime(timestamp)
 
 	s2 := Series{}
 	s2.AddTag("tag1", "tag2")
@@ -157,7 +159,7 @@ func TestGreptimeColumn(t *testing.T) {
 	s2.AddField("field2", uint64(64))
 	s2.AddField("field3", []byte("field3"))
 	s2.AddField("field4", float32(32.0))
-	s2.SetTime(time.Now())
+	s2.SetTime(timestamp)
 
 	m := Metric{}
 	assert.Nil(t, m.AddSeries(s1))
@@ -221,5 +223,12 @@ func TestGreptimeColumn(t *testing.T) {
 	assert.Equal(t, greptime.ColumnDataType_FLOAT64, col8.Datatype)
 	assert.Equal(t, greptime.Column_FIELD, col8.SemanticType)
 	assert.Equal(t, []float64{32}, col8.Values.F64Values)
+	assert.Equal(t, []byte{1}, col8.NullMask)
+
+	col9 := cols[8]
+	assert.Equal(t, "ts", col9.ColumnName)
+	assert.Equal(t, greptime.ColumnDataType_TIMESTAMP_MILLISECOND, col9.Datatype)
+	assert.Equal(t, greptime.Column_TIMESTAMP, col9.SemanticType)
+	assert.Equal(t, []int64{timestamp.UnixMilli(), timestamp.UnixMilli()}, col9.Values.TsMillisecondValues)
 	assert.Equal(t, []byte{1}, col8.NullMask)
 }
