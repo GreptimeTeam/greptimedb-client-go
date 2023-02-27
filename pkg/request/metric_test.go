@@ -230,5 +230,5 @@ func TestGreptimeColumn(t *testing.T) {
 	assert.Equal(t, greptime.ColumnDataType_TIMESTAMP_MILLISECOND, col9.Datatype)
 	assert.Equal(t, greptime.Column_TIMESTAMP, col9.SemanticType)
 	assert.Equal(t, []int64{timestamp.UnixMilli(), timestamp.UnixMilli()}, col9.Values.TsMillisecondValues)
-	assert.Equal(t, []byte{1}, col8.NullMask)
+	assert.Empty(t, col9.NullMask)
 }

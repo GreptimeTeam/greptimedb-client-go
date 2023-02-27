@@ -24,7 +24,7 @@ func main() {
 	}
 
 	series := request.Series{}
-	series.AddTag("host", "localhost10")
+	series.AddTag("host", "localhost")
 	series.SetTimeWithKey("ts", time.Now())
 	series.AddField("cpu", 0.90)
 	series.AddField("memory", 1024.0)
@@ -34,7 +34,9 @@ func main() {
 	metric.AddSeries(series)
 
 	req := request.InsertRequest{}
-	req.WithTable("monitor3").WithMetric(metric).WithCatalog("").WithDatabase("public")
+	req.WithTable("monitor_insert").WithMetric(metric).WithCatalog("").WithDatabase("public")
 
-	client.Insert(context.Background(), req)
+	err = client.Insert(context.Background(), req)
+
+	println("%v", err)
 }
