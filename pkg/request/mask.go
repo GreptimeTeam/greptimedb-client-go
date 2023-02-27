@@ -7,16 +7,16 @@ import (
 	"github.com/bits-and-blooms/bitset"
 )
 
-type NullMask struct {
+type Mask struct {
 	bs bitset.BitSet
 }
 
-func (n *NullMask) set(idx uint) *NullMask {
+func (n *Mask) set(idx uint) *Mask {
 	n.bs.Set(idx)
 	return n
 }
 
-func (n *NullMask) shrink(bSize int) ([]byte, error) {
+func (n *Mask) shrink(bSize int) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.LittleEndian, n.bs.Bytes())
 	if err != nil {

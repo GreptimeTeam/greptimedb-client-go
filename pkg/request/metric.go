@@ -121,7 +121,7 @@ func (m *Metric) IntoGreptimeColumn() ([]*greptime.Column, error) {
 		mappedCols[name] = &column
 	}
 
-	nullMasks := map[string]*NullMask{}
+	nullMasks := map[string]*Mask{}
 	for rowIdx, s := range m.series {
 		for name, col := range mappedCols {
 			if val, exist := s.vals[name]; exist {
@@ -131,7 +131,7 @@ func (m *Metric) IntoGreptimeColumn() ([]*greptime.Column, error) {
 			} else {
 				mask, exist := nullMasks[name]
 				if !exist {
-					mask = &NullMask{}
+					mask = &Mask{}
 					nullMasks[name] = mask
 				}
 				mask.set(uint(rowIdx))
@@ -178,7 +178,7 @@ func setColumn(col *greptime.Column, val any) error {
 	return nil
 }
 
-func setNullMask(cols map[string]*greptime.Column, masks map[string]*NullMask, size int) error {
+func setNullMask(cols map[string]*greptime.Column, masks map[string]*Mask, size int) error {
 	for name, mask := range masks {
 		b, err := mask.shrink(size)
 		if err != nil {

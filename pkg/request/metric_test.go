@@ -138,7 +138,7 @@ func TestMetricSemanticNotMatch(t *testing.T) {
 
 // 8 columns
 // row1: 4 tags, 2 fields (with 2 null column)
-// row2: 2 tags, 4 fields (with 4 null column)
+// row2: 2 tags, 4 fields (with 2 null column)
 func TestGreptimeColumn(t *testing.T) {
 	s1 := Series{}
 	s1.AddTag("tag1", "tag1")
