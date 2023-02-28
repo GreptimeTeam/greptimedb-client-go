@@ -28,7 +28,6 @@ func main() {
 	series.SetTimeWithKey("ts", time.Now())
 	series.AddField("cpu", 0.90)
 	series.AddField("memory", 1024.0)
-	// series.SetTime(time.Now())
 
 	metric := request.Metric{}
 	metric.AddSeries(series)
@@ -36,7 +35,9 @@ func main() {
 	req := request.InsertRequest{}
 	req.WithTable("monitor_insert").WithMetric(metric).WithCatalog("").WithDatabase("public")
 
-	err = client.Insert(context.Background(), req)
-
-	println("%v", err)
+	affectedRows, err := client.Insert(context.Background(), req)
+	if err != nil {
+		fmt.Printf("fail to insert, err: %+v", err)
+	}
+	fmt.Printf("affectedRows: %+v\n", affectedRows)
 }

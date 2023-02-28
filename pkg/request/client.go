@@ -2,7 +2,10 @@ package request
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
+	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 	"github.com/apache/arrow/go/arrow/flight"
 	"google.golang.org/protobuf/proto"
 )
@@ -25,24 +28,40 @@ func NewClient(cfg *Config) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) Insert(ctx context.Context, req InsertRequest) error {
+func (c *Client) Insert(ctx context.Context, req InsertRequest) (*greptime.AffectedRows, error) {
 	request, err := req.Build()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	b, err := proto.Marshal(request)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// TODO(vinland-avalon): return information like `AffectedRows`
-	_, err = c.Client.DoGet(ctx, &flight.Ticket{Ticket: b})
+	sr, err := c.Client.DoGet(ctx, &flight.Ticket{Ticket: b})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	data, err := sr.Recv()
+	if err != nil {
+		return nil, err
+	}
+	if data == nil {
+		return nil, errors.New("the grpc response is empty")
+	}
+
+	metadata := greptime.FlightMetadata{}
+	err = proto.Unmarshal(data.AppMetadata, &metadata)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response, err: %+v", err)
+	}
+
+	affectedRows := metadata.GetAffectedRows()
+
+	// TODO(vinland-avalon): Embed the function into database/sql framework and wrap the retuen value
+	return affectedRows, nil
 }
 
 // Query data from greptimedb via SQL.
