@@ -1,9 +1,10 @@
 package sql
 
 import (
-	req "github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
 	"errors"
 	"strings"
+
+	req "github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
 )
 
 var (
@@ -72,7 +73,7 @@ func ParseDSNToConfig(dsn string) (cfg *req.Config, err error) {
 					break
 				}
 			}
-			// if ':' not exists, only database, 
+			// if ':' not exists, only database,
 			// or also contains a catalog
 			if !foundColon {
 				cfg.Database = dsn[i+1:]
