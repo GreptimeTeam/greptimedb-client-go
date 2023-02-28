@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	_ "GreptimeTeam/greptimedb-client-go/pkg/sql"
+	_ "github.com/GreptimeTeam/greptimedb-client-go/pkg/sql"
 )
 
 type Monitor struct {

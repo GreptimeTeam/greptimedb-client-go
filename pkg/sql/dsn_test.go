@@ -1,7 +1,7 @@
 package sql
 
 import (
-	req "GreptimeTeam/greptimedb-client-go/pkg/request"
+	req "github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
 	"reflect"
 	"testing"
 )

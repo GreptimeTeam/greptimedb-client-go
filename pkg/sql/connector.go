@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	req "GreptimeTeam/greptimedb-client-go/pkg/request"
+	req "github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
 )
 
 type connector struct {
