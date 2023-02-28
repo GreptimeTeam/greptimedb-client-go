@@ -36,11 +36,11 @@ func checkColumnEquality(key string, col1, col2 column) error {
 	return nil
 }
 
-func (s *Series) addVal(key string, val any, semantic greptime.Column_SemanticType) error {
-	if IsEmptyString(key) {
-		return ErrEmptyKey
+func (s *Series) addVal(name string, val any, semantic greptime.Column_SemanticType) error {
+	key, err := ToColumnName(name)
+	if err != nil {
+		return err
 	}
-	key = ToColumnName(key)
 
 	if s.columns == nil {
 		s.columns = map[string]column{}
@@ -91,11 +91,12 @@ func (s *Series) SetTimeWithKey(key string, t time.Time) error {
 		return errors.New("timestamp column name CAN NOT be set twice")
 	}
 
-	if IsEmptyString(key) {
-		return ErrEmptyKey
+	key, err := ToColumnName(key)
+	if err != nil {
+		return err
 	}
 
-	s.timestampAlias = ToColumnName(key)
+	s.timestampAlias = key
 	s.timestamp = t
 	return nil
 }

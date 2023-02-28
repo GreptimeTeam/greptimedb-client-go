@@ -1,6 +1,7 @@
 package request
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -49,10 +50,31 @@ func TestEmptyString(t *testing.T) {
 }
 
 func TestColumnName(t *testing.T) {
-	assert.Equal(t, "ts", ToColumnName("ts "))
-	assert.Equal(t, "ts", ToColumnName(" TS"))
-	assert.Equal(t, "ts", ToColumnName(" Ts "))
+	key, err := ToColumnName("ts ")
+	assert.Nil(t, err)
+	assert.Equal(t, "ts", key)
 
-	assert.Equal(t, "disk_usage", ToColumnName("DiskUsage"))
-	assert.Equal(t, "disk_usage", ToColumnName("Disk-Usage"))
+	key, err = ToColumnName(" Ts")
+	assert.Nil(t, err)
+	assert.Equal(t, "ts", key)
+
+	key, err = ToColumnName(" TS ")
+	assert.Nil(t, err)
+	assert.Equal(t, "ts", key)
+
+	key, err = ToColumnName("DiskUsage ")
+	assert.Nil(t, err)
+	assert.Equal(t, "disk_usage", key)
+
+	key, err = ToColumnName("Disk-Usage")
+	assert.Nil(t, err)
+	assert.Equal(t, "disk_usage", key)
+
+	key, err = ToColumnName("   ")
+	assert.NotNil(t, err)
+	assert.Equal(t, "", key)
+
+	key, err = ToColumnName(strings.Repeat("timestamp", 20))
+	assert.NotNil(t, err)
+	assert.Equal(t, "", key)
 }
