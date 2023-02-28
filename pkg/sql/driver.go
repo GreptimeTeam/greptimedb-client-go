@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 
-	req "GreptimeTeam/greptimedb-client-go/pkg/request"
+	req "github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
 )
 
 type Driver struct{}

@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"GreptimeTeam/greptimedb-client-go/pkg/request"
+	"github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
 )
 
 // should run a standalone greptimedb instance locally
