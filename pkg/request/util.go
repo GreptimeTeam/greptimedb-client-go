@@ -67,6 +67,16 @@ func IsEmptyString(s string) bool {
 	return len(strings.TrimSpace(s)) == 0
 }
 
-func ToColumnName(s string) string {
-	return strings.ToLower(strings.TrimSpace(strcase.SnakeCase(s)))
+func ToColumnName(s string) (string, error) {
+	s = strings.TrimSpace(s)
+
+	if len(s) == 0 {
+		return "", ErrEmptyKey
+	}
+
+	if len(s) >= 100 {
+		return "", fmt.Errorf("the length of name CAN NOT be longer than 100. %s", s)
+	}
+
+	return strings.ToLower(strcase.SnakeCase(s)), nil
 }
