@@ -84,7 +84,7 @@ func fromColumn(column array.Interface, idx int) (driver.Value, error) {
 	}
 	switch typedColumn := column.(type) {
 	case *array.Timestamp:
-		return time.Unix(0, int64(typedColumn.Value(idx))), nil
+		return time.UnixMilli(int64(typedColumn.Value(idx))), nil
 	case *array.Float64:
 		return typedColumn.Value(idx), nil
 	case *array.Uint64:
