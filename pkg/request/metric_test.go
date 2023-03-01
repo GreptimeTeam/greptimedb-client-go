@@ -137,9 +137,10 @@ func TestMetricSemanticNotMatch(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-// 8 columns
-// row1: 4 tags, 2 fields (with 2 null column)
+// 9 columns
+// row1: 4 tags, 2 fields (with 2 null column), 1 timestamp, named as default "ts"
 // row2: 2 tags, 4 fields (with 2 null column)
+// the timstamp column should be at last
 func TestGreptimeColumn(t *testing.T) {
 	timestamp := time.Now()
 
