@@ -102,12 +102,22 @@ func (s *Series) SetTimeWithKey(key string, t time.Time) error {
 }
 
 type Metric struct {
-	timestampAlias string
+	timestampAlias     string
+	timestampPrecision time.Duration
 	// order and columns SHOULD NOT contain timestampAlias key
 	order   []string
 	columns map[string]column
 
 	series []Series
+}
+
+// SetTimePrecision set precsion for Metric. In unit of duration: time.Nanosecond, time.Microsecond, time.Millisecond, time.Second
+func (m *Metric) SetTimePrecision(precision time.Duration) error {
+	if !IsTimePrecisionValid(precision) {
+		return ErrInvalidTimePrecision
+	}
+	m.timestampPrecision = precision
+	return nil
 }
 
 func (m *Metric) AddSeries(s Series) error {
@@ -208,17 +218,30 @@ func (m *Metric) normalColumns() ([]*greptime.Column, error) {
 }
 
 func (m *Metric) timestampColumn() (*greptime.Column, error) {
+	datatype, err := precisionToDataType(m.timestampPrecision)
+	if err != nil {
+		return nil, err
+	}
 	tsColumn := &greptime.Column{
 		ColumnName:   m.timestampAlias,
 		SemanticType: greptime.Column_TIMESTAMP,
-		Datatype:     greptime.ColumnDataType_TIMESTAMP_MILLISECOND,
+		Datatype:     datatype,
 		Values:       &greptime.Column_Values{},
 		NullMask:     nil,
 	}
 	nullMask := Mask{}
 	for rowIdx, s := range m.series {
 		if !IsEmptyString(s.timestampAlias) {
-			setColumn(tsColumn, s.timestamp.UnixMilli())
+			switch datatype{
+			case greptime.ColumnDataType_TIMESTAMP_SECOND:
+				setColumn(tsColumn, s.timestamp.Unix())
+			case greptime.ColumnDataType_TIMESTAMP_MILLISECOND:
+				setColumn(tsColumn, s.timestamp.UnixMilli())
+			case greptime.ColumnDataType_TIMESTAMP_MICROSECOND:
+				setColumn(tsColumn, s.timestamp.UnixMicro())
+			case greptime.ColumnDataType_TIMESTAMP_NANOSECOND:
+				setColumn(tsColumn, s.timestamp.UnixNano())
+			}
 		} else {
 			nullMask.set(uint(rowIdx))
 		}
@@ -251,8 +274,14 @@ func setColumn(col *greptime.Column, val any) error {
 		col.Values.F64Values = append(col.Values.F64Values, val.(float64))
 	case greptime.ColumnDataType_STRING:
 		col.Values.StringValues = append(col.Values.StringValues, val.(string))
+	case greptime.ColumnDataType_TIMESTAMP_SECOND:
+		col.Values.TsSecondValues = append(col.Values.TsSecondValues, val.(int64))
 	case greptime.ColumnDataType_TIMESTAMP_MILLISECOND:
 		col.Values.TsMillisecondValues = append(col.Values.TsMillisecondValues, val.(int64))
+	case greptime.ColumnDataType_TIMESTAMP_MICROSECOND:
+		col.Values.TsMicrosecondValues = append(col.Values.TsMicrosecondValues, val.(int64))
+	case greptime.ColumnDataType_TIMESTAMP_NANOSECOND:
+		col.Values.TsNanosecondValues = append(col.Values.TsNanosecondValues, val.(int64))
 	default:
 		return fmt.Errorf("unknown column data type: %v", col.Datatype)
 	}

@@ -92,8 +92,40 @@ func convert(v any) (*value, error) {
 	}
 }
 
+func IsTimePrecisionValid(t time.Duration) bool {
+	switch t {
+	case time.Second, time.Millisecond, time.Microsecond, time.Nanosecond:
+		return true
+	default:
+		return false
+	}
+}
+
+func precisionToDataType(d time.Duration) (greptime.ColumnDataType, error) {
+	// if the precision has not been set, use defalut precision `time.Millisecond`
+	if precisionHasNotBeenSet(d) {
+		d = time.Millisecond
+	}
+	switch d {
+	case time.Second:
+		return greptime.ColumnDataType_TIMESTAMP_SECOND, nil
+	case time.Millisecond:
+		return greptime.ColumnDataType_TIMESTAMP_MILLISECOND, nil
+	case time.Microsecond:
+		return greptime.ColumnDataType_TIMESTAMP_MICROSECOND, nil
+	case time.Nanosecond:
+		return greptime.ColumnDataType_TIMESTAMP_NANOSECOND, nil
+	default:
+		return 0, ErrInvalidTimePrecision
+	}
+}
+
 func IsEmptyString(s string) bool {
 	return len(strings.TrimSpace(s)) == 0
+}
+
+func precisionHasNotBeenSet(d time.Duration) bool {
+	return d == 0
 }
 
 func ToColumnName(s string) (string, error) {
