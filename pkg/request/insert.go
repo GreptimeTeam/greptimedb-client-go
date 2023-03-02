@@ -1,7 +1,6 @@
 package request
 
 import (
-	"fmt"
 	"strings"
 
 	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
@@ -54,9 +53,7 @@ func (r *InsertRequest) Build() (*greptime.GreptimeRequest, error) {
 			Columns:      columns,
 			RowCount:     r.RowCount(),
 			RegionNumber: 0,
-		}}
-	greptimeRequest := greptime.GreptimeRequest{Header: &header, Request: &req}
-	fmt.Printf("greptime.GreptimeRequest: %+v\n", greptimeRequest)
-	fmt.Printf("columns in greptime.GreptimeRequest: %+v\n", req)
-	return &greptimeRequest, nil
+		},
+	}
+	return &greptime.GreptimeRequest{Header: &header, Request: &req}, nil
 }

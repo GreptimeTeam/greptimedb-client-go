@@ -24,13 +24,13 @@ func main() {
 	}
 
 	series := request.Series{}
-	series.AddTag("host", "localhost_nano")
+	series.AddTag("host", "localhost")
 	series.SetTimeWithKey("ts", time.Now())
 	series.AddField("cpu", 0.90)
 	series.AddField("memory", 1024.0)
 
 	metric := request.Metric{}
-	metric.SetTimePrecision(time.Nanosecond)
+	metric.SetTimePrecision(time.Microsecond)
 	metric.AddSeries(series)
 
 	req := request.InsertRequest{}

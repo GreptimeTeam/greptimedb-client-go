@@ -103,7 +103,7 @@ func IsTimePrecisionValid(t time.Duration) bool {
 
 func precisionToDataType(d time.Duration) (greptime.ColumnDataType, error) {
 	// if the precision has not been set, use defalut precision `time.Millisecond`
-	if precisionHasNotBeenSet(d) {
+	if d == 0 {
 		d = time.Millisecond
 	}
 	switch d {
@@ -122,10 +122,6 @@ func precisionToDataType(d time.Duration) (greptime.ColumnDataType, error) {
 
 func IsEmptyString(s string) bool {
 	return len(strings.TrimSpace(s)) == 0
-}
-
-func precisionHasNotBeenSet(d time.Duration) bool {
-	return d == 0
 }
 
 func ToColumnName(s string) (string, error) {

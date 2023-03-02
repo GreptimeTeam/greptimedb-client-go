@@ -72,20 +72,28 @@ func (s *Series) addVal(name string, val any, semantic greptime.Column_SemanticT
 	return nil
 }
 
-// AddTag prepate tag column, and old value will be replaced if same tag is set
+// AddTag prepate tag column, and old value will be replaced if same tag is set.
+// the length of key CAN NOT be longer than 100
 func (s *Series) AddTag(key string, val any) error {
 	return s.addVal(key, val, greptime.Column_TAG)
 }
 
-// AddField prepate field column, and old value will be replaced if same field is set
+// AddField prepate field column, and old value will be replaced if same field is set.
+// the length of key CAN NOT be longer than 100
 func (s *Series) AddField(key string, val any) error {
 	return s.addVal(key, val, greptime.Column_FIELD)
 }
 
+// SetTime set the timestamp column value with default `ts` name and millisecond precision
 func (s *Series) SetTime(t time.Time) error {
 	return s.SetTimeWithKey("ts", t)
 }
 
+// SetTimeWithKey set the timestamp column value with `key` name and millisecond precision
+//
+// # Pay attention
+//
+// only one timestamp column is allowed, so the name MUST be consistent, and CAN NOT be changed
 func (s *Series) SetTimeWithKey(key string, t time.Time) error {
 	if len(s.timestampAlias) != 0 {
 		return errors.New("timestamp column name CAN NOT be set twice")
@@ -111,7 +119,12 @@ type Metric struct {
 	series []Series
 }
 
-// SetTimePrecision set precsion for Metric. In unit of duration: time.Nanosecond, time.Microsecond, time.Millisecond, time.Second
+// SetTimePrecision set precsion for Metric. Valid durations include time.Nanosecond, time.Microsecond, time.Millisecond, time.Second.
+//
+// # Pay attention
+//
+// - once the precision has been set, it can not be changed
+// - insert will fail if precision does not match with the existing precision of the table in greptimedb
 func (m *Metric) SetTimePrecision(precision time.Duration) error {
 	if !IsTimePrecisionValid(precision) {
 		return ErrInvalidTimePrecision
@@ -232,7 +245,7 @@ func (m *Metric) timestampColumn() (*greptime.Column, error) {
 	nullMask := Mask{}
 	for rowIdx, s := range m.series {
 		if !IsEmptyString(s.timestampAlias) {
-			switch datatype{
+			switch datatype {
 			case greptime.ColumnDataType_TIMESTAMP_SECOND:
 				setColumn(tsColumn, s.timestamp.Unix())
 			case greptime.ColumnDataType_TIMESTAMP_MILLISECOND:
