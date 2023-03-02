@@ -33,11 +33,12 @@ func main() {
 	metric.AddSeries(series)
 
 	req := request.InsertRequest{}
-	req.WithTable("monitor_insert").WithMetric(metric).WithCatalog("").WithDatabase("public")
+	req.WithTable("monitor").WithMetric(metric).WithCatalog("").WithDatabase("public")
 
 	affectedRows, err := client.Insert(context.Background(), req)
 	if err != nil {
-		fmt.Printf("fail to insert, err: %+v", err)
+		fmt.Printf("fail to insert, err: %+v\n", err)
+	} else {
+		fmt.Printf("affectedRows: %+v\n", affectedRows)
 	}
-	fmt.Printf("affectedRows: %+v\n", affectedRows)
 }
