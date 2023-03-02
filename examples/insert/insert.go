@@ -30,6 +30,7 @@ func main() {
 	series.AddField("memory", 1024.0)
 
 	metric := request.Metric{}
+	metric.SetTimePrecision(time.Microsecond)
 	metric.AddSeries(series)
 
 	req := request.InsertRequest{}

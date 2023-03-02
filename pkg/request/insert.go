@@ -53,7 +53,7 @@ func (r *InsertRequest) Build() (*greptime.GreptimeRequest, error) {
 			Columns:      columns,
 			RowCount:     r.RowCount(),
 			RegionNumber: 0,
-		}}
-
+		},
+	}
 	return &greptime.GreptimeRequest{Header: &header, Request: &req}, nil
 }
