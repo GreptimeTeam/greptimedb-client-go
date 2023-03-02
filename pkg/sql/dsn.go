@@ -14,6 +14,7 @@ var (
 )
 
 // ParseDSN parses the DSN string to a Config
+// TODO(vinland-avalon): Config.FormatDSN to create a DSN string by filling a struct.
 func ParseDSNToConfig(dsn string) (cfg *req.Config, err error) {
 	// New config with some default values
 	cfg = &req.Config{}
