@@ -60,33 +60,20 @@ go get github.com/GreptimeTeam/greptimedb-client-go
 docker run --rm -p 4001:4001 -p 4002:4002 greptime/greptimedb:latest standalone start --mysql-addr=0.0.0.0:4002 --rpc-addr=0.0.0.0:4001
 ```
 
-2. init the data needed
+2. insert
 
-```mysql
-mysql -h 127.0.0.1 -P 4002
+this will create `monitor` table in greptimedb automatically.
+
+```shell
+go run examples/insert/insert.go
 ```
 
-```mysql
-use public;
-
-CREATE TABLE monitor (
-  host STRING,
-  ts TIMESTAMP,
-  cpu DOUBLE DEFAULT 0,
-  memory DOUBLE,
-  TIME INDEX (ts),
-  PRIMARY KEY(host)) ENGINE=mito WITH(regions=1);
-
-INSERT INTO monitor(host, cpu, memory, ts) VALUES ('host1', 66.6, 1024, 1660897955000);
-INSERT INTO monitor(host, cpu, memory, ts) VALUES ('host2', 77.7, 2048, 1660897956000);
-INSERT INTO monitor(host, cpu, memory, ts) VALUES ('host3', 88.8, 4096, 1660897957000);
-```
-
-3. run example
+3. query
 
 ```shell
 go run examples/query/query.go
 ```
+
 
 # Features
 

@@ -40,12 +40,7 @@ func init() {
 	sql.Register("greptimedb", &Driver{})
 }
 
-// TODO(yuanbohan): check if the dsn is valid
-// TODO(yuanbohan): extract the database variable from the dsn
 func ParseDSN(dsn string) (*req.Config, error) {
-	// TODO(yuanbohan): catalog and database SHOULD be initiated here
-	// `public` is just for example
-	// cfg := req.NewCfg(dsn, "", "public")
 	cfg, err := ParseDSNToConfig(dsn)
 	if err != nil {
 		return nil, err
