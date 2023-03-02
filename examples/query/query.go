@@ -10,9 +10,9 @@ import (
 
 type Monitor struct {
 	Host   string
-	Ts     time.Time
 	Cpu    float64
 	Memory float64
+	Ts     time.Time
 }
 
 func main() {
@@ -33,7 +33,7 @@ func main() {
 	var monitors []Monitor
 	for res.Next() {
 		var monitor Monitor
-		err := res.Scan(&monitor.Host, &monitor.Ts, &monitor.Cpu, &monitor.Memory)
+		err := res.Scan(&monitor.Host, &monitor.Cpu, &monitor.Memory, &monitor.Ts)
 
 		if err != nil {
 			fmt.Printf("res.Scan err: %v", err)
