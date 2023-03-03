@@ -25,7 +25,7 @@ func main() {
 
 	series := request.Series{}
 	series.AddTag("host", "localhost")
-	series.SetTimeWithKey("ts", time.Now())
+	series.SetTimeWithKey("ts", time.UnixMilli(1660897955000))
 	series.AddField("cpu", 0.90)
 	series.AddField("memory", 1024.0)
 
