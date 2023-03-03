@@ -11,8 +11,8 @@ import (
 	"github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
 )
 
-// should run a standalone greptimedb instance locally
 func main() {
+	// Create a new client using an GreptimeDB server base URL and a database name
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
@@ -23,19 +23,24 @@ func main() {
 		fmt.Printf("Fail in client initiation, err: %s", err)
 	}
 
+	// Create a Series
 	series := request.Series{}
 	series.AddTag("host", "localhost")
-	series.SetTimeWithKey("ts", time.Now())
+	series.SetTimeWithKey("ts", time.UnixMilli(1660897955000))
 	series.AddField("cpu", 0.90)
 	series.AddField("memory", 1024.0)
 
+	// Create a Metric and add the Series
 	metric := request.Metric{}
 	metric.SetTimePrecision(time.Microsecond)
 	metric.AddSeries(series)
 
+	// Create an InsertRequest using fluent style
+	// If the table does not exist, automatically create one with Insert
 	req := request.InsertRequest{}
 	req.WithTable("monitor").WithMetric(metric).WithCatalog("").WithDatabase("public")
 
+	// Do the real Insert and Get the result
 	affectedRows, err := client.Insert(context.Background(), req)
 	if err != nil {
 		fmt.Printf("fail to insert, err: %+v\n", err)
