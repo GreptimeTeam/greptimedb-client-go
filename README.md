@@ -4,7 +4,6 @@
 # GreptimeDB Go Client
 
 ## Installation
-Make sure [Git is installed](https://git-scm.com/downloads) on your machine and in your system's `PATH`.  
 
 ```sh
 go get github.com/GreptimeTeam/greptimedb-client-go
@@ -19,23 +18,9 @@ Compared to [mysql](https://github.com/go-sql-driver/mysql), the Data Source Nam
 ```
 [username[:password]@][protocol[(address)]]/[catalogname:][dbname]
 ```
-There are more exampls to refer in the [dsn_test.go](https://github.com/GreptimeTeam/greptimedb-client-go/blob/main/pkg/sql/dsn_test.go).
-
-### setup GreptimeDB
-
-start GreptimeDB standalone container
-
-```shell
-docker run --rm -p 4001:4001 -p 4002:4002 greptime/greptimedb:latest standalone start --mysql-addr=0.0.0.0:4002 --rpc-addr=0.0.0.0:4001
-```
+There are more exampls to refer in the [dsn_test.go](pkg/sql/dsn_test.go).
 
 ### basic example of insert
-
-```sql
-INSERT INTO monitor(host, cpu, memory, ts) VALUES ('localhost', 0.90, 1024.0, 1660897955000);
-```
-The following code can do Insert just as the above sql do.
-
 ```go
 package main
 
@@ -88,19 +73,9 @@ func main() {
 	}
 }
 ```
-Attention! If the table `monitor` does not exist, it will be created automatically. The table created after the code will be in schama like
-```sql
-SELECT * FROM monitor;
-```
-
+Attention! If the table `monitor` does not exist, it will be created 
 
 ### basic example of query
-
-```sql
-INSERT INTO monitor(host, cpu, memory, ts) VALUES ('localhost', 0.90, 1024.0, 1660897955000);
-```
-The following code can do Insert just as the above sql do.
-
 ```go
 package main
 
@@ -120,8 +95,8 @@ type Monitor struct {
 }
 
 func main() {
-    // Open a GreptimeDB connection with database/sql API.
-    // Use `greptimedb` as driverName and a valid DSN to define data source 
+	// Open a GreptimeDB connection with database/sql API.
+	// Use `greptimedb` as driverName and a valid DSN to define data source
 	db, err := sql.Open("greptimedb", "(127.0.0.1:4001)/public")
 	defer db.Close()
 	if err != nil {
@@ -136,7 +111,7 @@ func main() {
 	}
 
 	var monitors []Monitor
-    // Use Next() to iterate over query result lines
+	// Use Next() to iterate over query result lines
 	for res.Next() {
 		var monitor Monitor
 		err := res.Scan(&monitor.Host, &monitor.Cpu, &monitor.Memory, &monitor.Ts)
@@ -150,6 +125,8 @@ func main() {
 
 	fmt.Printf("%#v\n", monitors)
 }
+
+
 ```
 ## License
 This greptimedb-client-go uses the __Apache 2.0 license__ to strike a balance between open contributions and allowing you to use the software however you want.

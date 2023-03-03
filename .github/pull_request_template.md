@@ -11,7 +11,6 @@ Please explain IN DETAIL what the changes are in this PR and why they are needed
 
 ## Checklist
 
-- [ ]  I have written the necessary rustdoc comments.
 - [ ]  I have added the necessary unit tests and integration tests.
 
 ## Refer to a related PR or issue link (optional)
