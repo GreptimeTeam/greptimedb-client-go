@@ -17,7 +17,7 @@ func (d *Driver) Open(dsn string) (driver.Conn, error) {
 		return nil, err
 	}
 
-	c := &connector{cfg}
+	c := &connector{cfg: cfg}
 	return c.Connect(context.Background())
 }
 
@@ -33,7 +33,7 @@ func (d *Driver) OpenConnector(dsn string) (driver.Connector, error) {
 		return nil, err
 	}
 
-	return &connector{cfg}, nil
+	return &connector{cfg: cfg}, nil
 }
 
 func init() {

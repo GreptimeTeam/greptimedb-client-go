@@ -137,6 +137,9 @@ func TestBasicWorkFlow(t *testing.T) {
 	res, err := db.Query("SELECT * FROM weather")
 	assert.Nil(t, err)
 
+	res2, err := db.Query("SELECT * FROM weather")
+	assert.Nil(t, err)
+
 	var actuallWeathers []weather
 	for res.Next() {
 		var actuallWeather weather
@@ -148,4 +151,16 @@ func TestBasicWorkFlow(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, originWeathers, actuallWeathers)
+
+	var actuallWeathers2 []weather
+	for res2.Next() {
+		var actuallWeather weather
+		err = res2.Scan(&actuallWeather.city, &actuallWeather.temperature,
+			&actuallWeather.moisture, &actuallWeather.ts)
+		assert.Nil(t, err)
+		actuallWeathers2 = append(actuallWeathers2, actuallWeather)
+	}
+
+	assert.Nil(t, err)
+	assert.Equal(t, originWeathers, actuallWeathers2)
 }
