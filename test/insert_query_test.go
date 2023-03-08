@@ -30,10 +30,10 @@ var (
 )
 
 type weather struct {
-	city        string
-	temperature float64
-	moisture    float64
-	ts          time.Time
+	City        string
+	Temperature float64
+	Moisture    float64
+	Ts          time.Time
 }
 
 func init() {
@@ -89,16 +89,16 @@ func init() {
 func TestBasicWorkFlow(t *testing.T) {
 	originWeathers := []weather{
 		{
-			city:        "Beijing",
-			ts:          time.UnixMilli(1677728740000),
-			temperature: 22.0,
-			moisture:    0.45,
+			City:        "Beijing",
+			Ts:          time.UnixMilli(1677728740000),
+			Temperature: 22.0,
+			Moisture:    0.45,
 		},
 		{
-			city:        "Shanghai",
-			ts:          time.UnixMilli(1677728740012),
-			temperature: 28.0,
-			moisture:    0.80,
+			City:        "Shanghai",
+			Ts:          time.UnixMilli(1677728740012),
+			Temperature: 28.0,
+			Moisture:    0.80,
 		},
 	}
 	// Insert
@@ -113,10 +113,10 @@ func TestBasicWorkFlow(t *testing.T) {
 	metric := request.Metric{}
 	for _, originWeather := range originWeathers {
 		series := request.Series{}
-		series.AddTag("city", originWeather.city)
-		series.SetTimeWithKey("ts", originWeather.ts)
-		series.AddField("temperature", originWeather.temperature)
-		series.AddField("moisture", originWeather.moisture)
+		series.AddTag("city", originWeather.City)
+		series.SetTimeWithKey("ts", originWeather.Ts)
+		series.AddField("temperature", originWeather.Temperature)
+		series.AddField("moisture", originWeather.Moisture)
 		metric.AddSeries(series)
 	}
 
@@ -140,12 +140,18 @@ func TestBasicWorkFlow(t *testing.T) {
 	var actuallWeathers []weather
 	for res.Next() {
 		var actuallWeather weather
-		err = res.Scan(&actuallWeather.city, &actuallWeather.temperature,
-			&actuallWeather.moisture, &actuallWeather.ts)
+		err = res.Scan(&actuallWeather.City, &actuallWeather.Temperature,
+			&actuallWeather.Moisture, &actuallWeather.Ts)
 		assert.Nil(t, err)
 		actuallWeathers = append(actuallWeathers, actuallWeather)
 	}
 
 	assert.Nil(t, err)
 	assert.Equal(t, originWeathers, actuallWeathers)
+
+	// Query with slice
+	actualWeathers2 := []weather{}
+	err = request.Query(db, "SELECT * FROM weather", &actualWeathers2)
+	assert.Nil(t, err)
+	assert.Equal(t, originWeathers, actualWeathers2)
 }
