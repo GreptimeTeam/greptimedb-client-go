@@ -52,47 +52,22 @@ func (r *QueryRequest) Build() (*greptime.GreptimeRequest, error) {
 	}, nil
 }
 
-// func Query(db *sql.DB, sql string, dest any) error {
-// 	typ := reflect.TypeOf(dest)
-// 	value := reflect.ValueOf(dest)
-// 	if typ.Kind() != reflect.Pointer {
-// 		return errors.New("dest should be a pointer")
-// 	}
-// 	if typ.Elem().Kind() != reflect.Slice {
-// 		return errors.New("dest should point to a slice so far")
-// 	}
-// 	if !value.IsZero() {
-// 		return errors.New("dest should point to an empty slice so far")
-// 	}
-
-// 	if db == nil {
-// 		return errors.New("db should not be empty")
-// 	}
-// 	res, err := db.Query(sql)
-// 	if err != nil {
-// 		fmt.Printf("db.Query err: %v", err)
-// 	}
-
-// 	elemType := typ.Elem()
-// 	array := dest.([]any)
-
-// 	for res.Next() {
-// 		// the pointer to a `monitor` in zero
-// 		row := reflect.New(elemType)
-
-// 		data := make([]any, row.NumField(), row.NumField())
-
-// 		err := res.Scan(data)
-// 		if err != nil {
-// 			fmt.Printf("res.Scan err: %v", err)
-// 			continue
-// 		}
-// 		array := append(array, )
-// 	}
-
-// }
+func Query(db *sql.DB, sql string, dest any) error {
+	if db == nil {
+		return ErrEmptyDatabase
+	}
+	rows, err := db.Query(sql)
+	if err != nil {
+		return err
+	}
+	return fillStructSlice(dest, rows)
+}
 
 func fillStructSlice(dest interface{}, rows *sql.Rows) error {
+	if rows == nil {
+		return errors.New("rows should not be empty")
+	}
+
 	// check if the dest can be set
 	err := isStructSliceSettable(dest)
 	if err != nil {
