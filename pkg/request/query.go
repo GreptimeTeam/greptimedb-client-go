@@ -92,16 +92,14 @@ func (r *QueryRequest) Build() (*greptime.GreptimeRequest, error) {
 
 // }
 
-func fillStructSlice(slicePtr interface{}, rows *sql.Rows) error {
-	// Check that the first input is a pointer to a slice
-	sliceValue := reflect.ValueOf(slicePtr)
-	if sliceValue.Kind() != reflect.Ptr {
-		return errors.New("first argument must be a pointer to a slice")
+func fillStructSlice(dest interface{}, rows *sql.Rows) error {
+	// check if the dest can be set
+	err := isStructSliceSettable(dest)
+	if err != nil {
+		return err
 	}
-	sliceElem := sliceValue.Elem()
-	if sliceElem.Kind() != reflect.Slice {
-		return errors.New("first argument must be a pointer to a slice")
-	}
+
+	sliceElem := reflect.ValueOf(dest).Elem()
 
 	// Get the type of the slice elements
 	elemType := sliceElem.Type().Elem()
@@ -127,9 +125,6 @@ func fillStructSlice(slicePtr interface{}, rows *sql.Rows) error {
 		// Set the values of the struct fields from the row data
 		for i := 0; i < structValue.NumField(); i++ {
 			fieldValue := structValue.Field(i)
-			if !fieldValue.CanSet() {
-				return fmt.Errorf("field %s is not settable", elemType.Field(i).Name)
-			}
 			value := reflect.ValueOf(rowData[i]).Elem()
 			if !value.IsValid() {
 				continue
@@ -140,9 +135,6 @@ func fillStructSlice(slicePtr interface{}, rows *sql.Rows) error {
 				}
 				value = value.Elem()
 			}
-			// if value.Kind() != fieldValue.Kind() {
-			// 	return fmt.Errorf("incorrect type for field %s: expected %s, got %s", elemType.Field(i).Name, fieldValue.Kind(), value.Elem().Kind())
-			// }
 			if !value.Type().AssignableTo(fieldValue.Type()) {
 				return fmt.Errorf("incorrect type for field %s: expected %s, got %s", elemType.Field(i).Name, fieldValue.Type(), value.Type())
 			}
@@ -160,4 +152,27 @@ func fillStructSlice(slicePtr interface{}, rows *sql.Rows) error {
 	return nil
 }
 
+func isStructSliceSettable(dest interface{}) error {
+	// Check that the first input is a pointer to a slice
+	sliceValue := reflect.ValueOf(dest)
+	if sliceValue.Kind() != reflect.Ptr {
+		return errors.New("dest must be a pointer to a slice")
+	}
+	sliceElem := sliceValue.Elem()
+	if sliceElem.Kind() != reflect.Slice {
+		return errors.New("dest must be a pointer to a slice")
+	}
 
+	// Check that each field can be set
+	elemType := sliceElem.Type().Elem()
+	structValue := reflect.New(elemType).Elem()
+
+	for i := 0; i < structValue.NumField(); i++ {
+		fieldValue := structValue.Field(i)
+		if !fieldValue.CanSet() {
+			return fmt.Errorf("field %s is not settable", elemType.Field(i).Name)
+		}
+	}
+
+	return nil
+}
