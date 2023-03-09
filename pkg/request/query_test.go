@@ -80,13 +80,34 @@ func TestFillStructSliceWithMoreRowDataColumns(t *testing.T) {
 	assert.Equal(t, slice, expected)
 }
 
-func TestFillStructSliceWithInvalidRowData(t *testing.T) {
-	rows := sqlmock.NewRows([]string{"name", "age"}).
-		AddRow("test", 123.345)
+func TestFillStructSliceWithLessRowDataColumns(t *testing.T) {
+	expected := []Person{
+		{"Alice", 25},
+		{"Bob", 30},
+		{"Charlie", 35},
+	}
+
+	// Set up a mock rows object
+	rows := sqlmock.NewRows([]string{"age"}).
+		AddRow(25).
+		AddRow(30).
+		AddRow(35)
+
+	// Call the function and check the result
 	slice := []Person{}
 	err := fillStructSlice(&slice, mockRowsToSqlRows(rows))
-	// fmt.Printf("rows: %+v", slice)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
+	assert.Equal(t, slice, expected)
+}
+
+func TestFillStructSliceWithInvalidRowData(t *testing.T) {
+	// Since sql.mock not implement some functions, tests this part in dockertest
+	// rows := sqlmock.NewRows([]string{"name", "age"}).
+	// 	AddRow("test", 123.345)
+	// slice := []Person{}
+	// err := fillStructSlice(&slice, mockRowsToSqlRows(rows))
+	// // fmt.Printf("rows: %+v", slice)
+	// assert.NotNil(t, err)
 }
 
 func TestFillStructSliceWithIncorrectNumberOfColumns(t *testing.T) {

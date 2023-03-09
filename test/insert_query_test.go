@@ -154,4 +154,55 @@ func TestBasicWorkFlow(t *testing.T) {
 	err = request.Query(db, "SELECT * FROM weather", &actualWeathers2)
 	assert.Nil(t, err)
 	assert.Equal(t, originWeathers, actualWeathers2)
+
+	// Query with slice -- random order of returned data
+	type weatherRandomOrder struct {
+		// move Moisture above City
+		Moisture    float64
+		City        string
+		Temperature float64
+		Ts          time.Time
+	}
+	orginalWeathersRandomOrder := []weatherRandomOrder{
+		{
+			City:        "Beijing",
+			Ts:          time.UnixMilli(1677728740000),
+			Temperature: 22.0,
+			Moisture:    0.45,
+		},
+		{
+			City:        "Shanghai",
+			Ts:          time.UnixMilli(1677728740012),
+			Temperature: 28.0,
+			Moisture:    0.80,
+		},
+	}
+	actualWeathersRandomOrder := []weatherRandomOrder{}
+	err = request.Query(db, "SELECT * FROM weather", &actualWeathersRandomOrder)
+	assert.Nil(t, err)
+	assert.Equal(t, orginalWeathersRandomOrder, actualWeathersRandomOrder)
+
+	// Query with slice -- different field of returned data
+	type weatherDifferentField struct {
+		// remove Moisture
+		City        string
+		Temperature float64
+		Ts          time.Time
+	}
+	orginalWeathersDifferentField := []weatherDifferentField{
+		{
+			City:        "Beijing",
+			Ts:          time.UnixMilli(1677728740000),
+			Temperature: 22.0,
+		},
+		{
+			City:        "Shanghai",
+			Ts:          time.UnixMilli(1677728740012),
+			Temperature: 28.0,
+		},
+	}
+	actualWeathersDifferentField := []weatherDifferentField{}
+	err = request.Query(db, "SELECT * FROM weather", &actualWeathersDifferentField)
+	assert.Nil(t, err)
+	assert.Equal(t, orginalWeathersDifferentField, actualWeathersDifferentField)
 }

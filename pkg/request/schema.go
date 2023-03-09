@@ -3,6 +3,7 @@ package request
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -90,11 +91,10 @@ func (s *Schema) withUDStruct(typ reflect.Type) error {
 		// if the field in user-defined struct corresponds to one column
 		if index, ok := s.ColumnIndexByName[extractFieldName(typ.Field(i))]; ok {
 			// then set the column type
-			// TODO(vinland-avalon): the ScanType has not been implemented
-			// if !s.ColumnDefs[index].ColumnType.AssignableTo(typ.Field(i).Type) {
-			// 	return fmt.Errorf("incorrect type for field %s: expected %s, got %s",
-			// 		extractFieldName(typ.Field(i)), s.ColumnDefs[index].ColumnType, typ.Field(i).Type)
-			// }
+			if !s.ColumnDefs[index].ColumnType.AssignableTo(typ.Field(i).Type) {
+				return fmt.Errorf("incorrect type for field %s: expected %s, got %s",
+					extractFieldName(typ.Field(i)), s.ColumnDefs[index].ColumnType, typ.Field(i).Type)
+			}
 			s.ColumnDefs[index].FieldType = typ.Field(i).Type
 		}
 	}

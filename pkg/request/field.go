@@ -35,7 +35,6 @@ func InitColumnDef(columnType *sql.ColumnType) (*ColumnDef, error) {
 
 	return &ColumnDef{
 		Name:       columnType.Name(),
-		// TODO(vinland-avalon): the ScanType has not been implemented
 		ColumnType: columnType.ScanType(),
 		FieldType:  columnType.ScanType(),
 	}, nil
