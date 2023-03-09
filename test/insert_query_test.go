@@ -205,4 +205,18 @@ func TestBasicWorkFlow(t *testing.T) {
 	err = request.Query(db, "SELECT * FROM weather", &actualWeathersDifferentField)
 	assert.Nil(t, err)
 	assert.Equal(t, orginalWeathersDifferentField, actualWeathersDifferentField)
+
+	// Query with slice -- inconsistent field type with returned data
+	type weatherWrongType struct {
+		// The Moisture is int here.
+		// So, when returning float64, query should fails
+		City        string
+		Temperature float64
+		Moisture    int
+		Ts          time.Time
+	}
+	actualWeathersWrongType := []weatherWrongType{}
+	err = request.Query(db, "SELECT * FROM weather", &actualWeathersWrongType)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "incorrect type for field")
 }
