@@ -2,6 +2,7 @@ package request
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -136,4 +137,9 @@ func ToColumnName(s string) (string, error) {
 	}
 
 	return strings.ToLower(strcase.SnakeCase(s)), nil
+}
+
+func extractFieldName(field reflect.StructField) string {
+	// TODO(vinland-avalon): add `_`
+	return strings.ToLower(field.Name)
 }

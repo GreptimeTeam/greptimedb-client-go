@@ -76,31 +76,40 @@ func fillStructSlice(dest interface{}, rows *sql.Rows) error {
 
 	sliceElem := reflect.ValueOf(dest).Elem()
 
+	// Init RowDataSchema
+	rowDataSchema, err := initSchema(rows)
+	if err != nil {
+		return err
+	}
+
 	// Get the type of the slice elements
 	elemType := sliceElem.Type().Elem()
-
+	rowDataSchema.withUDStruct(elemType)
 	// Iterate over the rows and create a new struct for each row
 	for rows.Next() {
-		// Create a new struct instance
+		// // Create a new struct instance
 		structValue := reflect.New(elemType).Elem()
 
-		// Get the row data and make sure it has the right number of columns
-		rowData := make([]interface{}, structValue.NumField())
-		// Iterate over the fields and create pointers to the field values
-		for i := 0; i < structValue.NumField(); i++ {
-			rowData[i] = structValue.Field(i).Addr().Interface()
-		}
-		if err := rows.Scan(rowData...); err != nil {
-			return err
-		}
-		if len(rowData) != structValue.NumField() {
-			return fmt.Errorf("incorrect number of columns for row: expected %d, got %d", structValue.NumField(), len(rowData))
-		}
+		rowDataSchema.withValue(rows)
+		// // Get the row data and make sure it has the right number of columns
+		// rowData := make([]interface{}, structValue.NumField())
+		// // Iterate over the fields and create pointers to the field values
+		// for i := 0; i < structValue.NumField(); i++ {
+		// rowData[i] = structValue.Field(i).Addr().Interface()
+		// }
+		// if err := rows.Scan(rowData...); err != nil {
+		//	return err
+		// }
+		// if len(rowData) != structValue.NumField() {
+		//	return fmt.Errorf("incorrect number of columns for row: expected %d, got %d", structValue.NumField(), len(rowData))
+		// }
 
 		// Set the values of the struct fields from the row data
 		for i := 0; i < structValue.NumField(); i++ {
 			fieldValue := structValue.Field(i)
-			value := reflect.ValueOf(rowData[i]).Elem()
+			fieldName := extractFieldName(elemType.Field(i))
+			rawValue, _ := rowDataSchema.valueByName(fieldName)
+			value := reflect.ValueOf(rawValue).Elem()
 			if !value.IsValid() {
 				continue
 			}

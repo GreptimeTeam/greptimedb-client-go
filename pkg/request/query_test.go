@@ -20,7 +20,7 @@ type Person struct {
 	Age  int
 }
 
-func TestFillStructSliceFromRows(t *testing.T) {
+func TestFillStructSlice(t *testing.T) {
 	expected := []Person{
 		{"Alice", 25},
 		{"Bob", 30},
@@ -32,6 +32,46 @@ func TestFillStructSliceFromRows(t *testing.T) {
 		AddRow("Alice", 25).
 		AddRow("Bob", 30).
 		AddRow("Charlie", 35)
+
+	// Call the function and check the result
+	slice := []Person{}
+	err := fillStructSlice(&slice, mockRowsToSqlRows(rows))
+	assert.Nil(t, err)
+	assert.Equal(t, slice, expected)
+}
+
+func TestFillStructSlicWithRandomOrder(t *testing.T) {
+	expected := []Person{
+		{"Alice", 25},
+		{"Bob", 30},
+		{"Charlie", 35},
+	}
+
+	// Set up a mock rows object
+	rows := sqlmock.NewRows([]string{"age", "name"}).
+		AddRow(25, "Alice").
+		AddRow(30, "Bob").
+		AddRow(35, "Charlie")
+
+	// Call the function and check the result
+	slice := []Person{}
+	err := fillStructSlice(&slice, mockRowsToSqlRows(rows))
+	assert.Nil(t, err)
+	assert.Equal(t, slice, expected)
+}
+
+func TestFillStructSliceWithMoreRowDataColumns(t *testing.T) {
+	expected := []Person{
+		{"Alice", 25},
+		{"Bob", 30},
+		{"Charlie", 35},
+	}
+
+	// Set up a mock rows object
+	rows := sqlmock.NewRows([]string{"age", "name", "gender"}).
+		AddRow(25, "Alice", "female").
+		AddRow(30, "Bob", "male").
+		AddRow(35, "Charlie", "male")
 
 	// Call the function and check the result
 	slice := []Person{}
