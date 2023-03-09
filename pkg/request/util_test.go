@@ -1,7 +1,6 @@
 package request
 
 import (
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -311,9 +310,4 @@ func TestColumnName(t *testing.T) {
 	key, err = ToColumnName(strings.Repeat("timestamp", 20))
 	assert.NotNil(t, err)
 	assert.Equal(t, "", key)
-}
-
-func TestExtractFieldName(t *testing.T) {
-	name := fieldName(reflect.TypeOf(Person{}).Field(0))
-	assert.Equal(t, "name", name)
 }

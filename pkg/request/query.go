@@ -68,9 +68,10 @@ func fillStructSlice(dest interface{}, rows *sql.Rows) error {
 		return errors.New("rows should not be empty")
 	}
 
+	var err error
+
 	// check if the dest can be set
-	err := isStructSliceSettable(dest)
-	if err != nil {
+	if err = isStructSliceSettable(dest); err != nil {
 		return err
 	}
 
@@ -85,15 +86,13 @@ func fillStructSlice(dest interface{}, rows *sql.Rows) error {
 
 	// Get the type of the slice elements
 	elemType := sliceElem.Type().Elem()
-	err = rowDataSchema.withUDStruct(elemType)
-	if err != nil {
+	if err = rowDataSchema.withUDStruct(elemType); err != nil {
 		return err
 	}
 
 	// Iterate over the rows and create a new struct for each row
 	for rows.Next() {
-		err = rowDataSchema.withValue(rows)
-		if err != nil {
+		if err = rowDataSchema.withValue(rows); err != nil {
 			return err
 		}
 
