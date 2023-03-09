@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
+	_ "github.com/GreptimeTeam/greptimedb-client-go/pkg/sql"
 )
 
 func main() {
@@ -32,7 +34,7 @@ func main() {
 
 	// Create a Metric and add the Series
 	metric := request.Metric{}
-	metric.SetTimePrecision(time.Microsecond)
+	metric.SetTimePrecision(time.Millisecond)
 	metric.AddSeries(series)
 
 	// Create an InsertRequest using fluent style
@@ -44,7 +46,26 @@ func main() {
 	affectedRows, err := client.Insert(context.Background(), req)
 	if err != nil {
 		fmt.Printf("fail to insert, err: %+v\n", err)
+		return
 	} else {
 		fmt.Printf("affectedRows: %+v\n", affectedRows)
 	}
+
+	// Open a GreptimeDB connection with database/sql API.
+	// Use `greptimedb` as driverName and a valid DSN to define data source
+	db, err := sql.Open("greptimedb", "(127.0.0.1:4001)/public")
+	defer db.Close()
+	if err != nil {
+		fmt.Printf("sql.Open err: %v", err)
+		return
+	}
+	type Monitor struct {
+		Host   string
+		Cpu    float64
+		Memory float64
+		Ts     time.Time
+	}
+	var monitors []Monitor
+	request.Query(db, "SELECT * FROM monitor", &monitors)
+	fmt.Printf("%+v\n", monitors)
 }

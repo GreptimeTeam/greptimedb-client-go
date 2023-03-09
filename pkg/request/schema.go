@@ -16,13 +16,17 @@ type Schema struct {
 	ColumnIndexByName map[string]int
 	ColumnDefs        []*ColumnDef
 	ColumnValues      []any
-	Len               int
+}
+
+func (s Schema) Len() int {
+	return len(s.ColumnDefs)
 }
 
 // initSchema: init schema with *sql.Rows.
 // Map column name to column definitions and column values.
 // The `ColumnValues“ are empty.
 func initSchema(rows *sql.Rows) (*Schema, error) {
+	// FIXME(yuanbohan): empty rows means empty result
 	if rows == nil {
 		return nil, errors.New("rows should not be empty")
 	}
@@ -36,24 +40,23 @@ func initSchema(rows *sql.Rows) (*Schema, error) {
 		indexMap[column] = i
 	}
 
-	fields := []*ColumnDef{}
 	columnsTypes, err := rows.ColumnTypes()
 	if err != nil {
 		return nil, err
 	}
+	fields := []*ColumnDef{}
 	for _, columnType := range columnsTypes {
-		field, err := InitColumnDef(columnType)
-		if err != nil {
+		if field, err := InitColumnDef(columnType); err != nil {
 			return nil, err
+		} else {
+			fields = append(fields, field)
 		}
-		fields = append(fields, field)
 	}
 
 	return &Schema{
 		ColumnDefs:        fields,
 		ColumnIndexByName: indexMap,
 		ColumnValues:      make([]any, len(columns)),
-		Len:               len(columns),
 	}, nil
 
 }
@@ -67,7 +70,7 @@ func (s *Schema) withValue(rows *sql.Rows) error {
 
 	// Iterate over the fields and create pointers to the field values
 	// The element are of the same type with user-defined struct fields
-	for i := 0; i < s.Len; i++ {
+	for i := 0; i < s.Len(); i++ {
 		s.ColumnValues[i] = reflect.New(s.ColumnDefs[i].FieldType).Interface()
 	}
 
@@ -86,14 +89,13 @@ func (s *Schema) valueByName(fieldName string) (any, error) {
 func (s *Schema) withUDStruct(typ reflect.Type) error {
 	for i := 0; i < typ.NumField(); i++ {
 		// if the field in user-defined struct corresponds to one column
+		// TODO(yuanbohan): use struct tag to get the mapped column
 		fieldName, err := ToColumnName(typ.Field(i).Name)
 		if err != nil {
 			return err
 		}
 		if index, ok := s.ColumnIndexByName[fieldName]; ok {
 			// then set the column type
-			// fmt.Printf("with UDStruct, type for field %s: expected %s, got %s\n",
-			// fieldName(typ.Field(i)), s.ColumnDefs[index].ColumnType, typ.Field(i).Type)
 			if !s.ColumnDefs[index].ColumnType.AssignableTo(typ.Field(i).Type) {
 				return fmt.Errorf("incorrect type for field %s: expected %s, got %s",
 					fieldName, s.ColumnDefs[index].ColumnType, typ.Field(i).Type)

@@ -178,7 +178,7 @@ func (r *rows) ColumnTypeLength(index int) (length int64, ok bool) {
 // RowsColumnTypeNullable may be implemented by Rows. The nullable value should
 // be true if it is known the column may be null, or false if the column is known
 // to be not nullable.
-// If the column nullability is unknown, ok should be false.//
+// If the column nullability is unknown, ok should be false.
 // driver.RowsColumnTypeNullable interface
 func (r *rows) ColumnTypeNullable(index int) (nullable, ok bool) {
 	if index >= len(r.fields) {

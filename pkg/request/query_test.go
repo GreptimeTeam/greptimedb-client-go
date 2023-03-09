@@ -9,14 +9,14 @@ import (
 func TestIsStructSliceSettableWithNilSlicePointer(t *testing.T) {
 	err := isStructSliceSettable(nil)
 	assert.NotNil(t, err)
-	assert.Equal(t, "dest must be a pointer to a slice", err.Error())
+	assert.Equal(t, "dest must be a pointer to slice", err.Error())
 }
 
 func TestIsStructSliceSettableWithNonPointerSlice(t *testing.T) {
 	slice := make([]int, 0)
 	err := isStructSliceSettable(slice)
 	assert.NotNil(t, err)
-	assert.Equal(t, "dest must be a pointer to a slice", err.Error())
+	assert.Equal(t, "dest must be a pointer to slice", err.Error())
 }
 
 func TestIsStructSliceSettableWithFieldCanNotSet(t *testing.T) {

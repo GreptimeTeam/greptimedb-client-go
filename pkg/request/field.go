@@ -1,3 +1,4 @@
+// FIXME(yuanbohan): this file SHOULD be placed into pkg/sql
 package request
 
 import (

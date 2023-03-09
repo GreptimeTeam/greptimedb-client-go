@@ -26,7 +26,7 @@ var (
 	database   string = "public"
 	driverName string = "greptimedb"
 	repo       string = "greptime/greptimedb"
-	tag        string = "0.1.0-alpha-20230227-weekly"
+	tag        string = "0.1.0"
 )
 
 type weather struct {
@@ -124,9 +124,6 @@ func TestBasicWorkFlow(t *testing.T) {
 	req.WithTable("weather").WithMetric(metric).WithCatalog("").WithDatabase("public")
 
 	affectedRows, err := client.Insert(context.Background(), req)
-	if err != nil {
-		fmt.Printf("client.Insert err: %v", err)
-	}
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(len(originWeathers)), affectedRows.Value)
 
