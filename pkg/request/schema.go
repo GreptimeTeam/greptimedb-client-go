@@ -89,14 +89,48 @@ func (s *Schema) valueByName(fieldName string) (any, error) {
 func (s *Schema) withUDStruct(typ reflect.Type) error {
 	for i := 0; i < typ.NumField(); i++ {
 		// if the field in user-defined struct corresponds to one column
-		if index, ok := s.ColumnIndexByName[extractFieldName(typ.Field(i))]; ok {
+		if index, ok := s.ColumnIndexByName[fieldName(typ.Field(i))]; ok {
 			// then set the column type
+			// fmt.Printf("with UDStruct, type for field %s: expected %s, got %s\n",
+			// fieldName(typ.Field(i)), s.ColumnDefs[index].ColumnType, typ.Field(i).Type)
 			if !s.ColumnDefs[index].ColumnType.AssignableTo(typ.Field(i).Type) {
 				return fmt.Errorf("incorrect type for field %s: expected %s, got %s",
-					extractFieldName(typ.Field(i)), s.ColumnDefs[index].ColumnType, typ.Field(i).Type)
+					fieldName(typ.Field(i)), s.ColumnDefs[index].ColumnType, typ.Field(i).Type)
 			}
 			s.ColumnDefs[index].FieldType = typ.Field(i).Type
 		}
 	}
 	return nil
+}
+
+// setUDStruct: set the values of the struct fields from the row data
+func (s *Schema) setUDStruct(elemType reflect.Type) (reflect.Value, error) {
+	// // Create a new struct instance
+	structValue := reflect.New(elemType).Elem()
+
+	for i := 0; i < structValue.NumField(); i++ {
+		fieldValue := structValue.Field(i)
+		fieldName := fieldName(elemType.Field(i))
+		rawValue, _ := s.valueByName(fieldName)
+		if rawValue == nil {
+			continue
+		}
+		value := reflect.ValueOf(rawValue).Elem()
+		if !value.IsValid() {
+			continue
+		}
+		if value.Kind() == reflect.Ptr {
+			if value.IsNil() {
+				continue
+			}
+			value = value.Elem()
+		}
+		if !value.Type().AssignableTo(fieldValue.Type()) {
+			return structValue, fmt.Errorf("incorrect type for field %s: expected %s, got %s",
+				elemType.Field(i).Name, fieldValue.Type(), value.Type())
+		}
+		fieldValue.Set(value)
+	}
+
+	return structValue, nil
 }

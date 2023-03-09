@@ -74,6 +74,7 @@ func fillStructSlice(dest interface{}, rows *sql.Rows) error {
 		return err
 	}
 
+	// reach the real value of dest
 	sliceElem := reflect.ValueOf(dest).Elem()
 
 	// Init RowDataSchema
@@ -84,45 +85,21 @@ func fillStructSlice(dest interface{}, rows *sql.Rows) error {
 
 	// Get the type of the slice elements
 	elemType := sliceElem.Type().Elem()
-	rowDataSchema.withUDStruct(elemType)
+	err = rowDataSchema.withUDStruct(elemType)
+	if err != nil {
+		return err
+	}
+
 	// Iterate over the rows and create a new struct for each row
 	for rows.Next() {
-		// // Create a new struct instance
-		structValue := reflect.New(elemType).Elem()
+		err = rowDataSchema.withValue(rows)
+		if err != nil {
+			return err
+		}
 
-		rowDataSchema.withValue(rows)
-		// // Get the row data and make sure it has the right number of columns
-		// rowData := make([]interface{}, structValue.NumField())
-		// // Iterate over the fields and create pointers to the field values
-		// for i := 0; i < structValue.NumField(); i++ {
-		// rowData[i] = structValue.Field(i).Addr().Interface()
-		// }
-		// if err := rows.Scan(rowData...); err != nil {
-		//	return err
-		// }
-		// if len(rowData) != structValue.NumField() {
-		//	return fmt.Errorf("incorrect number of columns for row: expected %d, got %d", structValue.NumField(), len(rowData))
-		// }
-
-		// Set the values of the struct fields from the row data
-		for i := 0; i < structValue.NumField(); i++ {
-			fieldValue := structValue.Field(i)
-			fieldName := extractFieldName(elemType.Field(i))
-			rawValue, _ := rowDataSchema.valueByName(fieldName)
-			value := reflect.ValueOf(rawValue).Elem()
-			if !value.IsValid() {
-				continue
-			}
-			if value.Kind() == reflect.Ptr {
-				if value.IsNil() {
-					continue
-				}
-				value = value.Elem()
-			}
-			if !value.Type().AssignableTo(fieldValue.Type()) {
-				return fmt.Errorf("incorrect type for field %s: expected %s, got %s", elemType.Field(i).Name, fieldValue.Type(), value.Type())
-			}
-			fieldValue.Set(value)
+		structValue, err := rowDataSchema.setUDStruct(elemType)
+		if err != nil {
+			return err
 		}
 
 		// Append the new struct to the slice

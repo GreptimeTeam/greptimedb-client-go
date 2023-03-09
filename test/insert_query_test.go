@@ -182,11 +182,12 @@ func TestBasicWorkFlow(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, orginalWeathersRandomOrder, actualWeathersRandomOrder)
 
-	// Query with slice -- different field of returned data
+	// Query with slice -- the columns returned are different from fields in struct
 	type weatherDifferentField struct {
-		// remove Moisture
+		// remove Moisture and add Wind
 		City        string
 		Temperature float64
+		Wind        string
 		Ts          time.Time
 	}
 	orginalWeathersDifferentField := []weatherDifferentField{

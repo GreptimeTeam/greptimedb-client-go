@@ -314,6 +314,6 @@ func TestColumnName(t *testing.T) {
 }
 
 func TestExtractFieldName(t *testing.T) {
-	name := extractFieldName(reflect.TypeOf(Person{}).Field(0))
+	name := fieldName(reflect.TypeOf(Person{}).Field(0))
 	assert.Equal(t, "name", name)
 }
