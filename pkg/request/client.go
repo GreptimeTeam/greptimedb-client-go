@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 	"github.com/apache/arrow/go/arrow/flight"
 	"google.golang.org/protobuf/proto"
+
+	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
 
 type Client struct {
@@ -93,4 +94,39 @@ func (c *Client) Query(ctx context.Context, req QueryRequest) (*flight.Reader, e
 	}
 
 	return reader, nil
+}
+
+// Query data from greptimedb via SQL.
+//
+// Release reduces the reference count for the reader.
+//
+// reader, err := client.Query(ctx, req)
+// defer reader.Release()
+func (c *Client) QueryMetric(ctx context.Context, req QueryRequest) (*Metric, error) {
+	request, err := req.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := proto.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	sr, err := c.Client.DoGet(ctx, &flight.Ticket{Ticket: b})
+	if err != nil {
+		return nil, err
+	}
+
+	reader, err := flight.NewRecordReader(sr)
+	if err != nil {
+		return nil, err
+	}
+
+	metric, err := buildMetricWithReader(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	return metric, nil
 }

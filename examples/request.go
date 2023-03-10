@@ -68,4 +68,17 @@ func main() {
 	var monitors []Monitor
 	request.Query(db, "SELECT * FROM monitor", &monitors)
 	fmt.Printf("%+v\n", monitors)
+
+	queryReq := request.QueryRequest{}
+	queryReq.WithSql("SELECT * FROM monitor").WithCatalog("").WithDatabase("public")
+
+	resMetric, err := client.QueryMetric(context.Background(), queryReq)
+	if err != nil {
+		fmt.Printf("client.QueryMetric err: %v", err)
+		return
+	}
+	for _, series := range resMetric.GetSeries() {
+		val, _ := series.Get("host")
+		fmt.Printf("%+v\n", val)
+	}
 }
