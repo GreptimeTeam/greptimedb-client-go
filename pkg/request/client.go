@@ -97,11 +97,6 @@ func (c *Client) Query(ctx context.Context, req QueryRequest) (*flight.Reader, e
 }
 
 // Query data from greptimedb via SQL.
-//
-// Release reduces the reference count for the reader.
-//
-// reader, err := client.Query(ctx, req)
-// defer reader.Release()
 func (c *Client) QueryMetric(ctx context.Context, req QueryRequest) (*Metric, error) {
 	request, err := req.Build()
 	if err != nil {
@@ -123,10 +118,5 @@ func (c *Client) QueryMetric(ctx context.Context, req QueryRequest) (*Metric, er
 		return nil, err
 	}
 
-	metric, err := buildMetricWithReader(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	return metric, nil
+	return buildMetricWithReader(reader)
 }

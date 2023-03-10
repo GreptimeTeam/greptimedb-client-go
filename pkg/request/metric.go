@@ -28,8 +28,8 @@ type Series struct {
 	timestamp      time.Time
 }
 
-func (s *Series) Get(key string) (val any, ok bool) {
-	val, ok = s.vals[key]
+func (s *Series) Get(key string) (any, bool) {
+	val, ok := s.vals[key]
 	return val, ok
 }
 
@@ -135,9 +135,10 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 	fields := r.Schema().Fields()
 	records, err := r.Reader.Read()
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	// TODO(vinland-avalon): 
+
+	// TODO(vinland-avalon): distinguish tags, fields and timestamp
 	metric := Metric{}
 	for i := 0; i < int(records.NumRows()); i++ {
 		series := Series{}
@@ -180,10 +181,9 @@ func fromColumn(column array.Interface, idx int) (any, error) {
 	}
 }
 
-func (m *Metric) GetSeries()[]Series {
+func (m *Metric) GetSeries() []Series {
 	return m.series
 }
-
 
 // SetTimePrecision set precsion for Metric. Valid durations include time.Nanosecond, time.Microsecond, time.Millisecond, time.Second.
 //
