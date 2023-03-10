@@ -37,7 +37,6 @@ func (s *stmt) Query(args []driver.Value) (driver.Rows, error) {
 
 // driver.StmtQueryContext interface
 func (s *stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
-
 	if len(args) > 0 {
 		return nil, errors.New("conn QueryContext args not supported")
 	}
@@ -57,7 +56,6 @@ func (s *stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driv
 		reader: reader,
 		fields: reader.Schema().Fields(),
 	}, nil
-
 }
 
 // driver.StmtExecContext interface

@@ -127,7 +127,7 @@ func TestBasicWorkFlow(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(len(originWeathers)), affectedRows.Value)
 
-	// Query
+	// Query with database/sql
 	db, err := sql.Open(driverName, fmt.Sprintf("(%s)/%s", grpcAddr, database))
 	assert.Nil(t, err)
 
@@ -217,4 +217,32 @@ func TestBasicWorkFlow(t *testing.T) {
 	err = request.Query(db, "SELECT * FROM weather", &actualWeathersWrongType)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "incorrect type for field")
+
+	// Query with metric
+	queryReq := request.QueryRequest{}
+	queryReq.WithSql("SELECT * FROM weather").WithCatalog("").WithDatabase("public")
+
+	resMetric, err := client.QueryMetric(context.Background(), queryReq)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(resMetric.GetSeries()))
+
+	actualWeathersWithMetric := []weather{}
+	for _, series := range resMetric.GetSeries() {
+		city, ok := series.Get("city")
+		assert.True(t, ok)
+		ts, ok := series.Get("ts")
+		assert.True(t, ok)
+		temperature, ok := series.Get("temperature")
+		assert.True(t, ok)
+		moisture, ok := series.Get("moisture")
+		assert.True(t, ok)
+		actualWeathersWithMetric = append(actualWeathersWithMetric, weather{
+			City:        city.(string),
+			Ts:          time.UnixMilli(ts.(int64)),
+			Temperature: temperature.(float64),
+			Moisture:    moisture.(float64),
+		})
+	}
+
+	assert.Equal(t, originWeathers, actualWeathersWithMetric)
 }

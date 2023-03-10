@@ -7,6 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apache/arrow/go/arrow/array"
+	"github.com/apache/arrow/go/arrow/flight"
+
 	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
 
@@ -23,6 +26,11 @@ type Series struct {
 
 	timestampAlias string
 	timestamp      time.Time
+}
+
+func (s *Series) Get(key string) (any, bool) {
+	val, ok := s.vals[key]
+	return val, ok
 }
 
 func checkColumnEquality(key string, col1, col2 column) error {
@@ -117,6 +125,64 @@ type Metric struct {
 	columns map[string]column
 
 	series []Series
+}
+
+func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
+	if r == nil {
+		return nil, errors.New("empty pointer")
+	}
+	// TODO(vinland-avalon): timestamps
+	fields := r.Schema().Fields()
+	records, err := r.Reader.Read()
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO(vinland-avalon): distinguish tags, fields and timestamp
+	metric := Metric{}
+	for i := 0; i < int(records.NumRows()); i++ {
+		series := Series{}
+		for j := 0; j < int(records.NumCols()); j++ {
+			column := records.Column(j)
+			colVal, err := fromColumn(column, i)
+			if err != nil {
+				return nil, err
+			}
+			series.AddField(fields[j].Name, colVal)
+		}
+		metric.AddSeries(series)
+	}
+
+	return &metric, nil
+}
+
+// retrive arrow value from the column at idx position, and convert it to driver.Value
+func fromColumn(column array.Interface, idx int) (any, error) {
+	if column.IsNull(idx) {
+		return nil, nil
+	}
+	switch typedColumn := column.(type) {
+	case *array.Timestamp:
+		return time.UnixMilli(int64(typedColumn.Value(idx))), nil
+	case *array.Float64:
+		return typedColumn.Value(idx), nil
+	case *array.Uint64:
+		return typedColumn.Value(idx), nil
+	case *array.Int64:
+		return typedColumn.Value(idx), nil
+	case *array.String:
+		return typedColumn.Value(idx), nil
+	case *array.Binary:
+		return typedColumn.Value(idx), nil
+	case *array.Boolean:
+		return typedColumn.Value(idx), nil
+	default:
+		return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
+	}
+}
+
+func (m *Metric) GetSeries() []Series {
+	return m.series
 }
 
 // SetTimePrecision set precsion for Metric. Valid durations include time.Nanosecond, time.Microsecond, time.Millisecond, time.Second.
