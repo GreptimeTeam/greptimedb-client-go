@@ -26,7 +26,7 @@ var (
 	database   string = "public"
 	driverName string = "greptimedb"
 	repo       string = "greptime/greptimedb"
-	tag        string = "0.1.0-alpha-20230227-weekly"
+	tag        string = "0.1.0"
 )
 
 type weather struct {
@@ -124,9 +124,6 @@ func TestBasicWorkFlow(t *testing.T) {
 	req.WithTable("weather").WithMetric(metric).WithCatalog("").WithDatabase("public")
 
 	affectedRows, err := client.Insert(context.Background(), req)
-	if err != nil {
-		fmt.Printf("client.Insert err: %v", err)
-	}
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(len(originWeathers)), affectedRows.Value)
 
@@ -154,4 +151,70 @@ func TestBasicWorkFlow(t *testing.T) {
 	err = request.Query(db, "SELECT * FROM weather", &actualWeathers2)
 	assert.Nil(t, err)
 	assert.Equal(t, originWeathers, actualWeathers2)
+
+	// Query with slice -- random order of returned data
+	type weatherRandomOrder struct {
+		// move Moisture above City
+		Moisture    float64
+		City        string
+		Temperature float64
+		Ts          time.Time
+	}
+	orginalWeathersRandomOrder := []weatherRandomOrder{
+		{
+			City:        "Beijing",
+			Ts:          time.UnixMilli(1677728740000),
+			Temperature: 22.0,
+			Moisture:    0.45,
+		},
+		{
+			City:        "Shanghai",
+			Ts:          time.UnixMilli(1677728740012),
+			Temperature: 28.0,
+			Moisture:    0.80,
+		},
+	}
+	actualWeathersRandomOrder := []weatherRandomOrder{}
+	err = request.Query(db, "SELECT * FROM weather", &actualWeathersRandomOrder)
+	assert.Nil(t, err)
+	assert.Equal(t, orginalWeathersRandomOrder, actualWeathersRandomOrder)
+
+	// Query with slice -- the columns returned are different from fields in struct
+	type weatherDifferentField struct {
+		// remove Moisture and add Wind
+		City        string
+		Temperature float64
+		Wind        string
+		Ts          time.Time
+	}
+	orginalWeathersDifferentField := []weatherDifferentField{
+		{
+			City:        "Beijing",
+			Ts:          time.UnixMilli(1677728740000),
+			Temperature: 22.0,
+		},
+		{
+			City:        "Shanghai",
+			Ts:          time.UnixMilli(1677728740012),
+			Temperature: 28.0,
+		},
+	}
+	actualWeathersDifferentField := []weatherDifferentField{}
+	err = request.Query(db, "SELECT * FROM weather", &actualWeathersDifferentField)
+	assert.Nil(t, err)
+	assert.Equal(t, orginalWeathersDifferentField, actualWeathersDifferentField)
+
+	// Query with slice -- inconsistent field type with returned data
+	type weatherWrongType struct {
+		// The Moisture is int here.
+		// So, when returning float64, query should fails
+		City        string
+		Temperature float64
+		Moisture    int
+		Ts          time.Time
+	}
+	actualWeathersWrongType := []weatherWrongType{}
+	err = request.Query(db, "SELECT * FROM weather", &actualWeathersWrongType)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "incorrect type for field")
 }

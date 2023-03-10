@@ -56,95 +56,70 @@ func Query(db *sql.DB, sql string, dest any) error {
 	if db == nil {
 		return ErrEmptyDatabase
 	}
-	rows, err := db.Query(sql)
-	if err != nil {
+	if rows, err := db.Query(sql); err == nil {
+		return fillStructSlice(dest, rows)
+	} else {
 		return err
 	}
-	return fillStructSlice(dest, rows)
 }
 
-func fillStructSlice(dest interface{}, rows *sql.Rows) error {
+// FIXME(yuanbohan): empty rows means empty result
+func fillStructSlice(dest any, rows *sql.Rows) error {
 	if rows == nil {
 		return errors.New("rows should not be empty")
 	}
 
 	// check if the dest can be set
-	err := isStructSliceSettable(dest)
+	if err := isStructSliceSettable(dest); err != nil {
+		return err
+	}
+
+	// reach the real value of dest
+	sliceElem := reflect.ValueOf(dest).Elem()
+
+	// Init RowDataSchema
+	rowDataSchema, err := initSchema(rows)
 	if err != nil {
 		return err
 	}
 
-	sliceElem := reflect.ValueOf(dest).Elem()
-
 	// Get the type of the slice elements
 	elemType := sliceElem.Type().Elem()
+	if err := rowDataSchema.withUDStruct(elemType); err != nil {
+		return err
+	}
 
 	// Iterate over the rows and create a new struct for each row
 	for rows.Next() {
-		// Create a new struct instance
-		structValue := reflect.New(elemType).Elem()
-
-		// Get the row data and make sure it has the right number of columns
-		rowData := make([]interface{}, structValue.NumField())
-		// Iterate over the fields and create pointers to the field values
-		for i := 0; i < structValue.NumField(); i++ {
-			rowData[i] = structValue.Field(i).Addr().Interface()
-		}
-		if err := rows.Scan(rowData...); err != nil {
+		if err := rowDataSchema.withValue(rows); err != nil {
 			return err
 		}
-		if len(rowData) != structValue.NumField() {
-			return fmt.Errorf("incorrect number of columns for row: expected %d, got %d", structValue.NumField(), len(rowData))
-		}
 
-		// Set the values of the struct fields from the row data
-		for i := 0; i < structValue.NumField(); i++ {
-			fieldValue := structValue.Field(i)
-			value := reflect.ValueOf(rowData[i]).Elem()
-			if !value.IsValid() {
-				continue
-			}
-			if value.Kind() == reflect.Ptr {
-				if value.IsNil() {
-					continue
-				}
-				value = value.Elem()
-			}
-			if !value.Type().AssignableTo(fieldValue.Type()) {
-				return fmt.Errorf("incorrect type for field %s: expected %s, got %s", elemType.Field(i).Name, fieldValue.Type(), value.Type())
-			}
-			fieldValue.Set(value)
+		structValue, err := rowDataSchema.setUDStruct(elemType)
+		if err != nil {
+			return err
 		}
 
 		// Append the new struct to the slice
 		sliceElem.Set(reflect.Append(sliceElem, structValue))
 	}
 
-	if err := rows.Err(); err != nil {
-		return err
-	}
-
-	return nil
+	return rows.Err()
 }
 
-func isStructSliceSettable(dest interface{}) error {
+func isStructSliceSettable(dest any) error {
 	// Check that the first input is a pointer to a slice
 	sliceValue := reflect.ValueOf(dest)
-	if sliceValue.Kind() != reflect.Ptr {
-		return errors.New("dest must be a pointer to a slice")
-	}
-	sliceElem := sliceValue.Elem()
-	if sliceElem.Kind() != reflect.Slice {
-		return errors.New("dest must be a pointer to a slice")
+	if sliceValue.Kind() != reflect.Ptr || sliceValue.Elem().Kind() != reflect.Slice {
+		return errors.New("dest must be a pointer to slice")
 	}
 
 	// Check that each field can be set
-	elemType := sliceElem.Type().Elem()
+	elemType := sliceValue.Elem().Type().Elem()
 	structValue := reflect.New(elemType).Elem()
 
 	for i := 0; i < structValue.NumField(); i++ {
-		fieldValue := structValue.Field(i)
-		if !fieldValue.CanSet() {
+		if !structValue.Field(i).CanSet() {
 			return fmt.Errorf("field %s is not settable", elemType.Field(i).Name)
 		}
 	}
