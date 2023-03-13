@@ -1,4 +1,4 @@
-package test
+package sql
 
 import (
 	"context"
@@ -15,7 +15,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
-	_ "github.com/GreptimeTeam/greptimedb-client-go/pkg/sql"
 )
 
 var (
@@ -27,13 +26,16 @@ var (
 	driverName string = "greptimedb"
 	repo       string = "greptime/greptimedb"
 	tag        string = "0.1.0"
+	table      string = "monitor"
 )
 
-type weather struct {
-	City        string
-	Temperature float64
-	Moisture    float64
+type monitor struct {
+	Host        string
+	Memory      uint64
+	Cpu         float64
+	Temperature int64
 	Ts          time.Time
+	IsAuthed    bool
 }
 
 func init() {
@@ -87,18 +89,22 @@ func init() {
 }
 
 func TestBasicWorkFlow(t *testing.T) {
-	originWeathers := []weather{
+	insertMonitor := []monitor{
 		{
-			City:        "Beijing",
+			Host:        "Beijing",
 			Ts:          time.UnixMilli(1677728740000),
-			Temperature: 22.0,
-			Moisture:    0.45,
+			Temperature: 22,
+			Memory:      1024,
+			IsAuthed:    true,
+			Cpu:         0.9,
 		},
 		{
-			City:        "Shanghai",
+			Host:        "Shanghai",
 			Ts:          time.UnixMilli(1677728740012),
-			Temperature: 28.0,
-			Moisture:    0.80,
+			Temperature: -1,
+			Memory:      2048,
+			IsAuthed:    false,
+			Cpu:         0.5,
 		},
 	}
 	// Insert
@@ -111,138 +117,126 @@ func TestBasicWorkFlow(t *testing.T) {
 	assert.Nil(t, err)
 
 	metric := request.Metric{}
-	for _, originWeather := range originWeathers {
+	for _, monitor := range insertMonitor {
 		series := request.Series{}
-		series.AddTag("city", originWeather.City)
-		series.SetTimeWithKey("ts", originWeather.Ts)
-		series.AddField("temperature", originWeather.Temperature)
-		series.AddField("moisture", originWeather.Moisture)
+		series.AddTag("host", monitor.Host)
+		series.SetTimeWithKey("ts", monitor.Ts)
+		series.AddField("temperature", monitor.Temperature)
+		series.AddField("memory", monitor.Memory)
+		series.AddField("cpu", monitor.Cpu)
+		series.AddField("is_authed", monitor.IsAuthed)
 		metric.AddSeries(series)
 	}
 
 	req := request.InsertRequest{}
-	req.WithTable("weather").WithMetric(metric).WithCatalog("").WithDatabase("public")
+	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
 
 	affectedRows, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(len(originWeathers)), affectedRows.Value)
+	assert.Equal(t, uint32(len(insertMonitor)), affectedRows.Value)
 
 	// Query with database/sql
 	db, err := sql.Open(driverName, fmt.Sprintf("(%s)/%s", grpcAddr, database))
 	assert.Nil(t, err)
 
-	res, err := db.Query("SELECT * FROM weather")
+	res, err := db.Query(fmt.Sprintf("SELECT * FROM %s", table))
 	assert.Nil(t, err)
 
-	var actuallWeathers []weather
+	var queryMonitors []monitor
 	for res.Next() {
-		var actuallWeather weather
-		err = res.Scan(&actuallWeather.City, &actuallWeather.Temperature,
-			&actuallWeather.Moisture, &actuallWeather.Ts)
+		var queryMonitor monitor
+		err = res.Scan(&queryMonitor.Host, &queryMonitor.Temperature,
+			&queryMonitor.Memory, &queryMonitor.Cpu, &queryMonitor.IsAuthed, &queryMonitor.Ts)
 		assert.Nil(t, err)
-		actuallWeathers = append(actuallWeathers, actuallWeather)
+		queryMonitors = append(queryMonitors, queryMonitor)
 	}
 
 	assert.Nil(t, err)
-	assert.Equal(t, originWeathers, actuallWeathers)
+	assert.Equal(t, insertMonitor, queryMonitors)
 
 	// Query with slice
-	actualWeathers2 := []weather{}
-	err = request.Query(db, "SELECT * FROM weather", &actualWeathers2)
+	queryMonitors2 := []monitor{}
+	err = Query(db, fmt.Sprintf("SELECT * FROM %s", table), &queryMonitors2)
 	assert.Nil(t, err)
-	assert.Equal(t, originWeathers, actualWeathers2)
+	assert.Equal(t, insertMonitor, queryMonitors2)
 
 	// Query with slice -- random order of returned data
-	type weatherRandomOrder struct {
-		// move Moisture above City
-		Moisture    float64
-		City        string
-		Temperature float64
+	type monitorRandomOrder struct {
+		// move Memory above Host
+		Memory      uint64
+		Host        string
+		Cpu         float64
+		Temperature int64
 		Ts          time.Time
+		IsAuthed    bool
 	}
-	orginalWeathersRandomOrder := []weatherRandomOrder{
+	expectedMonitorsRandomOrder := []monitorRandomOrder{
 		{
-			City:        "Beijing",
+			Host:        "Beijing",
 			Ts:          time.UnixMilli(1677728740000),
-			Temperature: 22.0,
-			Moisture:    0.45,
+			Temperature: 22,
+			Memory:      1024,
+			IsAuthed:    true,
+			Cpu:         0.9,
 		},
 		{
-			City:        "Shanghai",
+			Host:        "Shanghai",
 			Ts:          time.UnixMilli(1677728740012),
-			Temperature: 28.0,
-			Moisture:    0.80,
+			Temperature: -1,
+			Memory:      2048,
+			IsAuthed:    false,
+			Cpu:         0.5,
 		},
 	}
-	actualWeathersRandomOrder := []weatherRandomOrder{}
-	err = request.Query(db, "SELECT * FROM weather", &actualWeathersRandomOrder)
+	queryMonitorsRandomOrder := []monitorRandomOrder{}
+	err = Query(db, fmt.Sprintf("SELECT * FROM %s", table), &queryMonitorsRandomOrder)
 	assert.Nil(t, err)
-	assert.Equal(t, orginalWeathersRandomOrder, actualWeathersRandomOrder)
+	assert.Equal(t, expectedMonitorsRandomOrder, queryMonitorsRandomOrder)
 
 	// Query with slice -- the columns returned are different from fields in struct
-	type weatherDifferentField struct {
-		// remove Moisture and add Wind
-		City        string
-		Temperature float64
-		Wind        string
+	type monitorDifferentField struct {
+		// remove Memory and add id
+		Host        string
+		Id          uint64
+		Cpu         float64
+		Temperature int64
 		Ts          time.Time
+		IsAuthed    bool
 	}
-	orginalWeathersDifferentField := []weatherDifferentField{
+	expectedMonitorsDifferentField := []monitorDifferentField{
 		{
-			City:        "Beijing",
+			Host:        "Beijing",
 			Ts:          time.UnixMilli(1677728740000),
-			Temperature: 22.0,
+			Temperature: 22,
+			IsAuthed:    true,
+			Cpu:         0.9,
 		},
 		{
-			City:        "Shanghai",
+			Host:        "Shanghai",
 			Ts:          time.UnixMilli(1677728740012),
-			Temperature: 28.0,
+			Temperature: -1,
+			IsAuthed:    false,
+			Cpu:         0.5,
 		},
 	}
-	actualWeathersDifferentField := []weatherDifferentField{}
-	err = request.Query(db, "SELECT * FROM weather", &actualWeathersDifferentField)
+	queryMonitorsDifferentField := []monitorDifferentField{}
+	err = Query(db, fmt.Sprintf("SELECT * FROM %s", table), &queryMonitorsDifferentField)
 	assert.Nil(t, err)
-	assert.Equal(t, orginalWeathersDifferentField, actualWeathersDifferentField)
+	assert.Equal(t, expectedMonitorsDifferentField, queryMonitorsDifferentField)
 
 	// Query with slice -- inconsistent field type with returned data
-	type weatherWrongType struct {
-		// The Moisture is int here.
+	type monitorWrongType struct {
+		// The Cpu is int here.
 		// So, when returning float64, query should fails
-		City        string
-		Temperature float64
-		Moisture    int
+		Host        string
+		Memory      uint64
+		Cpu         int
+		Temperature int64
 		Ts          time.Time
+		IsAuthed    bool
 	}
-	actualWeathersWrongType := []weatherWrongType{}
-	err = request.Query(db, "SELECT * FROM weather", &actualWeathersWrongType)
+	queryMonitorsWrongType := []monitorWrongType{}
+	err = Query(db, fmt.Sprintf("SELECT * FROM %s", table), &queryMonitorsWrongType)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "incorrect type for field")
-
-	// Query with metric
-	queryReq := request.QueryRequest{}
-	queryReq.WithSql("SELECT * FROM weather").WithCatalog("").WithDatabase("public")
-
-	resMetric, err := client.QueryMetric(context.Background(), queryReq)
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(resMetric.GetSeries()))
-
-	actualWeathersWithMetric := []weather{}
-	for _, series := range resMetric.GetSeries() {
-		city, ok := series.Get("city")
-		assert.True(t, ok)
-		ts, ok := series.Get("ts")
-		assert.True(t, ok)
-		temperature, ok := series.Get("temperature")
-		assert.True(t, ok)
-		moisture, ok := series.Get("moisture")
-		assert.True(t, ok)
-		actualWeathersWithMetric = append(actualWeathersWithMetric, weather{
-			City:        city.(string),
-			Ts:          time.UnixMilli(ts.(int64)),
-			Temperature: temperature.(float64),
-			Moisture:    moisture.(float64),
-		})
-	}
-
-	assert.Equal(t, originWeathers, actualWeathersWithMetric)
 }

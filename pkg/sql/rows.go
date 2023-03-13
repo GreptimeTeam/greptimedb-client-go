@@ -2,7 +2,6 @@ package sql
 
 import (
 	"database/sql/driver"
-	"fmt"
 	"io"
 	"math"
 	"reflect"
@@ -11,6 +10,8 @@ import (
 	"github.com/apache/arrow/go/arrow"
 	"github.com/apache/arrow/go/arrow/array"
 	"github.com/apache/arrow/go/arrow/flight"
+
+	req "github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
 )
 
 type rows struct {
@@ -64,7 +65,7 @@ func (r *rows) Next(dest []driver.Value) error {
 
 	for i := 0; i < int(r.record.NumCols()); i++ {
 		col := r.record.Column(i)
-		value, err := fromColumn(col, r.idx)
+		value, err := req.FromColumn(col, r.idx)
 		if err != nil {
 			_ = r.Close()
 			return err
@@ -77,31 +78,6 @@ func (r *rows) Next(dest []driver.Value) error {
 	return nil
 }
 
-// retrive arrow value from the column at idx position, and convert it to driver.Value
-func fromColumn(column array.Interface, idx int) (driver.Value, error) {
-	if column.IsNull(idx) {
-		return nil, nil
-	}
-	switch typedColumn := column.(type) {
-	case *array.Timestamp:
-		return time.UnixMilli(int64(typedColumn.Value(idx))), nil
-	case *array.Float64:
-		return typedColumn.Value(idx), nil
-	case *array.Uint64:
-		return typedColumn.Value(idx), nil
-	case *array.Int64:
-		return typedColumn.Value(idx), nil
-	case *array.String:
-		return typedColumn.Value(idx), nil
-	case *array.Binary:
-		return typedColumn.Value(idx), nil
-	case *array.Boolean:
-		return typedColumn.Value(idx), nil
-	default:
-		return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
-	}
-}
-
 // RowsColumnTypeScanType may be implemented by Rows. It should return
 // the value type that can be used to scan types into. For example, the database
 // column type "bigint" this should return "reflect.TypeOf(int64(0))".
@@ -112,22 +88,20 @@ func (r *rows) ColumnTypeScanType(index int) reflect.Type {
 		return nil
 	}
 	switch r.fields[index].Type.ID() {
+	case arrow.BOOL:
+		return reflect.TypeOf(true)
 	case arrow.TIMESTAMP:
 		return reflect.TypeOf(time.Time{})
-	case arrow.FLOAT32:
-		return reflect.TypeOf(float32(0))
-	case arrow.DECIMAL, arrow.FLOAT64:
+	case arrow.DECIMAL, arrow.FLOAT64, arrow.FLOAT32, arrow.FLOAT16:
 		return reflect.TypeOf(float64(0))
-	case arrow.UINT64:
+	case arrow.UINT64, arrow.UINT8, arrow.UINT16, arrow.UINT32:
 		return reflect.TypeOf(uint64(0))
-	case arrow.INT64:
+	case arrow.INT64, arrow.INT8, arrow.INT16, arrow.INT32:
 		return reflect.TypeOf(int64(0))
 	case arrow.STRING:
 		return reflect.TypeOf("")
 	case arrow.BINARY:
 		return reflect.TypeOf([]byte(nil))
-	case arrow.BOOL:
-		return reflect.TypeOf(true)
 	default:
 		return nil
 	}

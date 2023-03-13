@@ -144,7 +144,7 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 		series := Series{}
 		for j := 0; j < int(records.NumCols()); j++ {
 			column := records.Column(j)
-			colVal, err := fromColumn(column, i)
+			colVal, err := FromColumn(column, i)
 			if err != nil {
 				return nil, err
 			}
@@ -157,7 +157,7 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 }
 
 // retrive arrow value from the column at idx position, and convert it to driver.Value
-func fromColumn(column array.Interface, idx int) (any, error) {
+func FromColumn(column array.Interface, idx int) (any, error) {
 	if column.IsNull(idx) {
 		return nil, nil
 	}

@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
-	_ "github.com/GreptimeTeam/greptimedb-client-go/pkg/sql"
+	greptimedb "github.com/GreptimeTeam/greptimedb-client-go/pkg/sql"
 )
 
 func main() {
@@ -66,6 +66,6 @@ func main() {
 		Ts     time.Time
 	}
 	var monitors []Monitor
-	request.Query(db, "SELECT * FROM monitor", &monitors)
+	greptimedb.Query(db, "SELECT * FROM monitor", &monitors)
 	fmt.Printf("%+v\n", monitors)
 }

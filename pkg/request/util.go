@@ -5,9 +5,8 @@ import (
 	"strings"
 	"time"
 
-	strcase "github.com/stoewer/go-strcase"
-
 	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
+	"github.com/stoewer/go-strcase"
 )
 
 type value struct {
