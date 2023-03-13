@@ -22,16 +22,20 @@ var (
 	database string = "public"
 	repo     string = "greptime/greptimedb"
 	tag      string = "0.1.0"
-	table    string = "monitor"
+	// table    string = "monitor"
+	table2 string = "datatype"
 )
 
-type monitor struct {
-	host        string
-	memory      uint64
-	cpu         float64
-	temperature int32
-	ts          time.Time
-	isAuthed    bool
+type datatype struct {
+	int64V   int64
+	int32V   int32
+	uint64V  uint64
+	uint32V  uint32
+	float64V float64
+	stringV  string
+	byteV    []byte
+	boolV    bool
+	timeV    time.Time
 }
 
 func init() {
@@ -85,85 +89,88 @@ func init() {
 }
 
 func TestBasicWorkFlow(t *testing.T) {
-	insertMonitors := []monitor{
-		{
-			host:        "127.0.0.1",
-			ts:          time.UnixMilli(1677728740000),
-			memory:      22,
-			cpu:         0.45,
-			temperature: -1,
-			isAuthed:    true,
-		},
-		{
-			host:        "127.0.0.2",
-			ts:          time.UnixMilli(1677728740012),
-			memory:      28,
-			cpu:         0.80,
-			temperature: 22,
-			isAuthed:    true,
-		},
+	data := datatype{
+		int64V:   64,
+		int32V:   32,
+		uint64V:  64,
+		uint32V:  32,
+		float64V: 64.0,
+		stringV:  "string",
+		byteV:    []byte("byte"),
+		boolV:    true,
+		timeV:    time.UnixMilli(1677728740012),
 	}
+
 	// Insert
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
-	// cfg := NewCfg("localhost:4001", "", database).WithDialOptions(options...)
+	// cfg := NewCfg("localstringV:4001", "", database).WithDialOptions(options...)
 
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
 	metric := Metric{}
-	metric.SetTimePrecision(time.Microsecond)
-	for _, monitor := range insertMonitors {
-		series := Series{}
-		series.AddTag("host", monitor.host)
-		series.SetTimeWithKey("ts", monitor.ts)
-		series.AddField("memory", monitor.memory)
-		series.AddField("cpu", monitor.cpu)
-		series.AddField("temperature", monitor.temperature)
-		series.AddField("is_authed", monitor.isAuthed)
-		metric.AddSeries(series)
-	}
+
+	series := Series{}
+	series.AddTag("int64_v", data.int64V)
+	series.AddTag("int32_v", data.int32V)
+	series.AddTag("uint64_v", data.uint64V)
+	series.AddField("uint32_v", data.uint32V)
+	series.AddField("float64_v", data.float64V)
+	series.AddField("string_v", data.stringV)
+	series.AddField("byte_v", data.byteV)
+	series.AddField("bool_v", data.boolV)
+	series.SetTimeWithKey("time_v", data.timeV)
+	metric.AddSeries(series)
 
 	req := InsertRequest{}
-	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+	req.WithTable(table2).WithMetric(metric).WithCatalog("").WithDatabase(database)
 
 	affectedRows, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(len(insertMonitors)), affectedRows.Value)
+	assert.Equal(t, uint32(1), affectedRows.Value)
 
 	// Query with metric
 	queryReq := QueryRequest{}
-	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog("").WithDatabase(database)
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table2)).WithCatalog("").WithDatabase(database)
 
 	resMetric, err := client.QueryMetric(context.Background(), queryReq)
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(resMetric.GetSeries()))
+	assert.Equal(t, 1, len(resMetric.GetSeries()))
 
-	queryMonitors := []monitor{}
-	for _, series := range resMetric.GetSeries() {
-		host, ok := series.Get("host")
-		assert.True(t, ok)
-		ts, ok := series.Get("ts")
-		assert.True(t, ok)
-		temperature, ok := series.Get("temperature")
-		assert.True(t, ok)
-		memory, ok := series.Get("memory")
-		assert.True(t, ok)
-		cpu, ok := series.Get("cpu")
-		assert.True(t, ok)
-		isAuthed, ok := series.Get("is_authed")
-		assert.True(t, ok)
-		queryMonitors = append(queryMonitors, monitor{
-			host:        host.(string),
-			ts:          time.UnixMicro(ts.(int64)),
-			memory:      memory.(uint64),
-			cpu:         cpu.(float64),
-			temperature: temperature.(int32),
-			isAuthed:    isAuthed.(bool),
-		})
+	series = resMetric.GetSeries()[0]
+	int64V, ok := series.Get("int64_v")
+	assert.True(t, ok)
+	int32V, ok := series.Get("int32_v")
+	assert.True(t, ok)
+	uint64V, ok := series.Get("uint64_v")
+	assert.True(t, ok)
+	uint32V, ok := series.Get("uint32_v")
+	assert.True(t, ok)
+	float64V, ok := series.Get("float64_v")
+	assert.True(t, ok)
+	stringV, ok := series.Get("string_v")
+	assert.True(t, ok)
+	byteV, ok := series.Get("byte_v")
+	assert.True(t, ok)
+	boolV, ok := series.Get("bool_v")
+	assert.True(t, ok)
+	timeV, ok := series.Get("time_v")
+	assert.True(t, ok)
+
+	querydata := datatype{
+		int64V:   int64V.(int64),
+		int32V:   int32V.(int32),
+		uint64V:  uint64V.(uint64),
+		uint32V:  uint32V.(uint32),
+		float64V: float64V.(float64),
+		stringV:  stringV.(string),
+		byteV:    []byte(byteV.(string)),
+		boolV:    boolV.(bool),
+		timeV:    time.UnixMilli(timeV.(int64)),
 	}
 
-	assert.Equal(t, insertMonitors, queryMonitors)
+	assert.Equal(t, data, querydata)
 }

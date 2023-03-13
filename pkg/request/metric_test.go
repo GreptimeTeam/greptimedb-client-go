@@ -32,7 +32,7 @@ func TestSeries(t *testing.T) {
 	assert.Equal(t, greptime.Column_TAG, s.columns["tag3"].semantic)
 	assert.Equal(t, greptime.ColumnDataType_FLOAT64, s.columns["tag4"].typ)
 	assert.Equal(t, greptime.Column_TAG, s.columns["tag4"].semantic)
-	assert.Equal(t, greptime.ColumnDataType_BINARY, s.columns["field1"].typ)
+	assert.Equal(t, greptime.ColumnDataType_STRING, s.columns["field1"].typ)
 	assert.Equal(t, greptime.Column_FIELD, s.columns["field1"].semantic)
 	assert.Equal(t, greptime.ColumnDataType_FLOAT64, s.columns["field2"].typ)
 	assert.Equal(t, greptime.Column_FIELD, s.columns["field2"].semantic)
@@ -47,7 +47,7 @@ func TestSeries(t *testing.T) {
 	assert.Equal(t, true, s.vals["tag2"])
 	assert.Equal(t, int32(32), s.vals["tag3"])
 	assert.Equal(t, float64(32.0), s.vals["tag4"])
-	assert.Equal(t, []byte("field val"), s.vals["field1"])
+	assert.Equal(t, "field val", s.vals["field1"])
 	assert.Equal(t, float64(32.0), s.vals["field2"])
 	assert.Equal(t, uint32(8), s.vals["field3"])
 	assert.Equal(t, uint64(64), s.vals["field4"])
@@ -213,9 +213,9 @@ func TestGreptimeColumn(t *testing.T) {
 
 	col7 := cols[6]
 	assert.Equal(t, "field_name3", col7.ColumnName)
-	assert.Equal(t, greptime.ColumnDataType_BINARY, col7.Datatype)
+	assert.Equal(t, greptime.ColumnDataType_STRING, col7.Datatype)
 	assert.Equal(t, greptime.Column_FIELD, col7.SemanticType)
-	assert.Equal(t, [][]byte{[]byte("field3")}, col7.Values.BinaryValues)
+	assert.Equal(t, []string{"field3"}, col7.Values.StringValues)
 	assert.Equal(t, []byte{1}, col7.NullMask)
 
 	col8 := cols[7]

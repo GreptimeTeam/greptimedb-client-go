@@ -26,7 +26,7 @@ int32, int64, int (as int64),
 uint32, uint64, uint (as uint64),
 float64, float (as float64),
 bool,
-[]byte, string,
+string,
 time.Time (as int64),
 ```
 ```go
@@ -34,6 +34,7 @@ time.Time (as int64),
 int8, int16, // they will be stored as int32
 uint8, uint16, // they will be stored as uint32
 float32, // it will be stored as float64
+[]byte, // it will be stored as string
 ```
 
 ### basic example of insert
