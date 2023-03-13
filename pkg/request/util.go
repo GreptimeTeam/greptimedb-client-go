@@ -25,7 +25,7 @@ func convert(v any) (*value, error) {
 	case string:
 		return newValue(t, greptime.ColumnDataType_STRING), nil
 	case []byte:
-		return newValue(string(t), greptime.ColumnDataType_STRING), nil
+		return newValue(t, greptime.ColumnDataType_BINARY), nil
 	case float64:
 		return newValue(t, greptime.ColumnDataType_FLOAT64), nil
 	case float32:
@@ -58,7 +58,7 @@ func convert(v any) (*value, error) {
 	case *string:
 		return newValue(*t, greptime.ColumnDataType_STRING), nil
 	case *[]byte:
-		return newValue(string(*t), greptime.ColumnDataType_STRING), nil
+		return newValue(*t, greptime.ColumnDataType_BINARY), nil
 	case *float64:
 		return newValue(*t, greptime.ColumnDataType_FLOAT64), nil
 	case *float32:

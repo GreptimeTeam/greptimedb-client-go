@@ -162,13 +162,15 @@ func FromColumn(column array.Interface, idx int) (any, error) {
 		return nil, nil
 	}
 	switch typedColumn := column.(type) {
-	case *array.Timestamp:
-		return time.UnixMilli(int64(typedColumn.Value(idx))), nil
-	case *array.Float64:
+	case *array.Int64:
+		return typedColumn.Value(idx), nil
+	case *array.Int32:
 		return typedColumn.Value(idx), nil
 	case *array.Uint64:
 		return typedColumn.Value(idx), nil
-	case *array.Int64:
+	case *array.Uint32:
+		return typedColumn.Value(idx), nil
+	case *array.Float64:
 		return typedColumn.Value(idx), nil
 	case *array.String:
 		return typedColumn.Value(idx), nil
@@ -176,6 +178,9 @@ func FromColumn(column array.Interface, idx int) (any, error) {
 		return typedColumn.Value(idx), nil
 	case *array.Boolean:
 		return typedColumn.Value(idx), nil
+	// TODO(vinland-avalon): with precision
+	case *array.Timestamp:
+		return time.UnixMilli(int64(typedColumn.Value(idx))), nil
 	default:
 		return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
 	}
@@ -337,22 +342,35 @@ func (m *Metric) timestampColumn() (*greptime.Column, error) {
 
 func setColumn(col *greptime.Column, val any) error {
 	switch col.Datatype {
-	case greptime.ColumnDataType_BOOLEAN:
-		col.Values.BoolValues = append(col.Values.BoolValues, val.(bool))
+	case greptime.ColumnDataType_INT8:
+		col.Values.I32Values = append(col.Values.I32Values, val.(int32))
+	case greptime.ColumnDataType_INT16:
+		col.Values.I32Values = append(col.Values.I32Values, val.(int32))
 	case greptime.ColumnDataType_INT32:
 		col.Values.I32Values = append(col.Values.I32Values, val.(int32))
 	case greptime.ColumnDataType_INT64:
 		col.Values.I64Values = append(col.Values.I64Values, val.(int64))
+
+	case greptime.ColumnDataType_UINT8:
+		col.Values.U32Values = append(col.Values.U32Values, val.(uint32))
+	case greptime.ColumnDataType_UINT16:
+		col.Values.U32Values = append(col.Values.U32Values, val.(uint32))
 	case greptime.ColumnDataType_UINT32:
 		col.Values.U32Values = append(col.Values.U32Values, val.(uint32))
 	case greptime.ColumnDataType_UINT64:
 		col.Values.U64Values = append(col.Values.U64Values, val.(uint64))
 	case greptime.ColumnDataType_FLOAT32:
-		col.Values.F32Values = append(col.Values.F32Values, val.(float32))
+		col.Values.F64Values = append(col.Values.F64Values, val.(float64))
 	case greptime.ColumnDataType_FLOAT64:
 		col.Values.F64Values = append(col.Values.F64Values, val.(float64))
+
+	case greptime.ColumnDataType_BOOLEAN:
+		col.Values.BoolValues = append(col.Values.BoolValues, val.(bool))
 	case greptime.ColumnDataType_STRING:
 		col.Values.StringValues = append(col.Values.StringValues, val.(string))
+	case greptime.ColumnDataType_BINARY:
+		col.Values.BinaryValues = append(col.Values.BinaryValues, val.([]byte))
+
 	case greptime.ColumnDataType_TIMESTAMP_SECOND:
 		col.Values.TsSecondValues = append(col.Values.TsSecondValues, val.(int64))
 	case greptime.ColumnDataType_TIMESTAMP_MILLISECOND:

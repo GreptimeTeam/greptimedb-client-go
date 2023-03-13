@@ -29,7 +29,7 @@ type monitor struct {
 	host        string
 	memory      uint64
 	cpu         float64
-	temperature int64
+	temperature int32
 	ts          time.Time
 	isAuthed    bool
 }
@@ -108,6 +108,7 @@ func TestBasicWorkFlow(t *testing.T) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	// cfg := NewCfg("localhost:4001", "", database).WithDialOptions(options...)
 
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
@@ -159,7 +160,7 @@ func TestBasicWorkFlow(t *testing.T) {
 			ts:          time.UnixMicro(ts.(int64)),
 			memory:      memory.(uint64),
 			cpu:         cpu.(float64),
-			temperature: temperature.(int64),
+			temperature: temperature.(int32),
 			isAuthed:    isAuthed.(bool),
 		})
 	}

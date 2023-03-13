@@ -29,8 +29,8 @@ func TestConvertValue(t *testing.T) {
 	var expectBytes []byte = []byte("bytes")
 	val, err = convert(expectBytes)
 	assert.Nil(t, err)
-	assert.Equal(t, "bytes", val.val)
-	assert.Equal(t, greptime.ColumnDataType_STRING, val.typ)
+	assert.Equal(t, []byte("bytes"), val.val)
+	assert.Equal(t, greptime.ColumnDataType_BINARY, val.typ)
 
 	// float64
 	var expectFloat64 float64 = float64(64.0)
@@ -164,8 +164,8 @@ func TestConvertValuePtr(t *testing.T) {
 	var expectBytes []byte = []byte("bytes")
 	val, err = convert(&expectBytes)
 	assert.Nil(t, err)
-	assert.Equal(t, "bytes", val.val)
-	assert.Equal(t, greptime.ColumnDataType_STRING, val.typ)
+	assert.Equal(t, []byte("bytes"), val.val)
+	assert.Equal(t, greptime.ColumnDataType_BINARY, val.typ)
 
 	// float64
 	var expectFloat64 float64 = float64(64.0)
