@@ -1,10 +1,12 @@
-package request
+package sql
 
 import (
 	"database/sql"
 	"errors"
 	"fmt"
 	"reflect"
+
+	req "github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
 )
 
 var ErrUnsupportedDataType = errors.New("unsupported data type")
@@ -90,7 +92,7 @@ func (s *Schema) withUDStruct(typ reflect.Type) error {
 	for i := 0; i < typ.NumField(); i++ {
 		// if the field in user-defined struct corresponds to one column
 		// TODO(yuanbohan): use struct tag to get the mapped column
-		fieldName, err := ToColumnName(typ.Field(i).Name)
+		fieldName, err := req.ToColumnName(typ.Field(i).Name)
 		if err != nil {
 			return err
 		}
@@ -113,7 +115,7 @@ func (s *Schema) setUDStruct(elemType reflect.Type) (reflect.Value, error) {
 
 	for i := 0; i < structValue.NumField(); i++ {
 		fieldValue := structValue.Field(i)
-		fieldName, err := ToColumnName(elemType.Field(i).Name)
+		fieldName, err := req.ToColumnName(elemType.Field(i).Name)
 		if err != nil {
 			return structValue, err
 		}

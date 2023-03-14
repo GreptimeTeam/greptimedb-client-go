@@ -28,6 +28,7 @@ type Series struct {
 	timestamp      time.Time
 }
 
+// TODO(vinland-avalon): for timestamp, use another function to return time.Time to keep precision
 func (s *Series) Get(key string) (any, bool) {
 	val, ok := s.vals[key]
 	return val, ok
@@ -144,7 +145,7 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 		series := Series{}
 		for j := 0; j < int(records.NumCols()); j++ {
 			column := records.Column(j)
-			colVal, err := fromColumn(column, i)
+			colVal, err := FromColumn(column, i)
 			if err != nil {
 				return nil, err
 			}
@@ -157,18 +158,20 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 }
 
 // retrive arrow value from the column at idx position, and convert it to driver.Value
-func fromColumn(column array.Interface, idx int) (any, error) {
+func FromColumn(column array.Interface, idx int) (any, error) {
 	if column.IsNull(idx) {
 		return nil, nil
 	}
 	switch typedColumn := column.(type) {
-	case *array.Timestamp:
-		return time.UnixMilli(int64(typedColumn.Value(idx))), nil
-	case *array.Float64:
+	case *array.Int64:
+		return typedColumn.Value(idx), nil
+	case *array.Int32:
 		return typedColumn.Value(idx), nil
 	case *array.Uint64:
 		return typedColumn.Value(idx), nil
-	case *array.Int64:
+	case *array.Uint32:
+		return typedColumn.Value(idx), nil
+	case *array.Float64:
 		return typedColumn.Value(idx), nil
 	case *array.String:
 		return typedColumn.Value(idx), nil
@@ -176,6 +179,11 @@ func fromColumn(column array.Interface, idx int) (any, error) {
 		return typedColumn.Value(idx), nil
 	case *array.Boolean:
 		return typedColumn.Value(idx), nil
+	// TODO(vinland-avalon): with precision, so far, no matter what precision, will be stored as millisecond.
+	// TODO(vinland-avalon): the returned time.Time will be again `convert` to int64, so the user can get the right time
+	// TODO(vinland-avalon): with semantic
+	case *array.Timestamp:
+		return time.UnixMilli(int64(typedColumn.Value(idx))), nil
 	default:
 		return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
 	}
@@ -337,12 +345,18 @@ func (m *Metric) timestampColumn() (*greptime.Column, error) {
 
 func setColumn(col *greptime.Column, val any) error {
 	switch col.Datatype {
-	case greptime.ColumnDataType_BOOLEAN:
-		col.Values.BoolValues = append(col.Values.BoolValues, val.(bool))
+	case greptime.ColumnDataType_INT8:
+		col.Values.I8Values = append(col.Values.I8Values, val.(int32))
+	case greptime.ColumnDataType_INT16:
+		col.Values.I16Values = append(col.Values.I16Values, val.(int32))
 	case greptime.ColumnDataType_INT32:
 		col.Values.I32Values = append(col.Values.I32Values, val.(int32))
 	case greptime.ColumnDataType_INT64:
 		col.Values.I64Values = append(col.Values.I64Values, val.(int64))
+	case greptime.ColumnDataType_UINT8:
+		col.Values.U8Values = append(col.Values.U8Values, val.(uint32))
+	case greptime.ColumnDataType_UINT16:
+		col.Values.U16Values = append(col.Values.U16Values, val.(uint32))
 	case greptime.ColumnDataType_UINT32:
 		col.Values.U32Values = append(col.Values.U32Values, val.(uint32))
 	case greptime.ColumnDataType_UINT64:
@@ -351,8 +365,12 @@ func setColumn(col *greptime.Column, val any) error {
 		col.Values.F32Values = append(col.Values.F32Values, val.(float32))
 	case greptime.ColumnDataType_FLOAT64:
 		col.Values.F64Values = append(col.Values.F64Values, val.(float64))
+	case greptime.ColumnDataType_BOOLEAN:
+		col.Values.BoolValues = append(col.Values.BoolValues, val.(bool))
 	case greptime.ColumnDataType_STRING:
 		col.Values.StringValues = append(col.Values.StringValues, val.(string))
+	case greptime.ColumnDataType_BINARY:
+		col.Values.BinaryValues = append(col.Values.BinaryValues, val.([]byte))
 	case greptime.ColumnDataType_TIMESTAMP_SECOND:
 		col.Values.TsSecondValues = append(col.Values.TsSecondValues, val.(int64))
 	case greptime.ColumnDataType_TIMESTAMP_MILLISECOND:

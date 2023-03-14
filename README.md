@@ -20,6 +20,23 @@ Compared to [mysql](https://github.com/go-sql-driver/mysql), the Data Source Nam
 ```
 There are more exampls to refer in the [dsn_test.go](pkg/sql/dsn_test.go).
 
+### datatype we support
+```go
+int32, int64, int (as int64),
+uint32, uint64, uint (as uint64),
+float64,
+bool,
+string,
+time.Time (as int64),
+```
+```go
+// Attention! The following data types may cause conversion and are not recommended.
+int8, int16, // they will be stored as int32
+uint8, uint16, // they will be stored as uint32
+float32, // it will be stored as float64
+[]byte, // it will be stored as string
+```
+
 ### basic example of insert
 ```go
 package main
