@@ -13,9 +13,7 @@ import (
 
 var (
 	database string = "public"
-	grpcAddr string
 	table    string = "monitor"
-	table2   string = "datatype"
 )
 
 type datatype struct {
@@ -23,21 +21,18 @@ type datatype struct {
 	int32V   int32
 	int16V   int16
 	int8V    int8
+	intV     int
 	uint64V  uint64
 	uint32V  uint32
 	uint16V  uint16
 	uint8V   uint8
+	uintV    uint
 	float64V float64
 	float32V float32
 	stringV  string
 	byteV    []byte
 	boolV    bool
 	timeV    time.Time
-}
-
-func init() {
-	dockerConfig := DefaultDockerTestConfig()
-	grpcAddr = DockerTestInit(dockerConfig)
 }
 
 type monitor struct {
@@ -50,6 +45,8 @@ type monitor struct {
 }
 
 func TestBasicWorkFlow(t *testing.T) {
+	grpcAddr := DockerTestInit(DefaultDockerTestConfig())
+
 	insertMonitors := []monitor{
 		{
 			host:        "127.0.0.1",
@@ -68,12 +65,12 @@ func TestBasicWorkFlow(t *testing.T) {
 			isAuthed:    true,
 		},
 	}
+
 	// Insert
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
-
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
@@ -128,20 +125,23 @@ func TestBasicWorkFlow(t *testing.T) {
 			isAuthed:    isAuthed.(bool),
 		})
 	}
-
 	assert.Equal(t, insertMonitors, queryMonitors)
 }
 
 func TestDataTypes(t *testing.T) {
+	grpcAddr := DockerTestInit(DefaultDockerTestConfig())
+
 	data := datatype{
 		int64V:   64,
 		int32V:   32,
 		int16V:   16,
 		int8V:    8,
+		intV:     64,
 		uint64V:  64,
 		uint32V:  32,
 		uint16V:  16,
 		uint8V:   8,
+		uintV:    64,
 		float64V: 64.0,
 		float32V: 32.0,
 		stringV:  "string",
@@ -155,8 +155,6 @@ func TestDataTypes(t *testing.T) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
-	// cfg := NewCfg("localstringV:4001", "", database).WithDialOptions(options...)
-
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
@@ -167,10 +165,12 @@ func TestDataTypes(t *testing.T) {
 	series.AddTag("int32_v", data.int32V)
 	series.AddTag("int16_v", data.int16V)
 	series.AddTag("int8_v", data.int8V)
+	series.AddTag("int_v", data.intV)
 	series.AddTag("uint64_v", data.uint64V)
 	series.AddField("uint32_v", data.uint32V)
 	series.AddField("uint16_v", data.uint16V)
 	series.AddField("uint8_v", data.uint8V)
+	series.AddField("uint_v", data.uintV)
 	series.AddField("float64_v", data.float64V)
 	series.AddField("float32_v", data.float32V)
 	series.AddField("string_v", data.stringV)
@@ -180,7 +180,7 @@ func TestDataTypes(t *testing.T) {
 	metric.AddSeries(series)
 
 	req := InsertRequest{}
-	req.WithTable(table2).WithMetric(metric).WithCatalog("").WithDatabase(database)
+	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
 
 	affectedRows, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)
@@ -188,7 +188,7 @@ func TestDataTypes(t *testing.T) {
 
 	// Query with metric
 	queryReq := QueryRequest{}
-	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table2)).WithCatalog("").WithDatabase(database)
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog("").WithDatabase(database)
 
 	resMetric, err := client.QueryMetric(context.Background(), queryReq)
 	assert.Nil(t, err)
@@ -203,6 +203,8 @@ func TestDataTypes(t *testing.T) {
 	assert.True(t, ok)
 	int8V, ok := series.Get("int8_v")
 	assert.True(t, ok)
+	intV, ok := series.Get("int_v")
+	assert.True(t, ok)
 	uint64V, ok := series.Get("uint64_v")
 	assert.True(t, ok)
 	uint32V, ok := series.Get("uint32_v")
@@ -210,6 +212,8 @@ func TestDataTypes(t *testing.T) {
 	uint16V, ok := series.Get("uint16_v")
 	assert.True(t, ok)
 	uint8V, ok := series.Get("uint8_v")
+	assert.True(t, ok)
+	uintV, ok := series.Get("uint_v")
 	assert.True(t, ok)
 	float64V, ok := series.Get("float64_v")
 	assert.True(t, ok)
@@ -229,10 +233,12 @@ func TestDataTypes(t *testing.T) {
 		int32V:   int32V.(int32),
 		int16V:   int16(int16V.(int32)),
 		int8V:    int8(int8V.(int32)),
+		intV:     int(intV.(int64)),
 		uint64V:  uint64V.(uint64),
 		uint32V:  uint32V.(uint32),
 		uint16V:  uint16(uint16V.(uint32)),
 		uint8V:   uint8(uint8V.(uint32)),
+		uintV:    uint(uintV.(uint64)),
 		float64V: float64V.(float64),
 		float32V: float32(float32V.(float64)),
 		stringV:  stringV.(string),
@@ -240,6 +246,5 @@ func TestDataTypes(t *testing.T) {
 		boolV:    boolV.(bool),
 		timeV:    time.UnixMilli(timeV.(int64)),
 	}
-
 	assert.Equal(t, data, querydata)
 }

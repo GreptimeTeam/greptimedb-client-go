@@ -15,7 +15,6 @@ import (
 )
 
 var (
-	grpcAddr   string
 	database   string = "public"
 	driverName string = "greptimedb"
 	table      string = "monitor"
@@ -30,12 +29,9 @@ type monitor struct {
 	IsAuthed    bool
 }
 
-func init() {
-	dockerConfig := request.DefaultDockerTestConfig()
-	grpcAddr = request.DockerTestInit(dockerConfig)
-}
-
 func TestBasicWorkFlow(t *testing.T) {
+	grpcAddr := request.DockerTestInit(request.DefaultDockerTestConfig())
+
 	insertMonitor := []monitor{
 		{
 			Host:        "Beijing",

@@ -24,7 +24,7 @@ There are more exampls to refer in the [dsn_test.go](pkg/sql/dsn_test.go).
 ```go
 int32, int64, int (as int64),
 uint32, uint64, uint (as uint64),
-float64, float (as float64),
+float64,
 bool,
 string,
 time.Time (as int64),
