@@ -20,7 +20,7 @@ Compared to [mysql](https://github.com/go-sql-driver/mysql), the Data Source Nam
 ```
 There are more exampls to refer in the [dsn_test.go](pkg/sql/dsn_test.go).
 
-### datatype we support
+### datatype supported
 ```go
 int32, int64, int (as int64),
 uint32, uint64, uint (as uint64),
@@ -39,8 +39,6 @@ float32, // it will be stored as float64
 
 ### basic example of insert
 ```go
-package main
-
 import (
     "context"
     "fmt"
@@ -52,7 +50,7 @@ import (
     "github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
 )
 
-func main() {
+func insert() {
     // Create a new client using an GreptimeDB server base URL and a database name
     options := []grpc.DialOption{
         grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -67,13 +65,12 @@ func main() {
     // Create a Series
     series := request.Series{}
     series.AddTag("host", "localhost")
-    series.SetTimeWithKey("ts", time.UnixMilli(1660897955000))
+    series.SetTime(time.Now())
     series.AddField("cpu", 0.90)
     series.AddField("memory", 1024.0)
 
     // Create a Metric and add the Series
     metric := request.Metric{}
-    metric.SetTimePrecision(time.Microsecond)
     metric.AddSeries(series)
 
     // Create an InsertRequest using fluent style
@@ -95,53 +92,53 @@ Attention! If the table `monitor` does not exist, it will be created
 ### basic example of query
 
 ```go
-package main
-
 import (
-    "database/sql"
+    "context"
     "fmt"
     "time"
 
-    _ "github.com/GreptimeTeam/greptimedb-client-go/pkg/sql"
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
+
+    "github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
 )
 
-type Monitor struct {
-    Host   string
-    Cpu    float64
-    Memory float64
-    Ts     time.Time
-}
+func query() {
+    // Create a new client using an GreptimeDB server base URL and a database name
+    options := []grpc.DialOption{
+        grpc.WithTransportCredentials(insecure.NewCredentials()),
+    }
+    cfg := request.NewCfg("127.0.0.1:4001", "", "public").WithDialOptions(options...)
 
-func main() {
-    // Open a GreptimeDB connection with database/sql API.
-    // Use `greptimedb` as driverName and a valid DSN to define data source
-    db, err := sql.Open("greptimedb", "(127.0.0.1:4001)/public")
-    defer db.Close()
+    client, err := request.NewClient(cfg)
     if err != nil {
-        fmt.Printf("sql.Open err: %v", err)
+        fmt.Printf("Fail in client initiation, err: %s", err)
     }
+	
+    // Query with metric
+    queryReq := request.QueryRequest{}
+    queryReq.WithSql("SELECT * FROM monitor").WithCatalog("").WithDatabase("public")
 
-    res, err := db.Query("SELECT * FROM monitor")
-    defer res.Close()
-
+    resMetric, err := client.QueryMetric(context.Background(), queryReq)
     if err != nil {
-        fmt.Printf("db.Query err: %v", err)
+    	fmt.Printf("fail to query, err: %+v\n", err)
+    	return
     }
 
-    var monitors []Monitor
-    // Use Next() to iterate over query result lines
-    for res.Next() {
-        var monitor Monitor
-        err := res.Scan(&monitor.Host, &monitor.Cpu, &monitor.Memory, &monitor.Ts)
-
-        if err != nil {
-            fmt.Printf("res.Scan err: %v", err)
-            continue
-        }
-        monitors = append(monitors, monitor)
+    queryMonitors := []monitor{}
+    for _, series := range resMetric.GetSeries() {
+    	host, _ := series.Get("host")
+    	ts, _ := series.Get("ts")
+    	memory, _ := series.Get("memory")
+    	cpu, _ := series.Get("cpu")
+    	queryMonitors = append(queryMonitors, monitor{
+    	    host:   host.(string),
+    	    ts:     time.UnixMilli(ts.(int64)),
+    	    memory: memory.(float64),
+    	    cpu:    cpu.(float64),
+    	})
     }
-
-    fmt.Printf("%#v\n", monitors)
+    fmt.Printf("Query monitors from db: %+v", queryMonitors)
 }
 
 
