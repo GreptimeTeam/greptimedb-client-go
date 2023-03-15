@@ -39,6 +39,10 @@ func (s *Series) Get(key string) (any, bool) {
 	return val, ok
 }
 
+func (s *Series) GetTimestamp() (time.Time, bool) {
+	return s.timestamp, true
+}
+
 func checkColumnEquality(key string, col1, col2 column) error {
 	if col1.typ != col2.typ {
 		return fmt.Errorf("the type of '%s' does not match: '%v' and '%v'", key, col1.typ, col2.typ)
@@ -139,6 +143,9 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 		return nil, errors.New("empty pointer")
 	}
 	// TODO(vinland-avalon): timestamps
+	// tsField, err := r.Schema().FieldsByName("ts")
+	// fmt.Printf("schema all -L> fields: %+v\n", tsField)
+	// fmt.Printf("schema all -> metadata: %+v\n", r.Schema().Metadata())
 	fields := r.Schema().Fields()
 	records, err := r.Reader.Read()
 	if err != nil {
@@ -147,22 +154,72 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 
 	// TODO(vinland-avalon): distinguish tags, fields and timestamp
 	metric := Metric{}
+	timestampIndex := extractTimestampIndex(fields)
+
+	precision := time.Millisecond
+	if timestampIndex != -1 {
+		precision, err = extractPrecision(&fields[timestampIndex])
+		if err != nil {
+			return nil, err
+		}
+	}
+	metric.SetTimePrecision(precision)
+
 	for i := 0; i < int(records.NumRows()); i++ {
 		series := Series{}
 		for j := 0; j < int(records.NumCols()); j++ {
-			// fmt.Printf("schema.field: %+v\n", r.Schema().Field(i))
-			// fmt.Printf("meatdata: %+v\n", r.Schema().Field(i).Type.Fingerprint())
+			// fmt.Printf("schema.field: %+v\n", r.Schema().Field(j))
+			// fmt.Printf("meatdata: %+v\n", r.Schema().Field(j).Type.Fingerprint())
+			// fmt.Printf("fields[i].metadata: %+v\n", fields[j].Metadata)
 			column := records.Column(j)
 			colVal, err := FromColumn(column, i)
 			if err != nil {
 				return nil, err
 			}
-			series.AddField(fields[j].Name, colVal)
+			if j == timestampIndex {
+				series.SetTimeWithKey(fields[j].Name, colVal.(time.Time))
+			} else {
+				series.AddField(fields[j].Name, colVal)
+			}
 		}
 		metric.AddSeries(series)
 	}
 
 	return &metric, nil
+}
+
+func extractTimestampIndex(fields []arrow.Field) int {
+	for i, field := range fields {
+		if res := field.Metadata.FindKey("greptime:time_index"); res != -1 {
+			if field.Metadata.Values()[res] == "true" {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+func extractPrecision(field *arrow.Field) (time.Duration, error) {
+	if field == nil {
+		return 0, errors.New("field should not be empty")
+	}
+	dataType, ok := field.Type.(*arrow.TimestampType)
+	if !ok {
+		return 0, fmt.Errorf("unsupported arrow field type %q", field.Type.Name())
+	}
+	switch dataType.Unit {
+	case arrow.Microsecond:
+		return time.Microsecond, nil
+	case arrow.Millisecond:
+		return time.Millisecond, nil
+	case arrow.Second:
+		return time.Second, nil
+	case arrow.Nanosecond:
+		return time.Nanosecond, nil
+	default:
+		return 0, fmt.Errorf("unsupported arrow type %q", field.Type.Name())
+	}
+
 }
 
 // retrive arrow value from the column at idx position, and convert it to driver.Value
@@ -213,20 +270,6 @@ func FromColumn(column array.Interface, idx int) (any, error) {
 		return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
 	}
 }
-
-// // retrive arrow value from the column at idx position, and convert it to driver.Value
-// func FromColumn2(column array.Interface, idx int) (any, error) {
-// 	if column.IsNull(idx) {
-// 		return nil, nil
-// 	}
-// 	// column.Data()
-// 	switch column.DataType() {
-// 	case arrow.FixedWidthTypes.Timestamp_s:
-// 		return time.UnixMilli(int64(typedColumn.Value(idx))), nil
-// 	default:
-// 		return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
-// 	}
-// }
 
 func (m *Metric) GetSeries() []Series {
 	return m.series

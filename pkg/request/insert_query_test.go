@@ -106,7 +106,9 @@ func TestBasicWorkFlow(t *testing.T) {
 	for _, series := range resMetric.GetSeries() {
 		host, ok := series.Get("host")
 		assert.True(t, ok)
-		ts, ok := series.Get("ts")
+		// ts, ok := series.Get("ts")
+		// assert.True(t, ok)
+		ts, ok := series.GetTimestamp()
 		assert.True(t, ok)
 		temperature, ok := series.Get("temperature")
 		assert.True(t, ok)
@@ -118,7 +120,7 @@ func TestBasicWorkFlow(t *testing.T) {
 		assert.True(t, ok)
 		queryMonitors = append(queryMonitors, monitor{
 			host:        host.(string),
-			ts:          ts.(time.Time),
+			ts:          ts,
 			memory:      memory.(uint64),
 			cpu:         cpu.(float64),
 			temperature: temperature.(int64),
@@ -225,7 +227,7 @@ func TestDataTypes(t *testing.T) {
 	assert.True(t, ok)
 	boolV, ok := series.Get("bool_v")
 	assert.True(t, ok)
-	timeV, ok := series.Get("time_v")
+	timeV, ok := series.GetTimestamp()
 	assert.True(t, ok)
 
 	querydata := datatype{
@@ -244,7 +246,7 @@ func TestDataTypes(t *testing.T) {
 		stringV:  stringV.(string),
 		byteV:    []byte(byteV.(string)),
 		boolV:    boolV.(bool),
-		timeV:    timeV.(time.Time),
+		timeV:    timeV,
 	}
 	assert.Equal(t, data, querydata)
 }
