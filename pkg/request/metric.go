@@ -137,10 +137,7 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 	if r == nil {
 		return nil, errors.New("empty pointer")
 	}
-	// TODO(vinland-avalon): timestamps
-	// tsField, err := r.Schema().FieldsByName("ts")
-	// fmt.Printf("schema all -L> fields: %+v\n", tsField)
-	// fmt.Printf("schema all -> metadata: %+v\n", r.Schema().Metadata())
+
 	fields := r.Schema().Fields()
 	records, err := r.Reader.Read()
 	if err != nil {
@@ -237,7 +234,6 @@ func FromColumn(column array.Interface, idx int) (any, error) {
 		return typedColumn.Value(idx), nil
 	case *array.Timestamp:
 		value := int64(typedColumn.Value(idx))
-		fmt.Printf("got timestamp type: %+v\n", column.DataType())
 		dataType, ok := column.DataType().(*arrow.TimestampType)
 		if !ok {
 			return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
