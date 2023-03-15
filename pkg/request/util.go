@@ -22,7 +22,7 @@ func newValue(val any, typ greptime.ColumnDataType) *value {
 	return &value{val, typ}
 }
 
-func convert(v any, precision time.Duration) (*value, error) {
+func convert(v any) (*value, error) {
 	switch t := v.(type) {
 	case bool:
 		return newValue(t, greptime.ColumnDataType_BOOLEAN), nil
@@ -89,18 +89,7 @@ func convert(v any, precision time.Duration) (*value, error) {
 		return newValue(int32(*t), greptime.ColumnDataType_INT32), nil
 	// TODO(vinland-avalon): convert with different precision, as `time.Time` abovementioned
 	case *time.Time:
-		switch precision {
-		case time.Second:
-			return newValue(t.Unix(), greptime.ColumnDataType_TIMESTAMP_SECOND), nil
-		case time.Millisecond, 0:
-			return newValue(t.UnixMilli(), greptime.ColumnDataType_TIMESTAMP_MILLISECOND), nil
-		case time.Microsecond:
-			return newValue(t.UnixMicro(), greptime.ColumnDataType_TIMESTAMP_MICROSECOND), nil
-		case time.Nanosecond:
-			return newValue(t.UnixNano(), greptime.ColumnDataType_TIMESTAMP_NANOSECOND), nil
-		default:
-			return nil, fmt.Errorf("the type '%v' not supported", t)
-		}
+		return newValue(t.UnixMilli(), greptime.ColumnDataType_TIMESTAMP_MILLISECOND), nil
 	default:
 		return nil, fmt.Errorf("the type '%v' not supported", t)
 	}

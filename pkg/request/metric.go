@@ -28,11 +28,6 @@ type Series struct {
 	timestamp      time.Time
 }
 
-// func (s *Series) WithPrecision(t time.Duration) {
-// 	// TODO(vinland-avalon): check if valid
-// 	s.timestampPrecision = t
-// }
-
 // TODO(vinland-avalon): for timestamp, use another function to return time.Time to keep precision
 func (s *Series) Get(key string) (any, bool) {
 	val, ok := s.vals[key]
@@ -65,7 +60,7 @@ func (s *Series) addVal(name string, val any, semantic greptime.Column_SemanticT
 	}
 
 	// although return `type`` along with `value` here, we only set value in `addVal`
-	v, err := convert(val, time.Millisecond)
+	v, err := convert(val)
 	if err != nil {
 		return fmt.Errorf("add tag err: %w", err)
 	}
@@ -86,7 +81,7 @@ func (s *Series) addVal(name string, val any, semantic greptime.Column_SemanticT
 	if s.vals == nil {
 		s.vals = map[string]any{}
 	}
-	s.vals[key] = val
+	s.vals[key] = v.val
 
 	return nil
 }
@@ -152,7 +147,6 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 		return nil, err
 	}
 
-	// TODO(vinland-avalon): distinguish tags, fields and timestamp
 	metric := Metric{}
 	timestampIndex := extractTimestampIndex(fields)
 
@@ -168,9 +162,6 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 	for i := 0; i < int(records.NumRows()); i++ {
 		series := Series{}
 		for j := 0; j < int(records.NumCols()); j++ {
-			// fmt.Printf("schema.field: %+v\n", r.Schema().Field(j))
-			// fmt.Printf("meatdata: %+v\n", r.Schema().Field(j).Type.Fingerprint())
-			// fmt.Printf("fields[i].metadata: %+v\n", fields[j].Metadata)
 			column := records.Column(j)
 			colVal, err := FromColumn(column, i)
 			if err != nil {
@@ -244,9 +235,6 @@ func FromColumn(column array.Interface, idx int) (any, error) {
 		return typedColumn.Value(idx), nil
 	case *array.Boolean:
 		return typedColumn.Value(idx), nil
-	// TODO(vinland-avalon): with precision, so far, no matter what precision, will be stored as millisecond.
-	// TODO(vinland-avalon): the returned time.Time will be again `convert` to int64, so the user can get the right time
-	// TODO(vinland-avalon): with semantic
 	case *array.Timestamp:
 		value := int64(typedColumn.Value(idx))
 		fmt.Printf("got timestamp type: %+v\n", column.DataType())
@@ -358,14 +346,7 @@ func (m *Metric) normalColumns() ([]*greptime.Column, error) {
 	for rowIdx, s := range m.series {
 		for name, col := range mappedCols {
 			if val, exist := s.vals[name]; exist {
-				// only use `val` in `v` afterwards
-				// other time.Time data (except for timestamp) are stored in millisecond
-				v, err := convert(val, time.Millisecond)
-				if err != nil {
-					return nil, err
-				}
-				convertedValue := v.val
-				if err := setColumn(col, convertedValue); err != nil {
+				if err := setColumn(col, val); err != nil {
 					return nil, err
 				}
 			} else {
