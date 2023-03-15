@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apache/arrow/go/arrow"
 	"github.com/apache/arrow/go/arrow/array"
 	"github.com/apache/arrow/go/arrow/flight"
 
@@ -20,13 +21,17 @@ type column struct {
 
 type Series struct {
 	// order, columns and vals SHOULD NOT contain timestampAlias
-	order   []string
-	columns map[string]column
-	vals    map[string]any
-
+	order          []string
+	columns        map[string]column
+	vals           map[string]any
 	timestampAlias string
 	timestamp      time.Time
 }
+
+// func (s *Series) WithPrecision(t time.Duration) {
+// 	// TODO(vinland-avalon): check if valid
+// 	s.timestampPrecision = t
+// }
 
 // TODO(vinland-avalon): for timestamp, use another function to return time.Time to keep precision
 func (s *Series) Get(key string) (any, bool) {
@@ -55,7 +60,8 @@ func (s *Series) addVal(name string, val any, semantic greptime.Column_SemanticT
 		s.columns = map[string]column{}
 	}
 
-	v, err := convert(val)
+	// although return `type`` along with `value` here, we only set value in `addVal`
+	v, err := convert(val, time.Millisecond)
 	if err != nil {
 		return fmt.Errorf("add tag err: %w", err)
 	}
@@ -76,7 +82,7 @@ func (s *Series) addVal(name string, val any, semantic greptime.Column_SemanticT
 	if s.vals == nil {
 		s.vals = map[string]any{}
 	}
-	s.vals[key] = v.val
+	s.vals[key] = val
 
 	return nil
 }
@@ -144,6 +150,8 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 	for i := 0; i < int(records.NumRows()); i++ {
 		series := Series{}
 		for j := 0; j < int(records.NumCols()); j++ {
+			// fmt.Printf("schema.field: %+v\n", r.Schema().Field(i))
+			// fmt.Printf("meatdata: %+v\n", r.Schema().Field(i).Type.Fingerprint())
 			column := records.Column(j)
 			colVal, err := FromColumn(column, i)
 			if err != nil {
@@ -183,11 +191,42 @@ func FromColumn(column array.Interface, idx int) (any, error) {
 	// TODO(vinland-avalon): the returned time.Time will be again `convert` to int64, so the user can get the right time
 	// TODO(vinland-avalon): with semantic
 	case *array.Timestamp:
-		return time.UnixMilli(int64(typedColumn.Value(idx))), nil
+		value := int64(typedColumn.Value(idx))
+		fmt.Printf("got timestamp type: %+v\n", column.DataType())
+		dataType, ok := column.DataType().(*arrow.TimestampType)
+		if !ok {
+			return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
+		}
+		switch dataType.Unit {
+		case arrow.Microsecond:
+			return time.UnixMicro(value), nil
+		case arrow.Millisecond:
+			return time.UnixMilli(value), nil
+		case arrow.Second:
+			return time.Unix(value, 0), nil
+		case arrow.Nanosecond:
+			return time.Unix(0, value), nil
+		default:
+			return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
+		}
 	default:
 		return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
 	}
 }
+
+// // retrive arrow value from the column at idx position, and convert it to driver.Value
+// func FromColumn2(column array.Interface, idx int) (any, error) {
+// 	if column.IsNull(idx) {
+// 		return nil, nil
+// 	}
+// 	// column.Data()
+// 	switch column.DataType() {
+// 	case arrow.FixedWidthTypes.Timestamp_s:
+// 		return time.UnixMilli(int64(typedColumn.Value(idx))), nil
+// 	default:
+// 		return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
+// 	}
+// }
 
 func (m *Metric) GetSeries() []Series {
 	return m.series
@@ -276,7 +315,14 @@ func (m *Metric) normalColumns() ([]*greptime.Column, error) {
 	for rowIdx, s := range m.series {
 		for name, col := range mappedCols {
 			if val, exist := s.vals[name]; exist {
-				if err := setColumn(col, val); err != nil {
+				// only use `val` in `v` afterwards
+				// other time.Time data (except for timestamp) are stored in millisecond
+				v, err := convert(val, time.Millisecond)
+				if err != nil {
+					return nil, err
+				}
+				convertedValue := v.val
+				if err := setColumn(col, convertedValue); err != nil {
 					return nil, err
 				}
 			} else {

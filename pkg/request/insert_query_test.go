@@ -50,7 +50,7 @@ func TestBasicWorkFlow(t *testing.T) {
 	insertMonitors := []monitor{
 		{
 			host:        "127.0.0.1",
-			ts:          time.UnixMilli(1677728740000),
+			ts:          time.UnixMicro(1677728740000001),
 			memory:      22,
 			cpu:         0.45,
 			temperature: -1,
@@ -58,7 +58,7 @@ func TestBasicWorkFlow(t *testing.T) {
 		},
 		{
 			host:        "127.0.0.2",
-			ts:          time.UnixMilli(1677728740012),
+			ts:          time.UnixMicro(1677728740012002),
 			memory:      28,
 			cpu:         0.80,
 			temperature: 22,
@@ -118,7 +118,7 @@ func TestBasicWorkFlow(t *testing.T) {
 		assert.True(t, ok)
 		queryMonitors = append(queryMonitors, monitor{
 			host:        host.(string),
-			ts:          time.UnixMicro(ts.(int64)),
+			ts:          ts.(time.Time),
 			memory:      memory.(uint64),
 			cpu:         cpu.(float64),
 			temperature: temperature.(int64),
@@ -244,7 +244,7 @@ func TestDataTypes(t *testing.T) {
 		stringV:  stringV.(string),
 		byteV:    []byte(byteV.(string)),
 		boolV:    boolV.(bool),
-		timeV:    time.UnixMilli(timeV.(int64)),
+		timeV:    timeV.(time.Time),
 	}
 	assert.Equal(t, data, querydata)
 }

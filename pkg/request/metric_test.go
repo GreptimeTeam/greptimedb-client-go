@@ -47,9 +47,9 @@ func TestSeries(t *testing.T) {
 	assert.Equal(t, true, s.vals["tag2"])
 	assert.Equal(t, int32(32), s.vals["tag3"])
 	assert.Equal(t, float64(32.0), s.vals["tag4"])
-	assert.Equal(t, "field val", s.vals["field1"])
-	assert.Equal(t, float64(32.0), s.vals["field2"])
-	assert.Equal(t, uint32(8), s.vals["field3"])
+	assert.Equal(t, []byte("field val"), s.vals["field1"])
+	assert.Equal(t, float32(32.0), s.vals["field2"])
+	assert.Equal(t, uint8(8), s.vals["field3"])
 	assert.Equal(t, uint64(64), s.vals["field4"])
 
 	// check timestamp
