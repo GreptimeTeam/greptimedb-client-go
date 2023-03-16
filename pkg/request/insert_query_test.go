@@ -128,6 +128,11 @@ func TestBasicWorkFlow(t *testing.T) {
 		})
 	}
 	assert.Equal(t, insertMonitors, queryMonitors)
+
+	// naked Query
+	reader, err := client.Query(context.Background(), queryReq)
+	assert.Nil(t, err)
+	assert.NotNil(t, reader)
 }
 
 func TestDataTypes(t *testing.T) {
