@@ -65,7 +65,7 @@ func insert() {
     // Create a Series
     series := request.Series{}
     series.AddTag("host", "localhost")
-    series.SetTime(time.Now())
+    series.SetTimestamp(time.Now())
     series.AddField("cpu", 0.90)
     series.AddField("memory", 1024.0)
 
@@ -128,12 +128,12 @@ func query() {
     queryMonitors := []monitor{}
     for _, series := range resMetric.GetSeries() {
     	host, _ := series.Get("host")
-    	ts, _ := series.Get("ts")
+    	ts, _ := series.GetTimestamp()
     	memory, _ := series.Get("memory")
     	cpu, _ := series.Get("cpu")
     	queryMonitors = append(queryMonitors, monitor{
     	    host:   host.(string),
-    	    ts:     time.UnixMilli(ts.(int64)),
+    	    ts:     ts,
     	    memory: memory.(float64),
     	    cpu:    cpu.(float64),
     	})

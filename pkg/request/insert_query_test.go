@@ -108,8 +108,6 @@ func TestBasicWorkFlow(t *testing.T) {
 	for _, series := range resMetric.GetSeries() {
 		host, ok := series.Get("host")
 		assert.True(t, ok)
-		// ts, ok := series.Get("ts")
-		// assert.True(t, ok)
 		ts, ok := series.GetTimestamp()
 		assert.True(t, ok)
 		temperature, ok := series.Get("temperature")
@@ -273,7 +271,7 @@ func TestPrecision(t *testing.T) {
 	metric := Metric{}
 	metric.AddSeries(series)
 	// We set the precision as microsecond
-	metric.SetTimePrecision(time.Microsecond)
+	metric.SetTimePrecision(time.Nanosecond)
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
 	affectedRows, err := client.Insert(context.Background(), req)
@@ -288,11 +286,11 @@ func TestPrecision(t *testing.T) {
 
 	resTime, ok := resMetric.GetSeries()[0].GetTimestamp()
 	assert.True(t, ok)
-	// since the precision is micro, only micro should equal
-	assert.NotEqual(t, nano, resTime)
+	// since the precision is nano, others should not equal
+	assert.Equal(t, nano, resTime)
 	assert.NotEqual(t, milli, resTime)
 	assert.NotEqual(t, sec, resTime)
-	assert.Equal(t, micro, resTime)
+	assert.NotEqual(t, micro, resTime)
 }
 
 func TestNilInColumn(t *testing.T) {
