@@ -311,3 +311,8 @@ func TestColumnName(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Equal(t, "", key)
 }
+
+func TestPrecisionToDataType(t *testing.T) {
+	_, err := precisionToDataType(123)
+	assert.Equal(t, ErrInvalidTimePrecision, err)
+}

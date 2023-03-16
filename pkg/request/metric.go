@@ -296,7 +296,7 @@ func (m *Metric) AddSeries(s Series) error {
 
 func (m *Metric) IntoGreptimeColumn() ([]*greptime.Column, error) {
 	if len(m.series) == 0 {
-		return nil, errors.New("empty series in Metric")
+		return nil, ErrNoSeriesInMetric
 	}
 
 	result, err := m.normalColumns()
