@@ -402,17 +402,17 @@ func (m *Metric) timestampColumn() (*greptime.Column, error) {
 func setColumn(col *greptime.Column, val any) error {
 	switch col.Datatype {
 	case greptime.ColumnDataType_INT8:
-		col.Values.I8Values = append(col.Values.I8Values, val.(int32))
+		col.Values.I8Values = append(col.Values.I8Values, int32(val.(int8)))
 	case greptime.ColumnDataType_INT16:
-		col.Values.I16Values = append(col.Values.I16Values, val.(int32))
+		col.Values.I16Values = append(col.Values.I16Values, int32(val.(int16)))
 	case greptime.ColumnDataType_INT32:
 		col.Values.I32Values = append(col.Values.I32Values, val.(int32))
 	case greptime.ColumnDataType_INT64:
 		col.Values.I64Values = append(col.Values.I64Values, val.(int64))
 	case greptime.ColumnDataType_UINT8:
-		col.Values.U8Values = append(col.Values.U8Values, val.(uint32))
+		col.Values.U8Values = append(col.Values.U8Values, uint32(val.(uint8)))
 	case greptime.ColumnDataType_UINT16:
-		col.Values.U16Values = append(col.Values.U16Values, val.(uint32))
+		col.Values.U16Values = append(col.Values.U16Values, uint32(val.(uint16)))
 	case greptime.ColumnDataType_UINT32:
 		col.Values.U32Values = append(col.Values.U32Values, val.(uint32))
 	case greptime.ColumnDataType_UINT64:

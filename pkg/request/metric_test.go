@@ -239,3 +239,131 @@ func TestWithoutTimestamp(t *testing.T) {
 	err := metric.AddSeries(series)
 	assert.Equal(t, ErrEmptyTimestamp, err)
 }
+
+func TestSetColumn(t *testing.T) {
+	testCases := []struct {
+		name     string
+		col      *greptime.Column
+		val      interface{}
+		expected *greptime.Column
+	}{
+		{
+			name: "set int8 value",
+			col: &greptime.Column{
+				Datatype: greptime.ColumnDataType_INT8,
+				Values: &greptime.Column_Values{
+					I8Values: []int32{1, 2, 3},
+				},
+			},
+			val: int8(4),
+			expected: &greptime.Column{
+				Datatype: greptime.ColumnDataType_INT8,
+				Values: &greptime.Column_Values{
+					I8Values: []int32{1, 2, 3, 4},
+				},
+			},
+		},
+		{
+			name: "set int16 value",
+			col: &greptime.Column{
+				Datatype: greptime.ColumnDataType_INT16,
+				Values: &greptime.Column_Values{
+					I16Values: []int32{1, 2, 3},
+				},
+			},
+			val: int16(4),
+			expected: &greptime.Column{
+				Datatype: greptime.ColumnDataType_INT16,
+				Values: &greptime.Column_Values{
+					I16Values: []int32{1, 2, 3, 4},
+				},
+			},
+		},
+		{
+			name: "set uint8 value",
+			col: &greptime.Column{
+				Datatype: greptime.ColumnDataType_UINT8,
+				Values: &greptime.Column_Values{
+					U8Values: []uint32{1, 2, 3},
+				},
+			},
+			val: uint8(4),
+			expected: &greptime.Column{
+				Datatype: greptime.ColumnDataType_UINT8,
+				Values: &greptime.Column_Values{
+					U8Values: []uint32{1, 2, 3, 4},
+				},
+			},
+		},
+		{
+			name: "set uint16 value",
+			col: &greptime.Column{
+				Datatype: greptime.ColumnDataType_UINT16,
+				Values: &greptime.Column_Values{
+					U16Values: []uint32{1, 2, 3},
+				},
+			},
+			val: uint16(4),
+			expected: &greptime.Column{
+				Datatype: greptime.ColumnDataType_UINT16,
+				Values: &greptime.Column_Values{
+					U16Values: []uint32{1, 2, 3, 4},
+				},
+			},
+		},
+
+		{
+			name: "set float32 value",
+			col: &greptime.Column{
+				Datatype: greptime.ColumnDataType_FLOAT32,
+				Values: &greptime.Column_Values{
+					F32Values: []float32{1.0, 2.0, 3.0},
+				},
+			},
+			val: float32(4.0),
+			expected: &greptime.Column{
+				Datatype: greptime.ColumnDataType_FLOAT32,
+				Values: &greptime.Column_Values{
+					F32Values: []float32{1.0, 2.0, 3.0, 4.0},
+				},
+			},
+		},
+		{
+			name: "set binary value",
+			col: &greptime.Column{
+				Datatype: greptime.ColumnDataType_BINARY,
+				Values: &greptime.Column_Values{
+					BinaryValues: [][]byte{[]byte("hello")},
+				},
+			},
+			val: []byte("world"),
+			expected: &greptime.Column{
+				Datatype: greptime.ColumnDataType_BINARY,
+				Values: &greptime.Column_Values{
+					BinaryValues: [][]byte{[]byte("hello"), []byte("world")},
+				},
+			},
+		},
+		// {
+		//	name: "unknown data type",
+		//	col: &greptime.Column{
+		//		Datatype: greptime.ColumnDataType(99),
+		//	},
+		//	expected: &greptime.Column{
+		//		Datatype: greptime.ColumnDataType(99),
+		//	},
+		// },
+	}
+
+	for _, cas := range testCases {
+		err := setColumn(cas.col, cas.val)
+		assert.Nil(t, err)
+		assert.Equal(t, cas.expected, cas.col)
+	}
+
+	errCol := &greptime.Column{
+		Datatype: greptime.ColumnDataType(99),
+	}
+	err := setColumn(errCol, "wrong")
+	assert.Equal(t, "unknown column data type: 99", err.Error())
+}
