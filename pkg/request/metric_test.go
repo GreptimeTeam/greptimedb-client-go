@@ -344,15 +344,6 @@ func TestSetColumn(t *testing.T) {
 				},
 			},
 		},
-		// {
-		//	name: "unknown data type",
-		//	col: &greptime.Column{
-		//		Datatype: greptime.ColumnDataType(99),
-		//	},
-		//	expected: &greptime.Column{
-		//		Datatype: greptime.ColumnDataType(99),
-		//	},
-		// },
 	}
 
 	for _, cas := range testCases {
@@ -366,4 +357,16 @@ func TestSetColumn(t *testing.T) {
 	}
 	err := setColumn(errCol, "wrong")
 	assert.Equal(t, "unknown column data type: 99", err.Error())
+}
+
+func TestSetTimePrecis(t *testing.T) {
+	m := Metric{}
+	err := m.SetTimePrecision(123)
+	assert.Equal(t, ErrInvalidTimePrecision, err)
+}
+
+func TestSetTimeAlias(t *testing.T) {
+	m := Metric{}
+	err := m.SetTimestampAlias("")
+	assert.Equal(t, ErrEmptyKey, err)
 }

@@ -210,8 +210,6 @@ func FromColumn(column array.Interface, idx int) (any, error) {
 		return typedColumn.Value(idx), nil
 	case *array.String:
 		return typedColumn.Value(idx), nil
-	case *array.Binary:
-		return typedColumn.Value(idx), nil
 	case *array.Boolean:
 		return typedColumn.Value(idx), nil
 	case *array.Timestamp:
