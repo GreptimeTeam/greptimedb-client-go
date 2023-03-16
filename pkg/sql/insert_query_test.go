@@ -63,7 +63,7 @@ func TestBasicWorkFlow(t *testing.T) {
 	for _, monitor := range insertMonitor {
 		series := request.Series{}
 		series.AddTag("host", monitor.Host)
-		series.SetTimeWithKey("ts", monitor.Ts)
+		series.SetTimestamp(monitor.Ts)
 		series.AddField("temperature", monitor.Temperature)
 		series.AddField("memory", monitor.Memory)
 		series.AddField("cpu", monitor.Cpu)

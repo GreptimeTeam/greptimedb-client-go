@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"strings"
 	"time"
 
+	"github.com/apache/arrow/go/arrow"
 	"github.com/apache/arrow/go/arrow/array"
 	"github.com/apache/arrow/go/arrow/flight"
 
@@ -24,14 +24,17 @@ type Series struct {
 	columns map[string]column
 	vals    map[string]any
 
-	timestampAlias string
-	timestamp      time.Time
+	timestamp time.Time
 }
 
 // TODO(vinland-avalon): for timestamp, use another function to return time.Time to keep precision
 func (s *Series) Get(key string) (any, bool) {
 	val, ok := s.vals[key]
 	return val, ok
+}
+
+func (s *Series) GetTimestamp() (time.Time, bool) {
+	return s.timestamp, true
 }
 
 func checkColumnEquality(key string, col1, col2 column) error {
@@ -93,27 +96,7 @@ func (s *Series) AddField(key string, val any) error {
 	return s.addVal(key, val, greptime.Column_FIELD)
 }
 
-// SetTime set the timestamp column value with default `ts` name and millisecond precision
-func (s *Series) SetTime(t time.Time) error {
-	return s.SetTimeWithKey("ts", t)
-}
-
-// SetTimeWithKey set the timestamp column value with `key` name and millisecond precision
-//
-// # Pay attention
-//
-// only one timestamp column is allowed, so the name MUST be consistent, and CAN NOT be changed
-func (s *Series) SetTimeWithKey(key string, t time.Time) error {
-	if len(s.timestampAlias) != 0 {
-		return errors.New("timestamp column name CAN NOT be set twice")
-	}
-
-	key, err := ToColumnName(key)
-	if err != nil {
-		return err
-	}
-
-	s.timestampAlias = key
+func (s *Series) SetTimestamp(t time.Time) error {
 	s.timestamp = t
 	return nil
 }
@@ -132,15 +115,29 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 	if r == nil {
 		return nil, errors.New("empty pointer")
 	}
-	// TODO(vinland-avalon): timestamps
+
 	fields := r.Schema().Fields()
 	records, err := r.Reader.Read()
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO(vinland-avalon): distinguish tags, fields and timestamp
 	metric := Metric{}
+	timestampIndex := extractTimestampIndex(fields)
+
+	precision := time.Millisecond
+	if timestampIndex != -1 {
+		precision, err = extractPrecision(&fields[timestampIndex])
+		if err != nil {
+			return nil, err
+		}
+		err = metric.SetTimestampAlias(fields[timestampIndex].Name)
+		if err != nil {
+			return nil, err
+		}
+	}
+	metric.SetTimePrecision(precision)
+
 	for i := 0; i < int(records.NumRows()); i++ {
 		series := Series{}
 		for j := 0; j < int(records.NumCols()); j++ {
@@ -149,12 +146,50 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 			if err != nil {
 				return nil, err
 			}
-			series.AddField(fields[j].Name, colVal)
+			if j == timestampIndex {
+				series.SetTimestamp(colVal.(time.Time))
+			} else {
+				series.AddField(fields[j].Name, colVal)
+			}
 		}
 		metric.AddSeries(series)
 	}
 
 	return &metric, nil
+}
+
+func extractTimestampIndex(fields []arrow.Field) int {
+	for i, field := range fields {
+		if res := field.Metadata.FindKey("greptime:time_index"); res != -1 {
+			if field.Metadata.Values()[res] == "true" {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+func extractPrecision(field *arrow.Field) (time.Duration, error) {
+	if field == nil {
+		return 0, errors.New("field should not be empty")
+	}
+	dataType, ok := field.Type.(*arrow.TimestampType)
+	if !ok {
+		return 0, fmt.Errorf("unsupported arrow field type %q", field.Type.Name())
+	}
+	switch dataType.Unit {
+	case arrow.Microsecond:
+		return time.Microsecond, nil
+	case arrow.Millisecond:
+		return time.Millisecond, nil
+	case arrow.Second:
+		return time.Second, nil
+	case arrow.Nanosecond:
+		return time.Nanosecond, nil
+	default:
+		return 0, fmt.Errorf("unsupported arrow type %q", field.Type.Name())
+	}
+
 }
 
 // retrive arrow value from the column at idx position, and convert it to driver.Value
@@ -179,11 +214,24 @@ func FromColumn(column array.Interface, idx int) (any, error) {
 		return typedColumn.Value(idx), nil
 	case *array.Boolean:
 		return typedColumn.Value(idx), nil
-	// TODO(vinland-avalon): with precision, so far, no matter what precision, will be stored as millisecond.
-	// TODO(vinland-avalon): the returned time.Time will be again `convert` to int64, so the user can get the right time
-	// TODO(vinland-avalon): with semantic
 	case *array.Timestamp:
-		return time.UnixMilli(int64(typedColumn.Value(idx))), nil
+		value := int64(typedColumn.Value(idx))
+		dataType, ok := column.DataType().(*arrow.TimestampType)
+		if !ok {
+			return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
+		}
+		switch dataType.Unit {
+		case arrow.Microsecond:
+			return time.UnixMicro(value), nil
+		case arrow.Millisecond:
+			return time.UnixMilli(value), nil
+		case arrow.Second:
+			return time.Unix(value, 0), nil
+		case arrow.Nanosecond:
+			return time.Unix(0, value), nil
+		default:
+			return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
+		}
 	default:
 		return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
 	}
@@ -207,13 +255,25 @@ func (m *Metric) SetTimePrecision(precision time.Duration) error {
 	return nil
 }
 
+func (m *Metric) SetTimestampAlias(alias string) error {
+	alias, err := ToColumnName(alias)
+	if err != nil {
+		return err
+	}
+	m.timestampAlias = alias
+	return nil
+}
+
+func (m *Metric) GetTimestampAlias() string {
+	if len(m.timestampAlias) == 0 {
+		return "ts"
+	}
+	return m.timestampAlias
+}
+
 func (m *Metric) AddSeries(s Series) error {
-	if !IsEmptyString(m.timestampAlias) && !IsEmptyString(s.timestampAlias) &&
-		!strings.EqualFold(m.timestampAlias, s.timestampAlias) {
-		return fmt.Errorf("different series MUST share same timestamp key, '%s' and '%s' does not match",
-			m.timestampAlias, s.timestampAlias)
-	} else if IsEmptyString(m.timestampAlias) && !IsEmptyString(s.timestampAlias) {
-		m.timestampAlias = s.timestampAlias
+	if s.timestamp.IsZero() {
+		return ErrEmptyTimestamp
 	}
 
 	if m.columns == nil {
@@ -310,27 +370,23 @@ func (m *Metric) timestampColumn() (*greptime.Column, error) {
 		return nil, err
 	}
 	tsColumn := &greptime.Column{
-		ColumnName:   m.timestampAlias,
+		ColumnName:   m.GetTimestampAlias(),
 		SemanticType: greptime.Column_TIMESTAMP,
 		Datatype:     datatype,
 		Values:       &greptime.Column_Values{},
 		NullMask:     nil,
 	}
 	nullMask := Mask{}
-	for rowIdx, s := range m.series {
-		if !IsEmptyString(s.timestampAlias) {
-			switch datatype {
-			case greptime.ColumnDataType_TIMESTAMP_SECOND:
-				setColumn(tsColumn, s.timestamp.Unix())
-			case greptime.ColumnDataType_TIMESTAMP_MILLISECOND:
-				setColumn(tsColumn, s.timestamp.UnixMilli())
-			case greptime.ColumnDataType_TIMESTAMP_MICROSECOND:
-				setColumn(tsColumn, s.timestamp.UnixMicro())
-			case greptime.ColumnDataType_TIMESTAMP_NANOSECOND:
-				setColumn(tsColumn, s.timestamp.UnixNano())
-			}
-		} else {
-			nullMask.set(uint(rowIdx))
+	for _, s := range m.series {
+		switch datatype {
+		case greptime.ColumnDataType_TIMESTAMP_SECOND:
+			setColumn(tsColumn, s.timestamp.Unix())
+		case greptime.ColumnDataType_TIMESTAMP_MILLISECOND:
+			setColumn(tsColumn, s.timestamp.UnixMilli())
+		case greptime.ColumnDataType_TIMESTAMP_MICROSECOND:
+			setColumn(tsColumn, s.timestamp.UnixMicro())
+		case greptime.ColumnDataType_TIMESTAMP_NANOSECOND:
+			setColumn(tsColumn, s.timestamp.UnixNano())
 		}
 	}
 

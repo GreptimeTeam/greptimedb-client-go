@@ -16,7 +16,7 @@ func TestSeries(t *testing.T) {
 	s.AddTag(" tag3", int32(32))
 	s.AddTag("tag4", float64(32.0))
 	timestamp := time.Now()
-	s.SetTimeWithKey("timestamp", timestamp)
+	s.SetTimestamp(timestamp)
 	s.AddField("field1", []byte("field val"))
 	s.AddField("field2", float32(32.0))
 	s.AddField("field3", uint8(8))
@@ -54,7 +54,6 @@ func TestSeries(t *testing.T) {
 
 	// check timestamp
 	assert.Equal(t, timestamp, s.timestamp)
-	assert.Equal(t, "timestamp", s.timestampAlias)
 }
 
 func TestValueReplaced(t *testing.T) {
@@ -96,7 +95,7 @@ func TestMetric(t *testing.T) {
 	s.AddField("field2", float32(32.0))
 	s.AddField("field3", uint8(8))
 	s.AddField("field4", uint64(64))
-	s.SetTime(time.Now())
+	s.SetTimestamp(time.Now())
 
 	m := Metric{}
 	err := m.AddSeries(s)
@@ -106,11 +105,11 @@ func TestMetric(t *testing.T) {
 func TestMetricTypeNotMatch(t *testing.T) {
 	s1 := Series{}
 	s1.AddTag("tag", "tag val")
-	s1.SetTime(time.Now())
+	s1.SetTimestamp(time.Now())
 
 	s2 := Series{}
 	s2.AddTag("tag", true)
-	s2.SetTime(time.Now())
+	s2.SetTimestamp(time.Now())
 
 	m := Metric{}
 	err := m.AddSeries(s1)
@@ -123,11 +122,11 @@ func TestMetricTypeNotMatch(t *testing.T) {
 func TestMetricSemanticNotMatch(t *testing.T) {
 	s1 := Series{}
 	s1.AddTag("name", "tag val")
-	s1.SetTime(time.Now())
+	s1.SetTimestamp(time.Now())
 
 	s2 := Series{}
 	s2.AddField("name", true)
-	s2.SetTime(time.Now())
+	s2.SetTimestamp(time.Now())
 
 	m := Metric{}
 	err := m.AddSeries(s1)
@@ -139,7 +138,7 @@ func TestMetricSemanticNotMatch(t *testing.T) {
 
 // 9 columns
 // row1: 4 tags, 2 fields (with 2 null column), 1 timestamp, named as default "ts"
-// row2: 2 tags, 4 fields (with 2 null column)
+// row2: 2 tags, 4 fields (with 2 null column), 1 timestamp, named as default "ts"
 // the timstamp column should be at last
 func TestGreptimeColumn(t *testing.T) {
 	timestamp := time.Now()
@@ -151,7 +150,7 @@ func TestGreptimeColumn(t *testing.T) {
 	s1.AddTag("TAG4", float64(32.0))
 	s1.AddField("Field1", uint8(8))
 	s1.AddField("FIELD2", uint64(64))
-	s1.SetTime(timestamp)
+	s1.SetTimestamp(timestamp)
 
 	s2 := Series{}
 	s2.AddTag("tag1", "tag2")
@@ -160,6 +159,7 @@ func TestGreptimeColumn(t *testing.T) {
 	s2.AddField("field2", uint64(64))
 	s2.AddField("fieldName3", []byte("field3"))
 	s2.AddField("Field-Name4", float32(32.0))
+	s2.SetTimestamp(timestamp)
 
 	m := Metric{}
 	assert.Nil(t, m.AddSeries(s1))
@@ -229,6 +229,13 @@ func TestGreptimeColumn(t *testing.T) {
 	assert.Equal(t, "ts", col9.ColumnName)
 	assert.Equal(t, greptime.ColumnDataType_TIMESTAMP_MILLISECOND, col9.Datatype)
 	assert.Equal(t, greptime.Column_TIMESTAMP, col9.SemanticType)
-	assert.Equal(t, []int64{timestamp.UnixMilli()}, col9.Values.TsMillisecondValues)
-	assert.Equal(t, []byte{2}, col9.NullMask)
+	assert.Equal(t, []int64{timestamp.UnixMilli(), timestamp.UnixMilli()}, col9.Values.TsMillisecondValues)
+	assert.Empty(t, col9.NullMask)
+}
+
+func TestWithoutTimestamp(t *testing.T) {
+	series := Series{}
+	metric := Metric{}
+	err := metric.AddSeries(series)
+	assert.Equal(t, ErrEmptyTimestamp, err)
 }

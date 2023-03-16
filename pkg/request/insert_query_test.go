@@ -50,7 +50,7 @@ func TestBasicWorkFlow(t *testing.T) {
 	insertMonitors := []monitor{
 		{
 			host:        "127.0.0.1",
-			ts:          time.UnixMilli(1677728740000),
+			ts:          time.UnixMicro(1677728740000001),
 			memory:      22,
 			cpu:         0.45,
 			temperature: -1,
@@ -58,7 +58,7 @@ func TestBasicWorkFlow(t *testing.T) {
 		},
 		{
 			host:        "127.0.0.2",
-			ts:          time.UnixMilli(1677728740012),
+			ts:          time.UnixMicro(1677728740012002),
 			memory:      28,
 			cpu:         0.80,
 			temperature: 22,
@@ -76,10 +76,12 @@ func TestBasicWorkFlow(t *testing.T) {
 
 	metric := Metric{}
 	metric.SetTimePrecision(time.Microsecond)
+	metric.SetTimestampAlias("ts")
+
 	for _, monitor := range insertMonitors {
 		series := Series{}
 		series.AddTag("host", monitor.host)
-		series.SetTimeWithKey("ts", monitor.ts)
+		series.SetTimestamp(monitor.ts)
 		series.AddField("memory", monitor.memory)
 		series.AddField("cpu", monitor.cpu)
 		series.AddField("temperature", monitor.temperature)
@@ -106,7 +108,7 @@ func TestBasicWorkFlow(t *testing.T) {
 	for _, series := range resMetric.GetSeries() {
 		host, ok := series.Get("host")
 		assert.True(t, ok)
-		ts, ok := series.Get("ts")
+		ts, ok := series.GetTimestamp()
 		assert.True(t, ok)
 		temperature, ok := series.Get("temperature")
 		assert.True(t, ok)
@@ -118,7 +120,7 @@ func TestBasicWorkFlow(t *testing.T) {
 		assert.True(t, ok)
 		queryMonitors = append(queryMonitors, monitor{
 			host:        host.(string),
-			ts:          time.UnixMicro(ts.(int64)),
+			ts:          ts,
 			memory:      memory.(uint64),
 			cpu:         cpu.(float64),
 			temperature: temperature.(int64),
@@ -159,6 +161,7 @@ func TestDataTypes(t *testing.T) {
 	assert.Nil(t, err)
 
 	metric := Metric{}
+	metric.SetTimestampAlias("time_v")
 
 	series := Series{}
 	series.AddTag("int64_v", data.int64V)
@@ -176,7 +179,7 @@ func TestDataTypes(t *testing.T) {
 	series.AddField("string_v", data.stringV)
 	series.AddField("byte_v", data.byteV)
 	series.AddField("bool_v", data.boolV)
-	series.SetTimeWithKey("time_v", data.timeV)
+	series.SetTimestamp(data.timeV)
 	metric.AddSeries(series)
 
 	req := InsertRequest{}
@@ -225,7 +228,7 @@ func TestDataTypes(t *testing.T) {
 	assert.True(t, ok)
 	boolV, ok := series.Get("bool_v")
 	assert.True(t, ok)
-	timeV, ok := series.Get("time_v")
+	timeV, ok := series.GetTimestamp()
 	assert.True(t, ok)
 
 	querydata := datatype{
@@ -244,7 +247,119 @@ func TestDataTypes(t *testing.T) {
 		stringV:  stringV.(string),
 		byteV:    []byte(byteV.(string)),
 		boolV:    boolV.(bool),
-		timeV:    time.UnixMilli(timeV.(int64)),
+		timeV:    timeV,
 	}
 	assert.Equal(t, data, querydata)
+}
+
+func TestPrecision(t *testing.T) {
+	grpcAddr := DockerTestInit(DefaultDockerTestConfig())
+	options := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	client, err := NewClient(cfg)
+	assert.Nil(t, err)
+
+	nano := time.Unix(1677728740, 123456789)
+	micro := time.UnixMicro(nano.UnixMicro())
+	milli := time.UnixMilli(nano.UnixMilli())
+	sec := time.Unix(nano.Unix(), 0)
+
+	series := Series{}
+	series.SetTimestamp(nano)
+	metric := Metric{}
+	metric.AddSeries(series)
+	// We set the precision as microsecond
+	metric.SetTimePrecision(time.Nanosecond)
+	req := InsertRequest{}
+	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+	affectedRows, err := client.Insert(context.Background(), req)
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(1), affectedRows.Value)
+
+	queryReq := QueryRequest{}
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog("").WithDatabase(database)
+	resMetric, err := client.QueryMetric(context.Background(), queryReq)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(resMetric.GetSeries()))
+
+	resTime, ok := resMetric.GetSeries()[0].GetTimestamp()
+	assert.True(t, ok)
+	// since the precision is nano, others should not equal
+	assert.Equal(t, nano, resTime)
+	assert.NotEqual(t, milli, resTime)
+	assert.NotEqual(t, sec, resTime)
+	assert.NotEqual(t, micro, resTime)
+}
+
+func TestNilInColumn(t *testing.T) {
+	grpcAddr := DockerTestInit(DefaultDockerTestConfig())
+
+	insertMonitors := []monitor{
+		{
+			ts:  time.UnixMicro(1677728740000001),
+			cpu: 0.45,
+		},
+		{
+			ts:     time.UnixMicro(1677728740012002),
+			memory: 28,
+		},
+	}
+
+	// Insert
+	options := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	client, err := NewClient(cfg)
+	assert.Nil(t, err)
+
+	metric := Metric{}
+	metric.SetTimePrecision(time.Microsecond)
+
+	series1 := Series{}
+	series1.SetTimestamp(insertMonitors[0].ts)
+	series1.AddField("cpu", insertMonitors[0].cpu)
+	metric.AddSeries(series1)
+
+	series2 := Series{}
+	series2.SetTimestamp(insertMonitors[1].ts)
+	series2.AddField("memory", insertMonitors[1].memory)
+	metric.AddSeries(series2)
+
+	req := InsertRequest{}
+	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+
+	affectedRows, err := client.Insert(context.Background(), req)
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(len(insertMonitors)), affectedRows.Value)
+
+	// Query with metric
+	queryReq := QueryRequest{}
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog("").WithDatabase(database)
+
+	resMetric, err := client.QueryMetric(context.Background(), queryReq)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(resMetric.GetSeries()))
+
+	resSeries0 := resMetric.GetSeries()[0]
+	ts, ok := resSeries0.GetTimestamp()
+	assert.True(t, ok)
+	assert.Equal(t, insertMonitors[0].ts, ts)
+	_, ok = resSeries0.Get("memory")
+	assert.False(t, ok)
+	cpu, ok := resSeries0.Get("cpu")
+	assert.True(t, ok)
+	assert.Equal(t, insertMonitors[0].cpu, cpu.(float64))
+
+	resSeries1 := resMetric.GetSeries()[1]
+	ts, ok = resSeries1.GetTimestamp()
+	assert.True(t, ok)
+	assert.Equal(t, insertMonitors[1].ts, ts)
+	memory, ok := resSeries1.Get("memory")
+	assert.True(t, ok)
+	assert.Equal(t, insertMonitors[1].memory, memory.(uint64))
+	_, ok = resSeries1.Get("cpu")
+	assert.False(t, ok)
 }
