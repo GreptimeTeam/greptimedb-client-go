@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"strings"
 	"time"
 
 	"github.com/apache/arrow/go/arrow"
@@ -21,11 +20,11 @@ type column struct {
 
 type Series struct {
 	// order, columns and vals SHOULD NOT contain timestampAlias
-	order          []string
-	columns        map[string]column
-	vals           map[string]any
-	timestampAlias string
-	timestamp      time.Time
+	order   []string
+	columns map[string]column
+	vals    map[string]any
+
+	timestamp time.Time
 }
 
 // TODO(vinland-avalon): for timestamp, use another function to return time.Time to keep precision
@@ -59,7 +58,6 @@ func (s *Series) addVal(name string, val any, semantic greptime.Column_SemanticT
 		s.columns = map[string]column{}
 	}
 
-	// although return `type`` along with `value` here, we only set value in `addVal`
 	v, err := convert(val)
 	if err != nil {
 		return fmt.Errorf("add tag err: %w", err)
@@ -98,27 +96,7 @@ func (s *Series) AddField(key string, val any) error {
 	return s.addVal(key, val, greptime.Column_FIELD)
 }
 
-// SetTime set the timestamp column value with default `ts` name and millisecond precision
-func (s *Series) SetTime(t time.Time) error {
-	return s.SetTimeWithKey("ts", t)
-}
-
-// SetTimeWithKey set the timestamp column value with `key` name and millisecond precision
-//
-// # Pay attention
-//
-// only one timestamp column is allowed, so the name MUST be consistent, and CAN NOT be changed
-func (s *Series) SetTimeWithKey(key string, t time.Time) error {
-	if len(s.timestampAlias) != 0 {
-		return errors.New("timestamp column name CAN NOT be set twice")
-	}
-
-	key, err := ToColumnName(key)
-	if err != nil {
-		return err
-	}
-
-	s.timestampAlias = key
+func (s *Series) SetTimestamp(t time.Time) error {
 	s.timestamp = t
 	return nil
 }
@@ -153,6 +131,10 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 		if err != nil {
 			return nil, err
 		}
+		err = metric.SetTimestampAlias(fields[timestampIndex].Name)
+		if err != nil {
+			return nil, err
+		}
 	}
 	metric.SetTimePrecision(precision)
 
@@ -165,7 +147,7 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 				return nil, err
 			}
 			if j == timestampIndex {
-				series.SetTimeWithKey(fields[j].Name, colVal.(time.Time))
+				series.SetTimestamp(colVal.(time.Time))
 			} else {
 				series.AddField(fields[j].Name, colVal)
 			}
@@ -273,13 +255,25 @@ func (m *Metric) SetTimePrecision(precision time.Duration) error {
 	return nil
 }
 
+func (m *Metric) SetTimestampAlias(alias string) error {
+	alias, err := ToColumnName(alias)
+	if err != nil {
+		return err
+	}
+	m.timestampAlias = alias
+	return nil
+}
+
+func (m *Metric) GetTimestampAlias() string {
+	if len(m.timestampAlias) == 0 {
+		return "ts"
+	}
+	return m.timestampAlias
+}
+
 func (m *Metric) AddSeries(s Series) error {
-	if !IsEmptyString(m.timestampAlias) && !IsEmptyString(s.timestampAlias) &&
-		!strings.EqualFold(m.timestampAlias, s.timestampAlias) {
-		return fmt.Errorf("different series MUST share same timestamp key, '%s' and '%s' does not match",
-			m.timestampAlias, s.timestampAlias)
-	} else if IsEmptyString(m.timestampAlias) && !IsEmptyString(s.timestampAlias) {
-		m.timestampAlias = s.timestampAlias
+	if s.timestamp.IsZero() {
+		return ErrEmptyTimestamp
 	}
 
 	if m.columns == nil {
@@ -376,27 +370,23 @@ func (m *Metric) timestampColumn() (*greptime.Column, error) {
 		return nil, err
 	}
 	tsColumn := &greptime.Column{
-		ColumnName:   m.timestampAlias,
+		ColumnName:   m.GetTimestampAlias(),
 		SemanticType: greptime.Column_TIMESTAMP,
 		Datatype:     datatype,
 		Values:       &greptime.Column_Values{},
 		NullMask:     nil,
 	}
 	nullMask := Mask{}
-	for rowIdx, s := range m.series {
-		if !IsEmptyString(s.timestampAlias) {
-			switch datatype {
-			case greptime.ColumnDataType_TIMESTAMP_SECOND:
-				setColumn(tsColumn, s.timestamp.Unix())
-			case greptime.ColumnDataType_TIMESTAMP_MILLISECOND:
-				setColumn(tsColumn, s.timestamp.UnixMilli())
-			case greptime.ColumnDataType_TIMESTAMP_MICROSECOND:
-				setColumn(tsColumn, s.timestamp.UnixMicro())
-			case greptime.ColumnDataType_TIMESTAMP_NANOSECOND:
-				setColumn(tsColumn, s.timestamp.UnixNano())
-			}
-		} else {
-			nullMask.set(uint(rowIdx))
+	for _, s := range m.series {
+		switch datatype {
+		case greptime.ColumnDataType_TIMESTAMP_SECOND:
+			setColumn(tsColumn, s.timestamp.Unix())
+		case greptime.ColumnDataType_TIMESTAMP_MILLISECOND:
+			setColumn(tsColumn, s.timestamp.UnixMilli())
+		case greptime.ColumnDataType_TIMESTAMP_MICROSECOND:
+			setColumn(tsColumn, s.timestamp.UnixMicro())
+		case greptime.ColumnDataType_TIMESTAMP_NANOSECOND:
+			setColumn(tsColumn, s.timestamp.UnixNano())
 		}
 	}
 

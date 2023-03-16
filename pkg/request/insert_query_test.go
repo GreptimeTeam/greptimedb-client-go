@@ -76,10 +76,12 @@ func TestBasicWorkFlow(t *testing.T) {
 
 	metric := Metric{}
 	metric.SetTimePrecision(time.Microsecond)
+	metric.SetTimestampAlias("ts")
+
 	for _, monitor := range insertMonitors {
 		series := Series{}
 		series.AddTag("host", monitor.host)
-		series.SetTimeWithKey("ts", monitor.ts)
+		series.SetTimestamp(monitor.ts)
 		series.AddField("memory", monitor.memory)
 		series.AddField("cpu", monitor.cpu)
 		series.AddField("temperature", monitor.temperature)
@@ -161,6 +163,7 @@ func TestDataTypes(t *testing.T) {
 	assert.Nil(t, err)
 
 	metric := Metric{}
+	metric.SetTimestampAlias("time_v")
 
 	series := Series{}
 	series.AddTag("int64_v", data.int64V)
@@ -178,7 +181,7 @@ func TestDataTypes(t *testing.T) {
 	series.AddField("string_v", data.stringV)
 	series.AddField("byte_v", data.byteV)
 	series.AddField("bool_v", data.boolV)
-	series.SetTimeWithKey("time_v", data.timeV)
+	series.SetTimestamp(data.timeV)
 	metric.AddSeries(series)
 
 	req := InsertRequest{}
@@ -266,7 +269,7 @@ func TestPrecision(t *testing.T) {
 	sec := time.Unix(nano.Unix(), 0)
 
 	series := Series{}
-	series.SetTime(nano)
+	series.SetTimestamp(nano)
 	metric := Metric{}
 	metric.AddSeries(series)
 	// We set the precision as microsecond
@@ -291,35 +294,6 @@ func TestPrecision(t *testing.T) {
 	assert.NotEqual(t, sec, resTime)
 	assert.Equal(t, micro, resTime)
 }
-
-// func TestWithoutTimestamp(t *testing.T) {
-// 	// grpcAddr := DockerTestInit(DefaultDockerTestConfig())
-// 	options := []grpc.DialOption{
-// 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-// 	}
-// 	cfg := NewCfg("localhost:4001", "", database).WithDialOptions(options...)
-// 	client, err := NewClient(cfg)
-// 	assert.Nil(t, err)
-
-// 	series := Series{}
-// 	metric := Metric{}
-// 	metric.AddSeries(series)
-// 	req := InsertRequest{}
-// 	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase("no_ts")
-// 	affectedRows, err := client.Insert(context.Background(), req)
-// 	assert.Nil(t, err)
-// 	assert.Equal(t, uint32(1), affectedRows.Value)
-
-// 	queryReq := QueryRequest{}
-// 	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog("").WithDatabase(database)
-// 	resMetric, err := client.QueryMetric(context.Background(), queryReq)
-// 	assert.Nil(t, err)
-// 	assert.Equal(t, 1, len(resMetric.GetSeries()))
-
-// 	resTime, ok := resMetric.GetSeries()[0].GetTimestamp()
-// 	assert.True(t, ok)
-// 	fmt.Printf("timestamp: %+v\n", resTime)
-// }
 
 func TestNilInColumn(t *testing.T) {
 	grpcAddr := DockerTestInit(DefaultDockerTestConfig())
@@ -347,12 +321,12 @@ func TestNilInColumn(t *testing.T) {
 	metric.SetTimePrecision(time.Microsecond)
 
 	series1 := Series{}
-	series1.SetTimeWithKey("ts", insertMonitors[0].ts)
+	series1.SetTimestamp(insertMonitors[0].ts)
 	series1.AddField("cpu", insertMonitors[0].cpu)
 	metric.AddSeries(series1)
 
 	series2 := Series{}
-	series2.SetTimeWithKey("ts", insertMonitors[1].ts)
+	series2.SetTimestamp(insertMonitors[1].ts)
 	series2.AddField("memory", insertMonitors[1].memory)
 	metric.AddSeries(series2)
 
