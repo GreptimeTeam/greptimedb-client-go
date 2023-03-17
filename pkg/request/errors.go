@@ -11,4 +11,5 @@ var (
 	ErrEmptyKey             = errors.New("key should not be empty")
 	ErrEmptySql             = errors.New("sql is required in querying")
 	ErrInvalidTimePrecision = errors.New("precision of timestamp is not valid")
+	ErrNoSeriesInMetric     = errors.New("empty series in Metric")
 )

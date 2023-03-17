@@ -128,6 +128,11 @@ func TestBasicWorkFlow(t *testing.T) {
 		})
 	}
 	assert.Equal(t, insertMonitors, queryMonitors)
+
+	// naked Query
+	reader, err := client.Query(context.Background(), queryReq)
+	assert.Nil(t, err)
+	assert.NotNil(t, reader)
 }
 
 func TestDataTypes(t *testing.T) {
@@ -252,7 +257,7 @@ func TestDataTypes(t *testing.T) {
 	assert.Equal(t, data, querydata)
 }
 
-func TestPrecision(t *testing.T) {
+func TestPrecisionNanosecond(t *testing.T) {
 	grpcAddr := DockerTestInit(DefaultDockerTestConfig())
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -270,7 +275,7 @@ func TestPrecision(t *testing.T) {
 	series.SetTimestamp(nano)
 	metric := Metric{}
 	metric.AddSeries(series)
-	// We set the precision as microsecond
+	// We set the precision as nanosecond
 	metric.SetTimePrecision(time.Nanosecond)
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
@@ -290,6 +295,47 @@ func TestPrecision(t *testing.T) {
 	assert.Equal(t, nano, resTime)
 	assert.NotEqual(t, milli, resTime)
 	assert.NotEqual(t, sec, resTime)
+	assert.NotEqual(t, micro, resTime)
+}
+
+func TestPrecisionSecond(t *testing.T) {
+	grpcAddr := DockerTestInit(DefaultDockerTestConfig())
+	options := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	client, err := NewClient(cfg)
+	assert.Nil(t, err)
+
+	nano := time.Unix(1677728740, 123456789)
+	micro := time.UnixMicro(nano.UnixMicro())
+	milli := time.UnixMilli(nano.UnixMilli())
+	sec := time.Unix(nano.Unix(), 0)
+
+	series := Series{}
+	series.SetTimestamp(nano)
+	metric := Metric{}
+	metric.AddSeries(series)
+	// We set the precision as second
+	metric.SetTimePrecision(time.Second)
+	req := InsertRequest{}
+	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+	affectedRows, err := client.Insert(context.Background(), req)
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(1), affectedRows.Value)
+
+	queryReq := QueryRequest{}
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog("").WithDatabase(database)
+	resMetric, err := client.QueryMetric(context.Background(), queryReq)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(resMetric.GetSeries()))
+
+	resTime, ok := resMetric.GetSeries()[0].GetTimestamp()
+	assert.True(t, ok)
+	// since the precision is second, others should not equal
+	assert.Equal(t, sec, resTime)
+	assert.NotEqual(t, milli, resTime)
+	assert.NotEqual(t, nano, resTime)
 	assert.NotEqual(t, micro, resTime)
 }
 
@@ -362,4 +408,25 @@ func TestNilInColumn(t *testing.T) {
 	assert.Equal(t, insertMonitors[1].memory, memory.(uint64))
 	_, ok = resSeries1.Get("cpu")
 	assert.False(t, ok)
+}
+
+func TestInsertRequestBuild(t *testing.T) {
+	r := InsertRequest{}
+	// empty database
+	req, err := r.Build()
+	assert.Equal(t, ErrEmptyDatabase, err)
+	assert.Nil(t, req)
+
+	// empty table
+	r.Database = "public"
+	req, err = r.Build()
+	assert.Equal(t, ErrEmptyTable, err)
+	assert.Nil(t, req)
+
+	// empty series
+	r.WithTable("monitor")
+	req, err = r.Build()
+	assert.Equal(t, ErrNoSeriesInMetric, err)
+	assert.Nil(t, req)
+
 }
