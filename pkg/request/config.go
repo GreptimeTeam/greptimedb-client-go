@@ -1,6 +1,12 @@
 package request
 
-import "google.golang.org/grpc"
+import (
+	"fmt"
+
+	"google.golang.org/grpc"
+)
+
+var gRPCPort string = "4001"
 
 type Config struct {
 	// Address string as host:port
@@ -18,12 +24,26 @@ type Config struct {
 }
 
 // New init Config with addr only
-func NewCfg(addr, catalog, database string) *Config {
+func NewCfgWithAddr(addr, catalog, database string) *Config {
 	return &Config{
 		Address:  addr,
 		Catalog:  catalog,
 		Database: database,
 	}
+}
+
+func NewCfgWithHost(host, catalog, database string) *Config {
+	return NewCfgWithAddr(fmt.Sprintf("%s:%s", host, gRPCPort), catalog, database)
+}
+
+func (c *Config) WithUserName(username string) *Config {
+	c.UserName = username
+	return c
+}
+
+func (c *Config) WithPassword(password string) *Config {
+	c.Password = password
+	return c
 }
 
 // AppendDialOption append one grpc dial option

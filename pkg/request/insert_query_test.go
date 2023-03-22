@@ -70,7 +70,7 @@ func TestBasicWorkFlow(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfgWithAddr(grpcAddr, "", database).WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
@@ -161,7 +161,8 @@ func TestDataTypes(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfgWithAddr(grpcAddr, "", database).WithDialOptions(options...)
+
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
@@ -262,7 +263,8 @@ func TestPrecisionNanosecond(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfgWithAddr(grpcAddr, "", database).WithDialOptions(options...)
+
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
@@ -303,7 +305,8 @@ func TestPrecisionSecond(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfgWithAddr(grpcAddr, "", database).WithDialOptions(options...)
+
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
@@ -357,7 +360,8 @@ func TestNilInColumn(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfgWithAddr(grpcAddr, "", database).WithDialOptions(options...)
+
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 

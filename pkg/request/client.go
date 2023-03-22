@@ -34,6 +34,7 @@ func (c *Client) Insert(ctx context.Context, req InsertRequest) (*greptime.Affec
 	if err != nil {
 		return nil, err
 	}
+	request.Header.Authorization = c.buildAuth()
 
 	b, err := proto.Marshal(request)
 	if err != nil {
@@ -76,6 +77,7 @@ func (c *Client) Query(ctx context.Context, req QueryRequest) (*flight.Reader, e
 	if err != nil {
 		return nil, err
 	}
+	request.Header.Authorization = c.buildAuth()
 
 	b, err := proto.Marshal(request)
 	if err != nil {
@@ -102,6 +104,7 @@ func (c *Client) QueryMetric(ctx context.Context, req QueryRequest) (*Metric, er
 	if err != nil {
 		return nil, err
 	}
+	request.Header.Authorization = c.buildAuth()
 
 	b, err := proto.Marshal(request)
 	if err != nil {
@@ -119,4 +122,20 @@ func (c *Client) QueryMetric(ctx context.Context, req QueryRequest) (*Metric, er
 	}
 
 	return buildMetricWithReader(reader)
+}
+
+// so far, only support `Basic`, `Token` is not implemented
+func (c *Client) buildAuth() *greptime.AuthHeader {
+	if len(c.Cfg.UserName) == 0 {
+		return nil
+	} else {
+		return &greptime.AuthHeader{
+			AuthScheme: &greptime.AuthHeader_Basic{
+				Basic: &greptime.Basic{
+					Username: c.Cfg.UserName,
+					Password: c.Cfg.Password,
+				},
+			},
+		}
+	}
 }
