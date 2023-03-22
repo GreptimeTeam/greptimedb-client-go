@@ -432,5 +432,40 @@ func TestInsertRequestBuild(t *testing.T) {
 	req, err = r.Build()
 	assert.Equal(t, ErrNoSeriesInMetric, err)
 	assert.Nil(t, req)
+}
 
+func TestNoNeedAuth(t *testing.T) {
+	grpcAddr := DockerTestInit(DefaultDockerTestConfig())
+	options := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+	// Client can always connect to a no-auth database, even the usernames and passwords are wrong
+	cfg := NewCfgWithAddr(grpcAddr, "", database).WithUserName("user").WithPassword("pwd").WithDialOptions(options...)
+
+	client, err := NewClient(cfg)
+	assert.Nil(t, err)
+
+	nano := time.Unix(1677728740, 123456789)
+
+	series := Series{}
+	series.SetTimestamp(nano)
+	metric := Metric{}
+	metric.AddSeries(series)
+
+	req := InsertRequest{}
+	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+	affectedRows, err := client.Insert(context.Background(), req)
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(1), affectedRows.Value)
+
+	queryReq := QueryRequest{}
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog("").WithDatabase(database)
+	resMetric, err := client.QueryMetric(context.Background(), queryReq)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(resMetric.GetSeries()))
+
+	resTime, ok := resMetric.GetSeries()[0].GetTimestamp()
+	assert.True(t, ok)
+	// since the precision is second, others should not equal
+	assert.NotEqual(t, nano, resTime)
 }
