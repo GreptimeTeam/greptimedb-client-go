@@ -6,4 +6,3 @@ type PromQL struct {
 	End   string
 	Step  string
 }
-

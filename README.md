@@ -37,8 +37,35 @@ float32, // it will be stored as float64
 []byte, // it will be stored as string
 ```
 
+### Init Client with Config
+```go
+package main
+
+import (
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
+
+    "github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
+)
+
+func InitClient() (*request.Client, error) {
+    options := []grpc.DialOption{
+        grpc.WithTransportCredentials(insecure.NewCredentials()),
+    }
+    // To connect a database that needs authentication, for example, those on Greptime Cloud,
+    // `Username` and `Password` are must.
+    // To connect a local database without authentication, just leave the two fields empty.
+    cfg := request.NewCfg("127.0.0.1:4001", "", "public").
+        WithUserName("username").WithPassword("password").WithDialOptions(options...)
+
+    return request.NewClient(cfg)
+}
+```
+
 ### Basic Example of Insert
 ```go
+package main
+
 import (
     "context"
     "fmt"
@@ -51,13 +78,7 @@ import (
 )
 
 func insert() {
-    // Create a new client using an GreptimeDB server base URL and a database name
-    options := []grpc.DialOption{
-        grpc.WithTransportCredentials(insecure.NewCredentials()),
-    }
-    cfg := request.NewCfg("127.0.0.1:4001", "", "public").WithDialOptions(options...)
-
-    client, err := request.NewClient(cfg)
+    client, err := InitClient()
     if err != nil {
         fmt.Printf("Fail in client initiation, err: %s", err)
     }
@@ -104,13 +125,7 @@ import (
 )
 
 func query() {
-    // Create a new client using an GreptimeDB server base URL and a database name
-    options := []grpc.DialOption{
-        grpc.WithTransportCredentials(insecure.NewCredentials()),
-    }
-    cfg := request.NewCfg("127.0.0.1:4001", "", "public").WithDialOptions(options...)
-
-    client, err := request.NewClient(cfg)
+    client, err := InitClient()
     if err != nil {
         fmt.Printf("Fail in client initiation, err: %s", err)
     }
@@ -145,11 +160,11 @@ func query() {
 ```
 
 ### More Options
-#### Authorization
-To access database with authorization, the `config` shoud be initiated with `username` and `password`
+#### Precision for Timestamp
+You can set a precision to determine how timstamps of series in metric are stored in database.
+We support `Second`, `Millisecond`, `Microsecond` and `Nanosecond`. And the default precision is `Millisecond`.
 ```go
-    cfg = cfg.WithUserName("username").WithPassword("password")
-    client, err := NewClient(cfg)
+    metric.SetTimePrecision(time.Microsecond)
 ```
 #### PromQL
 We also support querying with PromQL. To use PromQL, just initiate `QueryRequest` with `PromQL` struct.
