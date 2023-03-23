@@ -19,9 +19,9 @@ type monitor struct {
 }
 
 var (
-	host     string = ""
-	table    string = "" // whatever you want
-	database string = "" // `schema` in GCP
+	addr     string = "127.0.0.1:4001"
+	table    string = "monitor" // whatever you want
+	database string = "public"  // `schema` in GCP
 	catalog  string = ""
 	username string = ""
 	passord  string = ""
@@ -32,7 +32,7 @@ func main() {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := request.NewCfgWithHost(host, catalog, database).WithUserName(username).WithPassword(passord).WithDialOptions(options...)
+	cfg := request.NewCfg(addr, catalog, database).WithUserName(username).WithPassword(passord).WithDialOptions(options...)
 
 	client, err := request.NewClient(cfg)
 	if err != nil {

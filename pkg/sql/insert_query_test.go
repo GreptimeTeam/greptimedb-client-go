@@ -54,7 +54,7 @@ func TestBasicWorkFlow(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := request.NewCfgWithAddr(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := request.NewCfg(grpcAddr, "", database).WithDialOptions(options...)
 
 	client, err := request.NewClient(cfg)
 	assert.Nil(t, err)

@@ -61,7 +61,7 @@ func TestPromQL(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfgWithAddr(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
@@ -157,7 +157,7 @@ func TestBasicWorkFlow(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfgWithAddr(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
@@ -248,7 +248,7 @@ func TestDataTypes(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfgWithAddr(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
 
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
@@ -350,7 +350,7 @@ func TestPrecisionNanosecond(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfgWithAddr(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
 
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
@@ -392,7 +392,7 @@ func TestPrecisionSecond(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfgWithAddr(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
 
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
@@ -447,7 +447,7 @@ func TestNilInColumn(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfgWithAddr(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
 
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
@@ -527,7 +527,7 @@ func TestNoNeedAuth(t *testing.T) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 	// Client can always connect to a no-auth database, even the usernames and passwords are wrong
-	cfg := NewCfgWithAddr(grpcAddr, "", database).WithUserName("user").WithPassword("pwd").WithDialOptions(options...)
+	cfg := NewCfg(grpcAddr, "", database).WithUserName("user").WithPassword("pwd").WithDialOptions(options...)
 
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
