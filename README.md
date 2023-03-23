@@ -20,7 +20,7 @@ Compared to [mysql](https://github.com/go-sql-driver/mysql), the Data Source Nam
 ```
 There are more exampls to refer in the [dsn_test.go](pkg/sql/dsn_test.go).
 
-### datatype supported
+### Datatype Supported
 ```go
 int32, int64, int (as int64),
 uint32, uint64, uint (as uint64),
@@ -37,7 +37,7 @@ float32, // it will be stored as float64
 []byte, // it will be stored as string
 ```
 
-### basic example of insert
+### Basic Example of Insert
 ```go
 import (
     "context"
@@ -89,7 +89,7 @@ func insert() {
 ```
 Attention! If the table `monitor` does not exist, it will be created
 
-### basic example of query
+### Basic Example of Query
 
 ```go
 import (
@@ -142,6 +142,27 @@ func query() {
 }
 
 
+```
+
+### More Options
+#### Authorization
+To access database with authorization, the `config` shoud be initiated with `username` and `password`
+```go
+    cfg = cfg.WithUserName("username").WithPassword("password")
+    client, err := NewClient(cfg)
+```
+#### PromQL
+We also support querying with PromQL. To use PromQL, just initiate `QueryRequest` with `PromQL` struct.
+```go
+    queryReq := QueryRequest{}
+    queryReq.WithPromQL(&PromQL{
+	    Query: table,
+	    Start: "1677728740",
+	    End:   "1677728740",
+	    Step:  "50s",
+    }).WithCatalog("").WithDatabase(database)
+
+    resMetric, err := client.QueryMetric(context.Background(), queryReq)
 ```
 ## License
 This greptimedb-client-go uses the __Apache 2.0 license__ to strike a balance between open contributions and allowing you to use the software however you want.
