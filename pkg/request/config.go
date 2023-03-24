@@ -2,6 +2,8 @@ package request
 
 import (
 	"google.golang.org/grpc"
+
+	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
 
 type Config struct {
@@ -46,4 +48,20 @@ func (c *Config) WithDialOptions(options ...grpc.DialOption) *Config {
 	c.DialOptions = append(c.DialOptions, options...)
 
 	return c
+}
+
+// so far, only support `Basic`, `Token` is not implemented
+func (c *Config) buildAuth() *greptime.AuthHeader {
+	if len(c.UserName) == 0 {
+		return nil
+	} else {
+		return &greptime.AuthHeader{
+			AuthScheme: &greptime.AuthHeader_Basic{
+				Basic: &greptime.Basic{
+					Username: c.UserName,
+					Password: c.Password,
+				},
+			},
+		}
+	}
 }

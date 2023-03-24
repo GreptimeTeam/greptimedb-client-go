@@ -556,3 +556,98 @@ func TestNoNeedAuth(t *testing.T) {
 	// since the precision is second, others should not equal
 	assert.NotEqual(t, nano, resTime)
 }
+
+func TestStreamInsert(t *testing.T) {
+	grpcAddr := DockerTestInit(DefaultDockerTestConfig())
+
+	insertMonitors := []monitor{
+		{
+			host:        "127.0.0.1",
+			ts:          time.UnixMicro(1677728740000001),
+			memory:      22,
+			cpu:         0.45,
+			temperature: -1,
+			isAuthed:    true,
+		},
+		{
+			host:        "127.0.0.2",
+			ts:          time.UnixMicro(1677728740012002),
+			memory:      28,
+			cpu:         0.80,
+			temperature: 22,
+			isAuthed:    true,
+		},
+	}
+
+	// Insert
+	options := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	client, err := NewClient(cfg)
+	assert.Nil(t, err)
+	streamClient, err := client.InitStreamClient(context.Background())
+	assert.Nil(t, err)
+
+	for _, monitor := range insertMonitors {
+		metric := Metric{}
+		metric.SetTimePrecision(time.Microsecond)
+		metric.SetTimestampAlias("ts")
+
+		series := Series{}
+		series.AddTag("host", monitor.host)
+		series.SetTimestamp(monitor.ts)
+		series.AddField("memory", monitor.memory)
+		series.AddField("cpu", monitor.cpu)
+		series.AddField("temperature", monitor.temperature)
+		series.AddField("is_authed", monitor.isAuthed)
+		metric.AddSeries(series)
+
+		req := InsertRequest{}
+		req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+		err = streamClient.Send(context.Background(), req)
+		assert.Nil(t, err)
+	}
+
+	affectedRows, err := streamClient.CloseAndRecv(context.Background())
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(len(insertMonitors)), affectedRows.Value)
+
+	// Query with metric
+	queryReq := QueryRequest{}
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog("").WithDatabase(database)
+
+	resMetric, err := client.QueryMetric(context.Background(), queryReq)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(resMetric.GetSeries()))
+
+	queryMonitors := []monitor{}
+	for _, series := range resMetric.GetSeries() {
+		host, ok := series.Get("host")
+		assert.True(t, ok)
+		ts, ok := series.GetTimestamp()
+		assert.True(t, ok)
+		temperature, ok := series.Get("temperature")
+		assert.True(t, ok)
+		memory, ok := series.Get("memory")
+		assert.True(t, ok)
+		cpu, ok := series.Get("cpu")
+		assert.True(t, ok)
+		isAuthed, ok := series.Get("is_authed")
+		assert.True(t, ok)
+		queryMonitors = append(queryMonitors, monitor{
+			host:        host.(string),
+			ts:          ts,
+			memory:      memory.(uint64),
+			cpu:         cpu.(float64),
+			temperature: temperature.(int64),
+			isAuthed:    isAuthed.(bool),
+		})
+	}
+	assert.Equal(t, insertMonitors, queryMonitors)
+
+	// naked Query
+	reader, err := client.Query(context.Background(), queryReq)
+	assert.Nil(t, err)
+	assert.NotNil(t, reader)
+}

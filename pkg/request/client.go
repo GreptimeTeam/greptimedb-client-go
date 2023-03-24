@@ -45,7 +45,7 @@ func (c *Client) Insert(ctx context.Context, req InsertRequest) (*greptime.Affec
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Authorization = c.buildAuth()
+	request.Header.Authorization = c.Cfg.buildAuth()
 
 	response, err := c.DatabaseClient.Handle(ctx, request)
 	if err != nil {
@@ -53,6 +53,15 @@ func (c *Client) Insert(ctx context.Context, req InsertRequest) (*greptime.Affec
 	}
 
 	return response.GetAffectedRows(), nil
+}
+
+func (c *Client) InitStreamClient(ctx context.Context) (*StreamClient, error) {
+	client, err := c.DatabaseClient.HandleRequests(ctx, grpc.EmptyCallOption{})
+	if err != nil {
+		return nil, err
+	}
+
+	return &StreamClient{client: client, cfg: c.Cfg}, nil
 }
 
 // Query data from greptimedb via SQL.
@@ -66,7 +75,7 @@ func (c *Client) Query(ctx context.Context, req QueryRequest) (*flight.Reader, e
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Authorization = c.buildAuth()
+	request.Header.Authorization = c.Cfg.buildAuth()
 
 	b, err := proto.Marshal(request)
 	if err != nil {
@@ -93,7 +102,7 @@ func (c *Client) QueryMetric(ctx context.Context, req QueryRequest) (*Metric, er
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Authorization = c.buildAuth()
+	request.Header.Authorization = c.Cfg.buildAuth()
 
 	b, err := proto.Marshal(request)
 	if err != nil {
@@ -111,20 +120,4 @@ func (c *Client) QueryMetric(ctx context.Context, req QueryRequest) (*Metric, er
 	}
 
 	return buildMetricWithReader(reader)
-}
-
-// so far, only support `Basic`, `Token` is not implemented
-func (c *Client) buildAuth() *greptime.AuthHeader {
-	if len(c.Cfg.UserName) == 0 {
-		return nil
-	} else {
-		return &greptime.AuthHeader{
-			AuthScheme: &greptime.AuthHeader_Basic{
-				Basic: &greptime.Basic{
-					Username: c.Cfg.UserName,
-					Password: c.Cfg.Password,
-				},
-			},
-		}
-	}
 }
