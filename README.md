@@ -179,5 +179,82 @@ We also support querying with PromQL. To use PromQL, just initiate `QueryRequest
 
     resMetric, err := client.QueryMetric(context.Background(), queryReq)
 ```
+#### Stream Insert
+We support stream insert. You can send several insert request by `Send()` and notify DB the stream is at end by `CloseAndRecv()`
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "time"
+
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
+
+    "github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
+)
+
+func insertWithStream() {
+    client, err := InitClient()
+    if err != nil {
+        fmt.Printf("Fail in client initiation, err: %s", err)
+    }
+
+    // create stream for send, close and recv
+    streamClient, err := client.InitStreamClient(context.Background())
+	if err != nil {
+        fmt.Printf("Fail in stream client initiation, err: %s", err)
+    }
+
+    // two data point
+    insertMonitors := []monitor{
+        {
+            host:        "127.0.0.1",
+            ts:          time.UnixMicro(1677728740000001),
+            memory:      22,
+            cpu:         0.45,
+            temperature: -1,
+            isAuthed:    true,
+        },
+        {
+            host:        "127.0.0.2",
+            ts:          time.UnixMicro(1677728740012002),
+            memory:      28,
+            cpu:         0.80,
+            temperature: 22,
+            isAuthed:    true,
+        },
+    }
+
+    // call the `Send()` for one data point per loop
+    for _, monitor := range insertMonitors {
+        metric := Metric{}
+        metric.SetTimePrecision(time.Microsecond)
+        metric.SetTimestampAlias("ts")
+
+        series := Series{}
+        series.AddTag("host", monitor.host)
+        series.SetTimestamp(monitor.ts)
+        series.AddField("memory", monitor.memory)
+        series.AddField("cpu", monitor.cpu)
+        series.AddField("temperature", monitor.temperature)
+        series.AddField("is_authed", monitor.isAuthed)
+        metric.AddSeries(series)
+
+        req := InsertRequest{}
+        req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+        err = streamClient.Send(context.Background(), req)
+    }
+
+    // Notify the DB to close stream and recieve the result
+    affectedRows, err := streamClient.CloseAndRecv(context.Background())
+    if err != nil {
+        fmt.Printf("fail to insert, err: %+v\n", err)
+    } else {
+        fmt.Printf("affectedRows: %+v\n", affectedRows)
+    }
+}
+```
 ## License
 This greptimedb-client-go uses the __Apache 2.0 license__ to strike a balance between open contributions and allowing you to use the software however you want.
