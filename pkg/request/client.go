@@ -2,18 +2,20 @@ package request
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
 	"github.com/apache/arrow/go/arrow/flight"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 
 	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
 
 type Client struct {
-	Client flight.Client
-	Cfg    *Config
+	Cfg *Config
+	// For `query`, since unary calls have not been inplemented for query and only do_get helps
+	FlightClient flight.Client
+	// For `insert`, unary calls are supported
+	DatabaseClient greptime.GreptimeDatabaseClient
 }
 
 // New will create the greptimedb client, which will be responsible Write/Read data To/From GreptimeDB
@@ -23,9 +25,18 @@ func NewClient(cfg *Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	conn, err := grpc.Dial(cfg.Address, cfg.DialOptions...)
+	if err != nil {
+		return nil, err
+	}
+
+	databaseClient := greptime.NewGreptimeDatabaseClient(conn)
+
 	return &Client{
-		Client: client,
-		Cfg:    cfg,
+		FlightClient:   client,
+		Cfg:            cfg,
+		DatabaseClient: databaseClient,
 	}, nil
 }
 
@@ -36,34 +47,12 @@ func (c *Client) Insert(ctx context.Context, req InsertRequest) (*greptime.Affec
 	}
 	request.Header.Authorization = c.buildAuth()
 
-	b, err := proto.Marshal(request)
+	response, err := c.DatabaseClient.Handle(ctx, request)
 	if err != nil {
 		return nil, err
 	}
 
-	sr, err := c.Client.DoGet(ctx, &flight.Ticket{Ticket: b})
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := sr.Recv()
-	if err != nil {
-		return nil, err
-	}
-	if data == nil {
-		return nil, errors.New("the grpc response is empty")
-	}
-
-	metadata := greptime.FlightMetadata{}
-	err = proto.Unmarshal(data.AppMetadata, &metadata)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response, err: %+v", err)
-	}
-
-	affectedRows := metadata.GetAffectedRows()
-
-	// TODO(vinland-avalon): Embed the function into database/sql framework and wrap the retuen value
-	return affectedRows, nil
+	return response.GetAffectedRows(), nil
 }
 
 // Query data from greptimedb via SQL.
@@ -85,7 +74,7 @@ func (c *Client) Query(ctx context.Context, req QueryRequest) (*flight.Reader, e
 	}
 
 	// TODO(yuanbohan): more options here
-	sr, err := c.Client.DoGet(ctx, &flight.Ticket{Ticket: b})
+	sr, err := c.FlightClient.DoGet(ctx, &flight.Ticket{Ticket: b})
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +100,7 @@ func (c *Client) QueryMetric(ctx context.Context, req QueryRequest) (*Metric, er
 		return nil, err
 	}
 
-	sr, err := c.Client.DoGet(ctx, &flight.Ticket{Ticket: b})
+	sr, err := c.FlightClient.DoGet(ctx, &flight.Ticket{Ticket: b})
 	if err != nil {
 		return nil, err
 	}
