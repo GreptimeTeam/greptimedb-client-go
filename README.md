@@ -20,7 +20,7 @@ Compared to [mysql](https://github.com/go-sql-driver/mysql), the Data Source Nam
 ```
 There are more exampls to refer in the [dsn_test.go](pkg/sql/dsn_test.go).
 
-### datatype supported
+### Datatype Supported
 ```go
 int32, int64, int (as int64),
 uint32, uint64, uint (as uint64),
@@ -37,8 +37,35 @@ float32, // it will be stored as float64
 []byte, // it will be stored as string
 ```
 
-### basic example of insert
+### Init Client with Config
 ```go
+package main
+
+import (
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
+
+    "github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
+)
+
+func InitClient() (*request.Client, error) {
+    options := []grpc.DialOption{
+        grpc.WithTransportCredentials(insecure.NewCredentials()),
+    }
+    // To connect a database that needs authentication, for example, those on Greptime Cloud,
+    // `Username` and `Password` are must.
+    // To connect a local database without authentication, just leave the two fields empty.
+    cfg := request.NewCfg("127.0.0.1:4001", "", "public").
+        WithUserName("username").WithPassword("password").WithDialOptions(options...)
+
+    return request.NewClient(cfg)
+}
+```
+
+### Basic Example of Insert
+```go
+package main
+
 import (
     "context"
     "fmt"
@@ -51,13 +78,7 @@ import (
 )
 
 func insert() {
-    // Create a new client using an GreptimeDB server base URL and a database name
-    options := []grpc.DialOption{
-        grpc.WithTransportCredentials(insecure.NewCredentials()),
-    }
-    cfg := request.NewCfg("127.0.0.1:4001", "", "public").WithDialOptions(options...)
-
-    client, err := request.NewClient(cfg)
+    client, err := InitClient()
     if err != nil {
         fmt.Printf("Fail in client initiation, err: %s", err)
     }
@@ -89,7 +110,7 @@ func insert() {
 ```
 Attention! If the table `monitor` does not exist, it will be created
 
-### basic example of query
+### Basic Example of Query
 
 ```go
 import (
@@ -104,13 +125,7 @@ import (
 )
 
 func query() {
-    // Create a new client using an GreptimeDB server base URL and a database name
-    options := []grpc.DialOption{
-        grpc.WithTransportCredentials(insecure.NewCredentials()),
-    }
-    cfg := request.NewCfg("127.0.0.1:4001", "", "public").WithDialOptions(options...)
-
-    client, err := request.NewClient(cfg)
+    client, err := InitClient()
     if err != nil {
         fmt.Printf("Fail in client initiation, err: %s", err)
     }
@@ -142,6 +157,27 @@ func query() {
 }
 
 
+```
+
+### More Options
+#### Precision for Timestamp
+You can set a precision to determine how timstamps of series in metric are stored in database.
+We support `Second`, `Millisecond`, `Microsecond` and `Nanosecond`. And the default precision is `Millisecond`.
+```go
+    metric.SetTimePrecision(time.Microsecond)
+```
+#### PromQL
+We also support querying with PromQL. To use PromQL, just initiate `QueryRequest` with `PromQL` struct.
+```go
+    queryReq := QueryRequest{}
+    queryReq.WithPromQL(&PromQL{
+	    Query: table,
+	    Start: "1677728740",
+	    End:   "1677728740",
+	    Step:  "50s",
+    }).WithCatalog("").WithDatabase(database)
+
+    resMetric, err := client.QueryMetric(context.Background(), queryReq)
 ```
 ## License
 This greptimedb-client-go uses the __Apache 2.0 license__ to strike a balance between open contributions and allowing you to use the software however you want.

@@ -1,11 +1,12 @@
 package request
 
-import "google.golang.org/grpc"
+import (
+	"google.golang.org/grpc"
+)
 
 type Config struct {
 	// Address string as host:port
-	Address string `json:"address"`
-
+	Address  string `json:"address"`
 	UserName string `json:"username"`
 	Password string `json:"password"`
 	Catalog  string `json:"catalog"`
@@ -24,6 +25,16 @@ func NewCfg(addr, catalog, database string) *Config {
 		Catalog:  catalog,
 		Database: database,
 	}
+}
+
+func (c *Config) WithUserName(username string) *Config {
+	c.UserName = username
+	return c
+}
+
+func (c *Config) WithPassword(password string) *Config {
+	c.Password = password
+	return c
 }
 
 // AppendDialOption append one grpc dial option

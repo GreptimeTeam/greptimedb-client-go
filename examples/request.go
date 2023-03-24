@@ -18,12 +18,21 @@ type monitor struct {
 	ts     time.Time
 }
 
+var (
+	addr     string = "127.0.0.1:4001"
+	table    string = "monitor" // whatever you want
+	database string = "public"  // `schema` in GCP
+	catalog  string = ""
+	username string = ""
+	passord  string = ""
+)
+
 func main() {
 	// Create a new client using an GreptimeDB server base URL and a database name
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := request.NewCfg("127.0.0.1:4001", "", "public").WithDialOptions(options...)
+	cfg := request.NewCfg(addr, catalog, database).WithUserName(username).WithPassword(passord).WithDialOptions(options...)
 
 	client, err := request.NewClient(cfg)
 	if err != nil {
@@ -33,7 +42,7 @@ func main() {
 	// Create a Series
 	series := request.Series{}
 	series.AddTag("host", "localhost")
-	series.SetTimestamp(time.UnixMilli(1660897955000))
+	series.SetTimestamp(time.UnixMilli(1660897955002))
 	series.AddField("cpu", 0.90)
 	series.AddField("memory", 1024.0)
 
@@ -44,7 +53,7 @@ func main() {
 	// Create an InsertRequest using fluent style
 	// If the table does not exist, automatically create one with Insert
 	req := request.InsertRequest{}
-	req.WithTable("monitor").WithMetric(metric).WithCatalog("").WithDatabase("public")
+	req.WithTable(table).WithMetric(metric).WithCatalog(catalog).WithDatabase(database)
 
 	// Do the real Insert and Get the result
 	affectedRows, err := client.Insert(context.Background(), req)
@@ -57,7 +66,7 @@ func main() {
 
 	// Query with metric
 	queryReq := request.QueryRequest{}
-	queryReq.WithSql("SELECT * FROM monitor").WithCatalog("").WithDatabase("public")
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog(catalog).WithDatabase(database)
 
 	resMetric, err := client.QueryMetric(context.Background(), queryReq)
 	if err != nil {

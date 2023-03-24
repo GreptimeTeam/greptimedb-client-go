@@ -15,7 +15,7 @@ func TestQueryBuilder(t *testing.T) {
 	rb.WithDatabase("disk_usage")
 	request, err = rb.Build()
 	assert.Nil(t, request)
-	assert.ErrorIs(t, err, ErrEmptySql)
+	assert.ErrorIs(t, err, ErrEmptyQuery)
 
 	rb.WithSql("select * from monitor")
 	request, err = rb.Build()
