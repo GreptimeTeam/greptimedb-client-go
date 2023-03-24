@@ -17,10 +17,6 @@ func (h *Header) WithDatabase(database string) *Header {
 	return h
 }
 
-func (h *Header) IsDatabaseEmpty() bool {
-	return IsEmptyString(h.Database)
-}
-
 func (h *Header) buildRequestHeader(catalog, database string) (*greptime.RequestHeader, error) {
 	header := &greptime.RequestHeader{
 		Catalog: h.Catalog,
