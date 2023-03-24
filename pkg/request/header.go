@@ -17,23 +17,25 @@ func (h *Header) WithDatabase(database string) *Header {
 	return h
 }
 
-func (h *Header) buildRequestHeader(catalog, database string) (*greptime.RequestHeader, error) {
+func (h *Header) buildRequestHeader(cfg *Config) (*greptime.RequestHeader, error) {
 	header := &greptime.RequestHeader{
 		Catalog: h.Catalog,
 		Schema:  h.Database,
 	}
 
-	if IsEmptyString(header.Catalog) && !IsEmptyString(catalog) {
-		header.Catalog = catalog
+	if IsEmptyString(header.Catalog) && !IsEmptyString(cfg.Catalog) {
+		header.Catalog = cfg.Catalog
 	}
 
 	if IsEmptyString(header.Schema) {
-		if IsEmptyString(database) {
+		if IsEmptyString(cfg.Database) {
 			return nil, ErrEmptyDatabase
 		} else {
-			header.Schema = database
+			header.Schema = cfg.Database
 		}
 	}
+
+	header.Authorization = cfg.buildAuth()
 
 	return header, nil
 }

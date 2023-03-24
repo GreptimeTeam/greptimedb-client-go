@@ -8,17 +8,17 @@ import (
 
 func TestQueryBuilder(t *testing.T) {
 	rb := &QueryRequest{}
-	request, err := rb.Build("", "")
+	request, err := rb.Build(&Config{})
 	assert.Nil(t, request)
 	assert.ErrorIs(t, err, ErrEmptyDatabase)
 
 	rb.WithDatabase("disk_usage")
-	request, err = rb.Build("", "")
+	request, err = rb.Build(&Config{})
 	assert.Nil(t, request)
 	assert.ErrorIs(t, err, ErrEmptyQuery)
 
 	rb.WithSql("select * from monitor")
-	request, err = rb.Build("", "")
+	request, err = rb.Build(&Config{})
 	assert.NotNil(t, request)
 	assert.Nil(t, err)
 }
@@ -26,19 +26,19 @@ func TestQueryBuilder(t *testing.T) {
 func TestInsertBuilder(t *testing.T) {
 	r := InsertRequest{}
 	// empty database
-	req, err := r.Build("", "")
+	req, err := r.Build(&Config{})
 	assert.Equal(t, ErrEmptyDatabase, err)
 	assert.Nil(t, req)
 
 	// empty table
 	r.Database = "public"
-	req, err = r.Build("", "")
+	req, err = r.Build(&Config{})
 	assert.Equal(t, ErrEmptyTable, err)
 	assert.Nil(t, req)
 
 	// empty series
 	r.WithTable("monitor")
-	req, err = r.Build("", "")
+	req, err = r.Build(&Config{})
 	assert.Equal(t, ErrNoSeriesInMetric, err)
 	assert.Nil(t, req)
 }

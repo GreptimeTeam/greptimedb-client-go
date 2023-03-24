@@ -11,22 +11,22 @@ import (
 func TestHeaderBuild(t *testing.T) {
 	h := &Header{}
 
-	gh, err := h.buildRequestHeader("", "")
+	gh, err := h.buildRequestHeader(&Config{})
 	assert.ErrorIs(t, err, ErrEmptyDatabase)
 	assert.Nil(t, gh)
 
-	gh, err = h.buildRequestHeader("catalog", "database")
+	gh, err = h.buildRequestHeader(&Config{Catalog: "catalog", Database: "database"})
 	assert.Nil(t, err)
 	assert.Equal(t, &greptime.RequestHeader{
 		Catalog: "catalog",
-		Schema: "database",
+		Schema:  "database",
 	}, gh)
-	
+
 	h.WithCatalog("a").WithDatabase("b")
-	gh, err = h.buildRequestHeader("catalog", "database")
+	gh, err = h.buildRequestHeader(&Config{Catalog: "catalog", Database: "database"})
 	assert.Nil(t, err)
 	assert.Equal(t, &greptime.RequestHeader{
 		Catalog: "a",
-		Schema: "b",
+		Schema:  "b",
 	}, gh)
 }

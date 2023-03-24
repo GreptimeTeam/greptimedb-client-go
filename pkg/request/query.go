@@ -31,8 +31,8 @@ func (r *QueryRequest) IsPromQLEmpty() bool {
 	return r.promQL == nil
 }
 
-func (r *QueryRequest) Build(catalog, database string) (*greptime.GreptimeRequest, error) {
-	header, err := r.Header.buildRequestHeader(catalog, database)
+func (r *QueryRequest) Build(cfg *Config) (*greptime.GreptimeRequest, error) {
+	header, err := r.Header.buildRequestHeader(cfg)
 	if err != nil {
 		return nil, err
 	}

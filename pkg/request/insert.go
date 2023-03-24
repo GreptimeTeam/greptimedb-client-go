@@ -24,12 +24,12 @@ func (r *InsertRequest) RowCount() uint32 {
 	return uint32(len(r.Metric.series))
 }
 
-func (r *InsertRequest) Build(catalog, database string) (*greptime.GreptimeRequest, error) {
-	header, err := r.Header.buildRequestHeader(catalog, database)
+func (r *InsertRequest) Build(cfg *Config) (*greptime.GreptimeRequest, error) {
+	header, err := r.Header.buildRequestHeader(cfg)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if IsEmptyString(r.Table) {
 		return nil, ErrEmptyTable
 	}
