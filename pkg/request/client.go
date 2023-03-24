@@ -55,8 +55,8 @@ func (c *Client) Insert(ctx context.Context, req InsertRequest) (*greptime.Affec
 	return response.GetAffectedRows(), nil
 }
 
-func (c *Client) InitStreamClient(ctx context.Context) (*StreamClient, error) {
-	client, err := c.DatabaseClient.HandleRequests(ctx, grpc.EmptyCallOption{})
+func (c *Client) InitStreamClient(ctx context.Context, opts ...grpc.CallOption) (*StreamClient, error) {
+	client, err := c.DatabaseClient.HandleRequests(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
