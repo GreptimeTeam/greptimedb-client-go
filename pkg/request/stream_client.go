@@ -12,7 +12,7 @@ type StreamClient struct {
 }
 
 func (c *StreamClient) Send(ctx context.Context, req InsertRequest) error {
-	request, err := req.Build()
+	request, err := req.Build(c.cfg.Catalog, c.cfg.Database)
 	if err != nil {
 		return err
 	}

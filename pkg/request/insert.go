@@ -1,8 +1,6 @@
 package request
 
 import (
-	"strings"
-
 	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
 
@@ -22,25 +20,18 @@ func (r *InsertRequest) WithMetric(metric Metric) *InsertRequest {
 	return r
 }
 
-func (r *InsertRequest) IsTableEmpty() bool {
-	return len(strings.TrimSpace(r.Table)) == 0
-}
-
 func (r *InsertRequest) RowCount() uint32 {
 	return uint32(len(r.Metric.series))
 }
 
-func (r *InsertRequest) Build() (*greptime.GreptimeRequest, error) {
-	if r.IsDatabaseEmpty() {
-		return nil, ErrEmptyDatabase
+func (r *InsertRequest) Build(catalog, database string) (*greptime.GreptimeRequest, error) {
+	header, err := r.Header.buildRequestHeader(catalog, database)
+	if err != nil {
+		return nil, err
 	}
-	if r.IsTableEmpty() {
+	
+	if IsEmptyString(r.Table) {
 		return nil, ErrEmptyTable
-	}
-
-	header := greptime.RequestHeader{
-		Catalog: r.Catalog,
-		Schema:  r.Database,
 	}
 
 	columns, err := r.Metric.IntoGreptimeColumn()
@@ -56,5 +47,5 @@ func (r *InsertRequest) Build() (*greptime.GreptimeRequest, error) {
 			RegionNumber: 0,
 		},
 	}
-	return &greptime.GreptimeRequest{Header: &header, Request: &req}, nil
+	return &greptime.GreptimeRequest{Header: header, Request: &req}, nil
 }
