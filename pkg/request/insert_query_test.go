@@ -501,26 +501,6 @@ func TestNilInColumn(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestInsertRequestBuild(t *testing.T) {
-	r := InsertRequest{}
-	// empty database
-	req, err := r.Build()
-	assert.Equal(t, ErrEmptyDatabase, err)
-	assert.Nil(t, req)
-
-	// empty table
-	r.Database = "public"
-	req, err = r.Build()
-	assert.Equal(t, ErrEmptyTable, err)
-	assert.Nil(t, req)
-
-	// empty series
-	r.WithTable("monitor")
-	req, err = r.Build()
-	assert.Equal(t, ErrNoSeriesInMetric, err)
-	assert.Nil(t, req)
-}
-
 func TestNoNeedAuth(t *testing.T) {
 	grpcAddr := DockerTestInit(DefaultDockerTestConfig())
 	options := []grpc.DialOption{

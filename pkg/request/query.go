@@ -31,14 +31,10 @@ func (r *QueryRequest) IsPromQLEmpty() bool {
 	return r.promQL == nil
 }
 
-func (r *QueryRequest) Build() (*greptime.GreptimeRequest, error) {
-	if r.IsDatabaseEmpty() {
-		return nil, ErrEmptyDatabase
-	}
-
-	header := &greptime.RequestHeader{
-		Catalog: r.Catalog,
-		Schema:  r.Database,
+func (r *QueryRequest) Build(cfg *Config) (*greptime.GreptimeRequest, error) {
+	header, err := r.Header.buildRequestHeader(cfg)
+	if err != nil {
+		return nil, err
 	}
 
 	request := &greptime.GreptimeRequest_Query{

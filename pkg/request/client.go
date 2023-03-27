@@ -41,11 +41,10 @@ func NewClient(cfg *Config) (*Client, error) {
 }
 
 func (c *Client) Insert(ctx context.Context, req InsertRequest) (*greptime.AffectedRows, error) {
-	request, err := req.Build()
+	request, err := req.Build(c.Cfg)
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Authorization = c.Cfg.buildAuth()
 
 	response, err := c.DatabaseClient.Handle(ctx, request)
 	if err != nil {
@@ -71,11 +70,10 @@ func (c *Client) InitStreamClient(ctx context.Context, opts ...grpc.CallOption) 
 // reader, err := client.Query(ctx, req)
 // defer reader.Release()
 func (c *Client) Query(ctx context.Context, req QueryRequest) (*flight.Reader, error) {
-	request, err := req.Build()
+	request, err := req.Build(c.Cfg)
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Authorization = c.Cfg.buildAuth()
 
 	b, err := proto.Marshal(request)
 	if err != nil {
@@ -98,11 +96,10 @@ func (c *Client) Query(ctx context.Context, req QueryRequest) (*flight.Reader, e
 
 // Query data from greptimedb via SQL.
 func (c *Client) QueryMetric(ctx context.Context, req QueryRequest) (*Metric, error) {
-	request, err := req.Build()
+	request, err := req.Build(c.Cfg)
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Authorization = c.Cfg.buildAuth()
 
 	b, err := proto.Marshal(request)
 	if err != nil {

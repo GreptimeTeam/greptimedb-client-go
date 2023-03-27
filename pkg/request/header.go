@@ -1,6 +1,6 @@
 package request
 
-import "strings"
+import greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 
 type Header struct {
 	Catalog  string // optional
@@ -17,10 +17,25 @@ func (h *Header) WithDatabase(database string) *Header {
 	return h
 }
 
-func (h *Header) IsDatabaseEmpty() bool {
-	return len(strings.TrimSpace(h.Database)) == 0
-}
+func (h *Header) buildRequestHeader(cfg *Config) (*greptime.RequestHeader, error) {
+	header := &greptime.RequestHeader{
+		Catalog: h.Catalog,
+		Schema:  h.Database,
+	}
 
-func (h *Header) IsTableEmpty() bool {
-	return len(strings.TrimSpace(h.Database)) == 0
+	if IsEmptyString(header.Catalog) && !IsEmptyString(cfg.Catalog) {
+		header.Catalog = cfg.Catalog
+	}
+
+	if IsEmptyString(header.Schema) {
+		if IsEmptyString(cfg.Database) {
+			return nil, ErrEmptyDatabase
+		} else {
+			header.Schema = cfg.Database
+		}
+	}
+
+	header.Authorization = cfg.buildAuth()
+
+	return header, nil
 }
