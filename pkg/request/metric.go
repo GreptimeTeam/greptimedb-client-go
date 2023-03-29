@@ -3,6 +3,7 @@ package request
 import (
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"time"
 
@@ -112,6 +113,8 @@ type Metric struct {
 }
 
 func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
+	metric := Metric{}
+
 	if r == nil {
 		return nil, errors.New("empty pointer")
 	}
@@ -119,10 +122,13 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 	fields := r.Schema().Fields()
 	records, err := r.Reader.Read()
 	if err != nil {
-		return nil, err
+		if err == io.EOF {
+			return &metric, nil
+		} else {
+			return nil, err
+		}
 	}
 
-	metric := Metric{}
 	timestampIndex := extractTimestampIndex(fields)
 
 	precision := time.Millisecond
