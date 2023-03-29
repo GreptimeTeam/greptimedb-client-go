@@ -61,7 +61,7 @@ func TestPromQL(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfg(grpcAddr, database).WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
@@ -81,7 +81,7 @@ func TestPromQL(t *testing.T) {
 	}
 
 	req := InsertRequest{}
-	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+	req.WithTable(table).WithMetric(metric).WithDatabase(database)
 
 	affectedRows, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)
@@ -94,7 +94,7 @@ func TestPromQL(t *testing.T) {
 		Start: "1677728740",
 		End:   "1677728740",
 		Step:  "50s",
-	}).WithCatalog("").WithDatabase(database)
+	}).WithDatabase(database)
 
 	resMetric, err := client.QueryMetric(context.Background(), queryReq)
 	assert.Nil(t, err)
@@ -157,7 +157,7 @@ func TestBasicWorkFlow(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfg(grpcAddr, database).WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
@@ -177,7 +177,7 @@ func TestBasicWorkFlow(t *testing.T) {
 	}
 
 	req := InsertRequest{}
-	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+	req.WithTable(table).WithMetric(metric).WithDatabase(database)
 
 	affectedRows, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)
@@ -185,7 +185,7 @@ func TestBasicWorkFlow(t *testing.T) {
 
 	// Query with metric
 	queryReq := QueryRequest{}
-	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog("").WithDatabase(database)
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
 
 	resMetric, err := client.QueryMetric(context.Background(), queryReq)
 	assert.Nil(t, err)
@@ -248,7 +248,7 @@ func TestDataTypes(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfg(grpcAddr, database).WithDialOptions(options...)
 
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
@@ -276,7 +276,7 @@ func TestDataTypes(t *testing.T) {
 	metric.AddSeries(series)
 
 	req := InsertRequest{}
-	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+	req.WithTable(table).WithMetric(metric).WithDatabase(database)
 
 	affectedRows, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)
@@ -284,7 +284,7 @@ func TestDataTypes(t *testing.T) {
 
 	// Query with metric
 	queryReq := QueryRequest{}
-	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog("").WithDatabase(database)
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
 
 	resMetric, err := client.QueryMetric(context.Background(), queryReq)
 	assert.Nil(t, err)
@@ -350,7 +350,7 @@ func TestPrecisionNanosecond(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfg(grpcAddr, database).WithDialOptions(options...)
 
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
@@ -367,13 +367,13 @@ func TestPrecisionNanosecond(t *testing.T) {
 	// We set the precision as nanosecond
 	metric.SetTimePrecision(time.Nanosecond)
 	req := InsertRequest{}
-	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+	req.WithTable(table).WithMetric(metric).WithDatabase(database)
 	affectedRows, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), affectedRows.Value)
 
 	queryReq := QueryRequest{}
-	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog("").WithDatabase(database)
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
 	resMetric, err := client.QueryMetric(context.Background(), queryReq)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(resMetric.GetSeries()))
@@ -392,7 +392,7 @@ func TestPrecisionSecond(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfg(grpcAddr, database).WithDialOptions(options...)
 
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
@@ -409,13 +409,13 @@ func TestPrecisionSecond(t *testing.T) {
 	// We set the precision as second
 	metric.SetTimePrecision(time.Second)
 	req := InsertRequest{}
-	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+	req.WithTable(table).WithMetric(metric).WithDatabase(database)
 	affectedRows, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), affectedRows.Value)
 
 	queryReq := QueryRequest{}
-	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog("").WithDatabase(database)
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
 	resMetric, err := client.QueryMetric(context.Background(), queryReq)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(resMetric.GetSeries()))
@@ -447,7 +447,7 @@ func TestNilInColumn(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfg(grpcAddr, database).WithDialOptions(options...)
 
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
@@ -466,7 +466,7 @@ func TestNilInColumn(t *testing.T) {
 	metric.AddSeries(series2)
 
 	req := InsertRequest{}
-	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+	req.WithTable(table).WithMetric(metric).WithDatabase(database)
 
 	affectedRows, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)
@@ -474,7 +474,7 @@ func TestNilInColumn(t *testing.T) {
 
 	// Query with metric
 	queryReq := QueryRequest{}
-	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog("").WithDatabase(database)
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
 
 	resMetric, err := client.QueryMetric(context.Background(), queryReq)
 	assert.Nil(t, err)
@@ -507,7 +507,7 @@ func TestNoNeedAuth(t *testing.T) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 	// Client can always connect to a no-auth database, even the usernames and passwords are wrong
-	cfg := NewCfg(grpcAddr, "", database).WithUserName("user").WithPassword("pwd").WithDialOptions(options...)
+	cfg := NewCfg(grpcAddr, database).WithUserName("user").WithPassword("pwd").WithDialOptions(options...)
 
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
@@ -520,13 +520,13 @@ func TestNoNeedAuth(t *testing.T) {
 	metric.AddSeries(series)
 
 	req := InsertRequest{}
-	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+	req.WithTable(table).WithMetric(metric).WithDatabase(database)
 	affectedRows, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), affectedRows.Value)
 
 	queryReq := QueryRequest{}
-	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog("").WithDatabase(database)
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
 	resMetric, err := client.QueryMetric(context.Background(), queryReq)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(resMetric.GetSeries()))
@@ -563,7 +563,7 @@ func TestStreamInsert(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := NewCfg(grpcAddr, database).WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 	streamClient, err := client.InitStreamClient(context.Background())
@@ -584,7 +584,7 @@ func TestStreamInsert(t *testing.T) {
 		metric.AddSeries(series)
 
 		req := InsertRequest{}
-		req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+		req.WithTable(table).WithMetric(metric).WithDatabase(database)
 		err = streamClient.Send(context.Background(), req)
 		assert.Nil(t, err)
 	}
@@ -595,7 +595,7 @@ func TestStreamInsert(t *testing.T) {
 
 	// Query with metric
 	queryReq := QueryRequest{}
-	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog("").WithDatabase(database)
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
 
 	resMetric, err := client.QueryMetric(context.Background(), queryReq)
 	assert.Nil(t, err)

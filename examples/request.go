@@ -21,8 +21,7 @@ type monitor struct {
 var (
 	addr     string = "127.0.0.1:4001"
 	table    string = "monitor" // whatever you want
-	database string = "public"  // `schema` in GCP
-	catalog  string = ""
+	database string = "public"  // dbname in `GCP`
 	username string = ""
 	passord  string = ""
 )
@@ -32,7 +31,7 @@ func main() {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := request.NewCfg(addr, catalog, database).WithUserName(username).WithPassword(passord).WithDialOptions(options...)
+	cfg := request.NewCfg(addr, database).WithUserName(username).WithPassword(passord).WithDialOptions(options...)
 
 	client, err := request.NewClient(cfg)
 	if err != nil {
@@ -53,7 +52,7 @@ func main() {
 	// Create an InsertRequest using fluent style
 	// If the table does not exist, automatically create one with Insert
 	req := request.InsertRequest{}
-	req.WithTable(table).WithMetric(metric).WithCatalog(catalog).WithDatabase(database)
+	req.WithTable(table).WithMetric(metric).WithDatabase(database)
 
 	// Do the real Insert and Get the result
 	affectedRows, err := client.Insert(context.Background(), req)
@@ -66,7 +65,7 @@ func main() {
 
 	// Query with metric
 	queryReq := request.QueryRequest{}
-	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithCatalog(catalog).WithDatabase(database)
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
 
 	resMetric, err := client.QueryMetric(context.Background(), queryReq)
 	if err != nil {

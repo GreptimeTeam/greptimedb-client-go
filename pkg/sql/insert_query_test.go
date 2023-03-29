@@ -54,7 +54,7 @@ func TestBasicWorkFlow(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := request.NewCfg(grpcAddr, "", database).WithDialOptions(options...)
+	cfg := request.NewCfg(grpcAddr, database).WithDialOptions(options...)
 
 	client, err := request.NewClient(cfg)
 	assert.Nil(t, err)
@@ -72,7 +72,7 @@ func TestBasicWorkFlow(t *testing.T) {
 	}
 
 	req := request.InsertRequest{}
-	req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+	req.WithTable(table).WithMetric(metric).WithDatabase(database)
 
 	affectedRows, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)

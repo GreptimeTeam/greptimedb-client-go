@@ -33,12 +33,6 @@ func NewClient(cfg *Config) (*Client, error) {
 
 	databaseClient := greptime.NewGreptimeDatabaseClient(conn)
 
-	// checkHealthClient := greptime.NewHealthCheckClient(conn)
-	// _, err = checkHealthClient.HealthCheck(context.Background(), &greptime.HealthCheckRequest{})
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	return &Client{
 		FlightClient:   client,
 		Cfg:            cfg,

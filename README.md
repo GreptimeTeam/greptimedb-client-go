@@ -14,9 +14,8 @@ go get github.com/GreptimeTeam/greptimedb-client-go
 ### DSN - Data Source Name
 
 When connecting to a database through greptime-client-go, we need to create a valid DSN.
-Compared to [mysql](https://github.com/go-sql-driver/mysql), the Data Source Name here has a `catalogname` field.
 ```
-[username[:password]@][protocol[(address)]]/[catalogname:][dbname]
+[username[:password]@][protocol[(address)]]/[dbname]
 ```
 There are more exampls to refer in the [dsn_test.go](pkg/sql/dsn_test.go).
 
@@ -97,7 +96,7 @@ func insert() {
     // Create an InsertRequest using fluent style
     // If the table does not exist, automatically create one with Insert
     req := request.InsertRequest{}
-    req.WithTable("monitor").WithMetric(metric).WithCatalog("").WithDatabase("public")
+    req.WithTable("monitor").WithMetric(metric).WithDatabase("public")
 
     // Do the real Insert and Get the result
     affectedRows, err := client.Insert(context.Background(), req)
@@ -132,7 +131,7 @@ func query() {
 	
     // Query with metric
     queryReq := request.QueryRequest{}
-    queryReq.WithSql("SELECT * FROM monitor").WithCatalog("").WithDatabase("public")
+    queryReq.WithSql("SELECT * FROM monitor").WithDatabase("public")
 
     resMetric, err := client.QueryMetric(context.Background(), queryReq)
     if err != nil {
@@ -175,7 +174,7 @@ We also support querying with PromQL. To use PromQL, just initiate `QueryRequest
 	    Start: "1677728740",
 	    End:   "1677728740",
 	    Step:  "50s",
-    }).WithCatalog("").WithDatabase(database)
+    }).WithDatabase(database)
 
     resMetric, err := client.QueryMetric(context.Background(), queryReq)
 ```
@@ -243,7 +242,7 @@ func insertWithStream() {
         metric.AddSeries(series)
 
         req := InsertRequest{}
-        req.WithTable(table).WithMetric(metric).WithCatalog("").WithDatabase(database)
+        req.WithTable(table).WithMetric(metric).WithDatabase(database)
         err = streamClient.Send(context.Background(), req)
     }
 

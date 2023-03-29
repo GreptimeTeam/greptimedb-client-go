@@ -11,8 +11,7 @@ type Config struct {
 	Address  string `json:"address"`
 	UserName string `json:"username"`
 	Password string `json:"password"`
-	Catalog  string `json:"catalog"`
-	Database string `json:"database"`
+	Database string `json:"database`
 	Net      string `json:"net"`
 
 	// DialOptions are passed to grpc.DialContext when a new gRPC connection
@@ -21,10 +20,9 @@ type Config struct {
 }
 
 // New init Config with addr only
-func NewCfg(addr, catalog, database string) *Config {
+func NewCfg(addr, database string) *Config {
 	return &Config{
 		Address:  addr,
-		Catalog:  catalog,
 		Database: database,
 	}
 }

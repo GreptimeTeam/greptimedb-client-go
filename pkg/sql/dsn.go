@@ -19,7 +19,7 @@ func ParseDSNToConfig(dsn string) (cfg *req.Config, err error) {
 	// New config with some default values
 	cfg = &req.Config{}
 
-	// [user[:password]@][net[(addr)]]/[catalogname:][dbname]
+	// [user[:password]@][net[(addr)]]/[dbname]
 	// Find the last '/' (since the password or the net addr might contain a '/', we need the "last")
 	foundSlash := false
 	for i := len(dsn) - 1; i >= 0; i-- {
@@ -65,24 +65,8 @@ func ParseDSNToConfig(dsn string) (cfg *req.Config, err error) {
 				cfg.Net = dsn[j+1 : k]
 			}
 
-			// [catalog:][dbname]
-			// Find the ':' in dsn[i+1:]
-			foundColon := false
-			for j = i + 1; j < len(dsn); j++ {
-				if dsn[j] == ':' {
-					foundColon = true
-					break
-				}
-			}
-			// if ':' not exists, only database,
-			// or also contains a catalog
-			if !foundColon {
-				cfg.Database = dsn[i+1:]
-				cfg.Catalog = ""
-			} else {
-				cfg.Database = dsn[j+1:]
-				cfg.Catalog = dsn[i+1 : j]
-			}
+			// [dbname]
+			cfg.Database = dsn[i+1:]
 			break
 		}
 	}
