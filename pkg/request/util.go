@@ -1,7 +1,6 @@
 package request
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -10,7 +9,6 @@ import (
 	dc "github.com/ory/dockertest/v3/docker"
 	log "github.com/sirupsen/logrus"
 	"github.com/stoewer/go-strcase"
-	"google.golang.org/grpc"
 
 	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
@@ -200,29 +198,10 @@ func DockerTestInit(conf DockerTestConfig) string {
 		// TODO(vinland-avalon): some functions, like ping() to check if container is ready
 		time.Sleep(time.Second)
 		grpcAddr = resource.GetHostPort("4001/tcp")
-		// success := checkHealth(grpcAddr)
-		// if !success {
-		// 	return errors.New("fail to connect to db")
-		// }
 		return nil
 	}); err != nil {
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
 
 	return grpcAddr
-}
-
-func checkHealth(addr string) bool {
-	conn, err := grpc.Dial(addr, grpc.EmptyDialOption{})
-	if err != nil {
-		return false
-	}
-
-	client := greptime.NewHealthCheckClient(conn)
-	success, err := client.HealthCheck(context.Background(), &greptime.HealthCheckRequest{})
-	if err != nil || success == nil {
-		return false
-	}
-	conn.Close()
-	return true
 }

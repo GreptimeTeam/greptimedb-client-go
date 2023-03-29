@@ -124,11 +124,6 @@ func TestPromQL(t *testing.T) {
 		})
 	}
 	assert.Equal(t, insertMonitors, queryMonitors)
-
-	// naked Query
-	reader, err := client.Query(context.Background(), queryReq)
-	assert.Nil(t, err)
-	assert.NotNil(t, reader)
 }
 
 func TestBasicWorkFlow(t *testing.T) {
@@ -220,6 +215,14 @@ func TestBasicWorkFlow(t *testing.T) {
 	reader, err := client.Query(context.Background(), queryReq)
 	assert.Nil(t, err)
 	assert.NotNil(t, reader)
+
+	// query but no data
+	queryReq = QueryRequest{}
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s WHERE host = 'not_exist'", table)).WithDatabase(database)
+
+	resMetric, err = client.QueryMetric(context.Background(), queryReq)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(resMetric.GetSeries()))
 }
 
 func TestDataTypes(t *testing.T) {
