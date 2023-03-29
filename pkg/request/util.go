@@ -149,7 +149,7 @@ type DockerTestConfig struct {
 func DefaultDockerTestConfig() DockerTestConfig {
 	return DockerTestConfig{
 		repo: "greptime/greptimedb",
-		tag:  "0.1.2",
+		tag:  "0.2.0-20230327-nightly",
 	}
 }
 

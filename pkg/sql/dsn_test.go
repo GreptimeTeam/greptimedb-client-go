@@ -11,50 +11,41 @@ var testDSNs = []struct {
 	in  string
 	out *req.Config
 }{{
-	"username:password@protocol(address)/catalogname:dbname",
-	&req.Config{UserName: "username", Password: "password", Net: "protocol", Address: "address", Catalog: "catalogname", Database: "dbname"},
-}, {
-	"username:password@protocol(address)/catalogname:",
-	&req.Config{UserName: "username", Password: "password", Net: "protocol", Address: "address", Catalog: "catalogname", Database: ""},
-}, {
 	"username:password@protocol(address)/dbname",
-	&req.Config{UserName: "username", Password: "password", Net: "protocol", Address: "address", Catalog: "", Database: "dbname"},
+	&req.Config{UserName: "username", Password: "password", Net: "protocol", Address: "address", Database: "dbname"},
 }, {
 	"username:password@protocol(address)/",
-	&req.Config{UserName: "username", Password: "password", Net: "protocol", Address: "address", Catalog: "", Database: ""},
+	&req.Config{UserName: "username", Password: "password", Net: "protocol", Address: "address", Database: ""},
 }, {
 	"username:password@protocol/dbname",
-	&req.Config{UserName: "username", Password: "password", Net: "protocol", Address: "127.0.0.1:4001", Catalog: "", Database: "dbname"},
+	&req.Config{UserName: "username", Password: "password", Net: "protocol", Address: "127.0.0.1:4001", Database: "dbname"},
 }, {
 	"username:password@(address)/dbname",
-	&req.Config{UserName: "username", Password: "password", Net: "", Address: "address", Catalog: "", Database: "dbname"},
+	&req.Config{UserName: "username", Password: "password", Net: "", Address: "address", Database: "dbname"},
 }, {
 	"username:password@/dbname",
-	&req.Config{UserName: "username", Password: "password", Net: "", Address: "127.0.0.1:4001", Catalog: "", Database: "dbname"},
+	&req.Config{UserName: "username", Password: "password", Net: "", Address: "127.0.0.1:4001", Database: "dbname"},
 }, {
 	"username@/dbname",
-	&req.Config{UserName: "username", Password: "", Net: "", Address: "127.0.0.1:4001", Catalog: "", Database: "dbname"},
+	&req.Config{UserName: "username", Password: "", Net: "", Address: "127.0.0.1:4001", Database: "dbname"},
 }, {
 	":password@/dbname",
-	&req.Config{UserName: "", Password: "password", Net: "", Address: "127.0.0.1:4001", Catalog: "", Database: "dbname"},
+	&req.Config{UserName: "", Password: "password", Net: "", Address: "127.0.0.1:4001", Database: "dbname"},
 }, {
 	"/dbname",
-	&req.Config{UserName: "", Password: "", Net: "", Address: "127.0.0.1:4001", Catalog: "", Database: "dbname"},
+	&req.Config{UserName: "", Password: "", Net: "", Address: "127.0.0.1:4001", Database: "dbname"},
 }, {
 	"/",
-	&req.Config{Net: "", Address: "127.0.0.1:4001", Catalog: "", Database: ""},
+	&req.Config{Net: "", Address: "127.0.0.1:4001", Database: ""},
 }, {
 	"",
-	&req.Config{Net: "", Address: "127.0.0.1:4001", Catalog: "", Database: ""},
+	&req.Config{Net: "", Address: "127.0.0.1:4001", Database: ""},
 }, {
 	"username:p@ssword@/dbname",
-	&req.Config{UserName: "username", Password: "p@ssword", Net: "", Address: "127.0.0.1:4001", Catalog: "", Database: "dbname"},
-}, {
-	"/catalogname::::dbname",
-	&req.Config{UserName: "", Password: "", Net: "", Address: "127.0.0.1:4001", Catalog: "catalogname", Database: ":::dbname"},
+	&req.Config{UserName: "username", Password: "p@ssword", Net: "", Address: "127.0.0.1:4001", Database: "dbname"},
 }, {
 	"(protocal)(address)/dbname",
-	&req.Config{UserName: "", Password: "", Net: "", Address: "protocal)(address", Catalog: "", Database: "dbname"},
+	&req.Config{UserName: "", Password: "", Net: "", Address: "protocal)(address", Database: "dbname"},
 },
 }
 

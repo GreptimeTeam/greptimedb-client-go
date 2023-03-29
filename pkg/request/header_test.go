@@ -15,18 +15,16 @@ func TestHeaderBuild(t *testing.T) {
 	assert.ErrorIs(t, err, ErrEmptyDatabase)
 	assert.Nil(t, gh)
 
-	gh, err = h.buildRequestHeader(&Config{Catalog: "catalog", Database: "database"})
+	gh, err = h.buildRequestHeader(&Config{Database: "database"})
 	assert.Nil(t, err)
 	assert.Equal(t, &greptime.RequestHeader{
-		Catalog: "catalog",
-		Schema:  "database",
+		Dbname: "database",
 	}, gh)
 
-	h.WithCatalog("a").WithDatabase("b")
-	gh, err = h.buildRequestHeader(&Config{Catalog: "catalog", Database: "database"})
+	h.WithDatabase("b")
+	gh, err = h.buildRequestHeader(&Config{Database: "database"})
 	assert.Nil(t, err)
 	assert.Equal(t, &greptime.RequestHeader{
-		Catalog: "a",
-		Schema:  "b",
+		Dbname: "b",
 	}, gh)
 }
