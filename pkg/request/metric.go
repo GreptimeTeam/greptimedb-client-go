@@ -28,6 +28,12 @@ type Series struct {
 	timestamp time.Time
 }
 
+func (s *Series) GetTagsAndFields() []string {
+	dst := make([]string, len(s.columns))
+	copy(dst, s.order)
+	return dst
+}
+
 // TODO(vinland-avalon): for timestamp, use another function to return time.Time to keep precision
 func (s *Series) Get(key string) (any, bool) {
 	val, ok := s.vals[key]
@@ -110,6 +116,12 @@ type Metric struct {
 	columns map[string]column
 
 	series []Series
+}
+
+func (m *Metric) GetTagsAndFields() []string {
+	dst := make([]string, len(m.columns))
+	copy(dst, m.order)
+	return dst
 }
 
 func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
