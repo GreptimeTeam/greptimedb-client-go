@@ -28,7 +28,7 @@ type Series struct {
 	timestamp time.Time
 }
 
-func (s *Series) GetTags()([]string) {
+func (s *Series) GetTagsAndFields() []string {
 	dst := make([]string, len(s.columns))
 	copy(dst, s.order)
 	return dst
@@ -118,7 +118,7 @@ type Metric struct {
 	series []Series
 }
 
-func (m *Metric) GetTags()([]string) {
+func (m *Metric) GetTagsAndFields() []string {
 	dst := make([]string, len(m.columns))
 	copy(dst, m.order)
 	return dst

@@ -370,3 +370,17 @@ func TestSetTimeAlias(t *testing.T) {
 	err := m.SetTimestampAlias("")
 	assert.Equal(t, ErrEmptyKey, err)
 }
+
+func TestGetTags(t *testing.T) {
+	s := Series{}
+	s.AddTag("t1", "tag val")
+	s.AddTag("t2 ", true)
+	s.AddField("f1", int32(32))
+	timestamp := time.UnixMilli(245235234523)
+	s.SetTimestamp(timestamp)
+	assert.Equal(t, []string{"t1", "t2", "f1"}, s.GetTagsAndFields())
+
+	m := Metric{}
+	m.AddSeries(s)
+	assert.Equal(t, []string{"t1", "t2", "f1"}, m.GetTagsAndFields())
+}
