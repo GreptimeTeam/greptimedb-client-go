@@ -11,7 +11,7 @@ type Config struct {
 	Address  string `json:"address"`
 	UserName string `json:"username"`
 	Password string `json:"password"`
-	Database string `json:"database`
+	Database string `json:"database"`
 	Net      string `json:"net"`
 
 	// DialOptions are passed to grpc.DialContext when a new gRPC connection
