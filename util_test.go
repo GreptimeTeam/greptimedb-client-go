@@ -1,4 +1,4 @@
-package request
+package greptime
 
 import (
 	"strings"

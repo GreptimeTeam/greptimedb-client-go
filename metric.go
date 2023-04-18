@@ -1,4 +1,4 @@
-package request
+package greptime
 
 import (
 	"errors"
@@ -7,21 +7,19 @@ import (
 	"math"
 	"time"
 
+	greptimepb "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 	"github.com/apache/arrow/go/arrow"
 	"github.com/apache/arrow/go/arrow/array"
 	"github.com/apache/arrow/go/arrow/flight"
-
-	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
 
 type column struct {
-	typ      greptime.ColumnDataType
-	semantic greptime.Column_SemanticType
+	typ      greptimepb.ColumnDataType
+	semantic greptimepb.Column_SemanticType
 }
 
 type Series struct {
-	// order, columns and vals SHOULD NOT contain timestampAlias
-	order   []string
+	orders  []string
 	columns map[string]column
 	vals    map[string]any
 
@@ -29,12 +27,11 @@ type Series struct {
 }
 
 func (s *Series) GetTagsAndFields() []string {
-	dst := make([]string, len(s.columns))
-	copy(dst, s.order)
+	dst := make([]string, len(s.orders))
+	copy(dst, s.orders)
 	return dst
 }
 
-// TODO(vinland-avalon): for timestamp, use another function to return time.Time to keep precision
 func (s *Series) Get(key string) (any, bool) {
 	val, ok := s.vals[key]
 	return val, ok
@@ -46,7 +43,7 @@ func (s *Series) GetTimestamp() (time.Time, bool) {
 
 func checkColumnEquality(key string, col1, col2 column) error {
 	if col1.typ != col2.typ {
-		return fmt.Errorf("the type of '%s' does not match: '%v' and '%v'", key, col1.typ, col2.typ)
+		return fmt.Errorf("the type of '%s' does not match: '%T' and '%T'", key, col1.typ, col2.typ)
 	}
 	if col1.semantic != col2.semantic {
 		return fmt.Errorf("tag and field MUST NOT contain same name")
@@ -55,7 +52,7 @@ func checkColumnEquality(key string, col1, col2 column) error {
 	return nil
 }
 
-func (s *Series) addVal(name string, val any, semantic greptime.Column_SemanticType) error {
+func (s *Series) add(name string, val any, semantic greptimepb.Column_SemanticType) error {
 	key, err := ToColumnName(name)
 	if err != nil {
 		return err
@@ -70,18 +67,17 @@ func (s *Series) addVal(name string, val any, semantic greptime.Column_SemanticT
 		return fmt.Errorf("add tag err: %w", err)
 	}
 
-	col, seen := s.columns[key]
 	newCol := column{
 		typ:      v.typ,
 		semantic: semantic,
 	}
-	if seen {
+	if col, seen := s.columns[key]; seen {
 		if err := checkColumnEquality(key, col, newCol); err != nil {
 			return err
 		}
 	}
 	s.columns[key] = newCol
-	s.order = append(s.order, key)
+	s.orders = append(s.orders, key)
 
 	if s.vals == nil {
 		s.vals = map[string]any{}
@@ -91,16 +87,16 @@ func (s *Series) addVal(name string, val any, semantic greptime.Column_SemanticT
 	return nil
 }
 
-// AddTag prepate tag column, and old value will be replaced if same tag is set.
+// AddTag prepare tag column, and old value will be replaced if same tag is set.
 // the length of key CAN NOT be longer than 100
 func (s *Series) AddTag(key string, val any) error {
-	return s.addVal(key, val, greptime.Column_TAG)
+	return s.add(key, val, greptimepb.Column_TAG)
 }
 
-// AddField prepate field column, and old value will be replaced if same field is set.
+// AddField prepare field column, and old value will be replaced if same field is set.
 // the length of key CAN NOT be longer than 100
 func (s *Series) AddField(key string, val any) error {
-	return s.addVal(key, val, greptime.Column_FIELD)
+	return s.add(key, val, greptimepb.Column_FIELD)
 }
 
 func (s *Series) SetTimestamp(t time.Time) error {
@@ -111,28 +107,32 @@ func (s *Series) SetTimestamp(t time.Time) error {
 type Metric struct {
 	timestampAlias     string
 	timestampPrecision time.Duration
-	// order and columns SHOULD NOT contain timestampAlias key
-	order   []string
+	// orders and columns SHOULD NOT contain timestampAlias key
+	orders  []string
 	columns map[string]column
 
 	series []Series
 }
 
 func (m *Metric) GetTagsAndFields() []string {
-	dst := make([]string, len(m.columns))
-	copy(dst, m.order)
+	dst := make([]string, len(m.orders))
+	copy(dst, m.orders)
 	return dst
 }
 
-func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
+func (m *Metric) GetSeries() []Series {
+	return m.series
+}
+
+func buildMetricFromReader(r *flight.Reader) (*Metric, error) {
 	metric := Metric{}
 
 	if r == nil {
-		return nil, errors.New("empty pointer")
+		return nil, errors.New("Internal Error, empty reader pointer")
 	}
 
 	fields := r.Schema().Fields()
-	records, err := r.Reader.Read()
+	record, err := r.Reader.Read()
 	if err != nil {
 		if err == io.EOF {
 			return &metric, nil
@@ -149,17 +149,17 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = metric.SetTimestampAlias(fields[timestampIndex].Name)
-		if err != nil {
+
+		if err = metric.SetTimestampAlias(fields[timestampIndex].Name); err != nil {
 			return nil, err
 		}
 	}
 	metric.SetTimePrecision(precision)
 
-	for i := 0; i < int(records.NumRows()); i++ {
+	for i := 0; i < int(record.NumRows()); i++ {
 		series := Series{}
-		for j := 0; j < int(records.NumCols()); j++ {
-			column := records.Column(j)
+		for j := 0; j < int(record.NumCols()); j++ {
+			column := record.Column(j)
 			colVal, err := FromColumn(column, i)
 			if err != nil {
 				return nil, err
@@ -178,6 +178,7 @@ func buildMetricWithReader(r *flight.Reader) (*Metric, error) {
 
 func extractTimestampIndex(fields []arrow.Field) int {
 	for i, field := range fields {
+		// TODO(yuanbohan): check type directly
 		if res := field.Metadata.FindKey("greptime:time_index"); res != -1 {
 			if field.Metadata.Values()[res] == "true" {
 				return i
@@ -193,7 +194,7 @@ func extractPrecision(field *arrow.Field) (time.Duration, error) {
 	}
 	dataType, ok := field.Type.(*arrow.TimestampType)
 	if !ok {
-		return 0, fmt.Errorf("unsupported arrow field type %q", field.Type.Name())
+		return 0, fmt.Errorf("unsupported arrow field type '%s'", field.Type.Name())
 	}
 	switch dataType.Unit {
 	case arrow.Microsecond:
@@ -205,12 +206,12 @@ func extractPrecision(field *arrow.Field) (time.Duration, error) {
 	case arrow.Nanosecond:
 		return time.Nanosecond, nil
 	default:
-		return 0, fmt.Errorf("unsupported arrow type %q", field.Type.Name())
+		return 0, fmt.Errorf("unsupported arrow type '%s'", field.Type.Name())
 	}
 
 }
 
-// retrive arrow value from the column at idx position, and convert it to driver.Value
+// retrive arrow value from the column at idx position
 func FromColumn(column array.Interface, idx int) (any, error) {
 	if column.IsNull(idx) {
 		return nil, nil
@@ -231,11 +232,11 @@ func FromColumn(column array.Interface, idx int) (any, error) {
 	case *array.Boolean:
 		return typedColumn.Value(idx), nil
 	case *array.Timestamp:
-		value := int64(typedColumn.Value(idx))
 		dataType, ok := column.DataType().(*arrow.TimestampType)
 		if !ok {
-			return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
+			return nil, fmt.Errorf("unsupported arrow type '%T' for '%s'", typedColumn, column.DataType().Name())
 		}
+		value := int64(typedColumn.Value(idx))
 		switch dataType.Unit {
 		case arrow.Microsecond:
 			return time.UnixMicro(value), nil
@@ -246,15 +247,11 @@ func FromColumn(column array.Interface, idx int) (any, error) {
 		case arrow.Nanosecond:
 			return time.Unix(0, value), nil
 		default:
-			return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
+			return nil, fmt.Errorf("unsupported arrow type '%T' for '%s'", typedColumn, column.DataType().Name())
 		}
 	default:
-		return nil, fmt.Errorf("unsupported arrow type %q", column.DataType().Name())
+		return nil, fmt.Errorf("unsupported arrow type '%T' for '%s'", typedColumn, column.DataType().Name())
 	}
-}
-
-func (m *Metric) GetSeries() []Series {
-	return m.series
 }
 
 // SetTimePrecision set precsion for Metric. Valid durations include time.Nanosecond, time.Microsecond, time.Millisecond, time.Second.
@@ -264,7 +261,7 @@ func (m *Metric) GetSeries() []Series {
 // - once the precision has been set, it can not be changed
 // - insert will fail if precision does not match with the existing precision of the table in greptimedb
 func (m *Metric) SetTimePrecision(precision time.Duration) error {
-	if !IsTimePrecisionValid(precision) {
+	if !isValidPrecision(precision) {
 		return ErrInvalidTimePrecision
 	}
 	m.timestampPrecision = precision
@@ -295,15 +292,23 @@ func (m *Metric) AddSeries(s Series) error {
 	if m.columns == nil {
 		m.columns = map[string]column{}
 	}
-	for _, key := range s.order {
+
+	if m.orders == nil {
+		m.orders = []string{}
+	}
+
+	if m.series == nil {
+		m.series = []Series{}
+	}
+
+	for _, key := range s.orders {
 		sCol := s.columns[key]
-		mCol, seen := m.columns[key]
-		if seen {
+		if mCol, seen := m.columns[key]; seen {
 			if err := checkColumnEquality(key, mCol, sCol); err != nil {
 				return err
 			}
 		} else {
-			m.order = append(m.order, key)
+			m.orders = append(m.orders, key)
 			m.columns[key] = sCol
 		}
 	}
@@ -312,17 +317,17 @@ func (m *Metric) AddSeries(s Series) error {
 	return nil
 }
 
-func (m *Metric) IntoGreptimeColumn() ([]*greptime.Column, error) {
+func (m *Metric) intoGreptimeColumn() ([]*greptimepb.Column, error) {
 	if len(m.series) == 0 {
 		return nil, ErrNoSeriesInMetric
 	}
 
-	result, err := m.normalColumns()
+	result, err := m.intoDataColumns()
 	if err != nil {
 		return nil, err
 	}
 
-	tsColumn, err := m.timestampColumn()
+	tsColumn, err := m.intoTimestampColumn()
 	if err != nil {
 		return nil, err
 	}
@@ -330,20 +335,21 @@ func (m *Metric) IntoGreptimeColumn() ([]*greptime.Column, error) {
 	return append(result, tsColumn), nil
 }
 
+// nullMaskByteSize helps to calculate how many bytes needed in Mask.shrink
 func (m *Metric) nullMaskByteSize() int {
 	return int(math.Ceil(float64(len(m.series)) / 8.0))
 }
 
-// normalColumns does not contain timestamp semantic column
-func (m *Metric) normalColumns() ([]*greptime.Column, error) {
+// intoDataColumns does not contain timestamp semantic column
+func (m *Metric) intoDataColumns() ([]*greptimepb.Column, error) {
 	nullMasks := map[string]*Mask{}
-	mappedCols := map[string]*greptime.Column{}
+	mappedCols := map[string]*greptimepb.Column{}
 	for name, col := range m.columns {
-		column := greptime.Column{
+		column := greptimepb.Column{
 			ColumnName:   name,
 			SemanticType: col.semantic,
 			Datatype:     col.typ,
-			Values:       &greptime.Column_Values{},
+			Values:       &greptimepb.Column_Values{},
 			NullMask:     nil,
 		}
 		mappedCols[name] = &column
@@ -372,37 +378,37 @@ func (m *Metric) normalColumns() ([]*greptime.Column, error) {
 		}
 	}
 
-	result := make([]*greptime.Column, 0, len(mappedCols))
-	for _, key := range m.order {
+	result := make([]*greptimepb.Column, 0, len(mappedCols))
+	for _, key := range m.orders {
 		result = append(result, mappedCols[key])
 	}
 
 	return result, nil
 }
 
-func (m *Metric) timestampColumn() (*greptime.Column, error) {
+func (m *Metric) intoTimestampColumn() (*greptimepb.Column, error) {
 	datatype, err := precisionToDataType(m.timestampPrecision)
 	if err != nil {
 		return nil, err
 	}
-	tsColumn := &greptime.Column{
+	tsColumn := &greptimepb.Column{
 		ColumnName:   m.GetTimestampAlias(),
-		SemanticType: greptime.Column_TIMESTAMP,
+		SemanticType: greptimepb.Column_TIMESTAMP,
 		Datatype:     datatype,
-		Values:       &greptime.Column_Values{},
+		Values:       &greptimepb.Column_Values{},
 		NullMask:     nil,
 	}
 	nullMask := Mask{}
 	for _, s := range m.series {
 		switch datatype {
-		case greptime.ColumnDataType_TIMESTAMP_SECOND:
+		case greptimepb.ColumnDataType_TIMESTAMP_SECOND:
 			setColumn(tsColumn, s.timestamp.Unix())
-		case greptime.ColumnDataType_TIMESTAMP_MILLISECOND:
-			setColumn(tsColumn, s.timestamp.UnixMilli())
-		case greptime.ColumnDataType_TIMESTAMP_MICROSECOND:
+		case greptimepb.ColumnDataType_TIMESTAMP_MICROSECOND:
 			setColumn(tsColumn, s.timestamp.UnixMicro())
-		case greptime.ColumnDataType_TIMESTAMP_NANOSECOND:
+		case greptimepb.ColumnDataType_TIMESTAMP_NANOSECOND:
 			setColumn(tsColumn, s.timestamp.UnixNano())
+		default: // greptimepb.ColumnDataType_TIMESTAMP_MILLISECOND
+			setColumn(tsColumn, s.timestamp.UnixMilli())
 		}
 	}
 
@@ -415,41 +421,41 @@ func (m *Metric) timestampColumn() (*greptime.Column, error) {
 	return tsColumn, nil
 }
 
-func setColumn(col *greptime.Column, val any) error {
+func setColumn(col *greptimepb.Column, val any) error {
 	switch col.Datatype {
-	case greptime.ColumnDataType_INT8:
+	case greptimepb.ColumnDataType_INT8:
 		col.Values.I8Values = append(col.Values.I8Values, int32(val.(int8)))
-	case greptime.ColumnDataType_INT16:
+	case greptimepb.ColumnDataType_INT16:
 		col.Values.I16Values = append(col.Values.I16Values, int32(val.(int16)))
-	case greptime.ColumnDataType_INT32:
+	case greptimepb.ColumnDataType_INT32:
 		col.Values.I32Values = append(col.Values.I32Values, val.(int32))
-	case greptime.ColumnDataType_INT64:
+	case greptimepb.ColumnDataType_INT64:
 		col.Values.I64Values = append(col.Values.I64Values, val.(int64))
-	case greptime.ColumnDataType_UINT8:
+	case greptimepb.ColumnDataType_UINT8:
 		col.Values.U8Values = append(col.Values.U8Values, uint32(val.(uint8)))
-	case greptime.ColumnDataType_UINT16:
+	case greptimepb.ColumnDataType_UINT16:
 		col.Values.U16Values = append(col.Values.U16Values, uint32(val.(uint16)))
-	case greptime.ColumnDataType_UINT32:
+	case greptimepb.ColumnDataType_UINT32:
 		col.Values.U32Values = append(col.Values.U32Values, val.(uint32))
-	case greptime.ColumnDataType_UINT64:
+	case greptimepb.ColumnDataType_UINT64:
 		col.Values.U64Values = append(col.Values.U64Values, val.(uint64))
-	case greptime.ColumnDataType_FLOAT32:
+	case greptimepb.ColumnDataType_FLOAT32:
 		col.Values.F32Values = append(col.Values.F32Values, val.(float32))
-	case greptime.ColumnDataType_FLOAT64:
+	case greptimepb.ColumnDataType_FLOAT64:
 		col.Values.F64Values = append(col.Values.F64Values, val.(float64))
-	case greptime.ColumnDataType_BOOLEAN:
+	case greptimepb.ColumnDataType_BOOLEAN:
 		col.Values.BoolValues = append(col.Values.BoolValues, val.(bool))
-	case greptime.ColumnDataType_STRING:
+	case greptimepb.ColumnDataType_STRING:
 		col.Values.StringValues = append(col.Values.StringValues, val.(string))
-	case greptime.ColumnDataType_BINARY:
+	case greptimepb.ColumnDataType_BINARY:
 		col.Values.BinaryValues = append(col.Values.BinaryValues, val.([]byte))
-	case greptime.ColumnDataType_TIMESTAMP_SECOND:
+	case greptimepb.ColumnDataType_TIMESTAMP_SECOND:
 		col.Values.TsSecondValues = append(col.Values.TsSecondValues, val.(int64))
-	case greptime.ColumnDataType_TIMESTAMP_MILLISECOND:
+	case greptimepb.ColumnDataType_TIMESTAMP_MILLISECOND:
 		col.Values.TsMillisecondValues = append(col.Values.TsMillisecondValues, val.(int64))
-	case greptime.ColumnDataType_TIMESTAMP_MICROSECOND:
+	case greptimepb.ColumnDataType_TIMESTAMP_MICROSECOND:
 		col.Values.TsMicrosecondValues = append(col.Values.TsMicrosecondValues, val.(int64))
-	case greptime.ColumnDataType_TIMESTAMP_NANOSECOND:
+	case greptimepb.ColumnDataType_TIMESTAMP_NANOSECOND:
 		col.Values.TsNanosecondValues = append(col.Values.TsNanosecondValues, val.(int64))
 	default:
 		return fmt.Errorf("unknown column data type: %v", col.Datatype)
@@ -457,7 +463,7 @@ func setColumn(col *greptime.Column, val any) error {
 	return nil
 }
 
-func setNullMask(cols map[string]*greptime.Column, masks map[string]*Mask, size int) error {
+func setNullMask(cols map[string]*greptimepb.Column, masks map[string]*Mask, size int) error {
 	for name, mask := range masks {
 		b, err := mask.shrink(size)
 		if err != nil {
@@ -466,7 +472,7 @@ func setNullMask(cols map[string]*greptime.Column, masks map[string]*Mask, size 
 
 		col, exist := cols[name]
 		if !exist {
-			return fmt.Errorf("%v column not found when set null mask", name)
+			return fmt.Errorf("'%s' column not found when set null mask", name)
 		}
 		col.NullMask = b
 	}

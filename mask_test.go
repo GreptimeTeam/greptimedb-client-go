@@ -1,4 +1,4 @@
-package request
+package greptime
 
 import (
 	"testing"
@@ -6,6 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// 00000100 00000001
+// 4        1
+//
+// []byte{1, 4} // LittleEndian
 func TestMask(t *testing.T) {
 	mask := Mask{}
 	mask.set(0).set(10)

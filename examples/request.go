@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/GreptimeTeam/greptimedb-client-go/pkg/request"
+	greptime "github.com/GreptimeTeam/greptimedb-client-go"
 )
 
 type monitor struct {
@@ -31,27 +31,27 @@ func main() {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := request.NewCfg(addr, database).WithUserName(username).WithPassword(passord).WithDialOptions(options...)
+	cfg := greptime.NewCfg(addr).WithDatabase(database).WithUserName(username).WithPassword(passord).WithDialOptions(options...)
 
-	client, err := request.NewClient(cfg)
+	client, err := greptime.NewClient(cfg)
 	if err != nil {
 		fmt.Printf("Fail in client initiation, err: %s", err)
 	}
 
 	// Create a Series
-	series := request.Series{}
+	series := greptime.Series{}
 	series.AddTag("host", "localhost")
 	series.SetTimestamp(time.UnixMilli(1660897955002))
 	series.AddField("cpu", 0.90)
 	series.AddField("memory", 1024.0)
 
 	// Create a Metric and add the Series
-	metric := request.Metric{}
+	metric := greptime.Metric{}
 	metric.AddSeries(series)
 
 	// Create an InsertRequest using fluent style
 	// If the table does not exist, automatically create one with Insert
-	req := request.InsertRequest{}
+	req := greptime.InsertRequest{}
 	req.WithTable(table).WithMetric(metric).WithDatabase(database)
 
 	// Do the real Insert and Get the result
@@ -64,10 +64,10 @@ func main() {
 	}
 
 	// Query with metric
-	queryReq := request.QueryRequest{}
+	queryReq := greptime.QueryRequest{}
 	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
 
-	resMetric, err := client.QueryMetric(context.Background(), queryReq)
+	resMetric, err := client.Query(context.Background(), queryReq)
 	if err != nil {
 		fmt.Printf("fail to query, err: %+v\n", err)
 		return

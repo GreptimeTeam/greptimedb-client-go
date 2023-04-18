@@ -1,12 +1,11 @@
-package request
+package greptime
 
 import (
 	"testing"
 	"time"
 
+	greptimepb "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 	"github.com/stretchr/testify/assert"
-
-	greptime "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
 
 func TestSeries(t *testing.T) {
@@ -24,22 +23,22 @@ func TestSeries(t *testing.T) {
 
 	// check columns
 	assert.Equal(t, 8, len(s.columns))
-	assert.Equal(t, greptime.ColumnDataType_STRING, s.columns["tag1"].typ)
-	assert.Equal(t, greptime.Column_TAG, s.columns["tag1"].semantic)
-	assert.Equal(t, greptime.ColumnDataType_BOOLEAN, s.columns["tag2"].typ)
-	assert.Equal(t, greptime.Column_TAG, s.columns["tag2"].semantic)
-	assert.Equal(t, greptime.ColumnDataType_INT32, s.columns["tag3"].typ)
-	assert.Equal(t, greptime.Column_TAG, s.columns["tag3"].semantic)
-	assert.Equal(t, greptime.ColumnDataType_FLOAT64, s.columns["tag4"].typ)
-	assert.Equal(t, greptime.Column_TAG, s.columns["tag4"].semantic)
-	assert.Equal(t, greptime.ColumnDataType_STRING, s.columns["field1"].typ)
-	assert.Equal(t, greptime.Column_FIELD, s.columns["field1"].semantic)
-	assert.Equal(t, greptime.ColumnDataType_FLOAT64, s.columns["field2"].typ)
-	assert.Equal(t, greptime.Column_FIELD, s.columns["field2"].semantic)
-	assert.Equal(t, greptime.ColumnDataType_UINT32, s.columns["field3"].typ)
-	assert.Equal(t, greptime.Column_FIELD, s.columns["field3"].semantic)
-	assert.Equal(t, greptime.ColumnDataType_UINT64, s.columns["field4"].typ)
-	assert.Equal(t, greptime.Column_FIELD, s.columns["field4"].semantic)
+	assert.Equal(t, greptimepb.ColumnDataType_STRING, s.columns["tag1"].typ)
+	assert.Equal(t, greptimepb.Column_TAG, s.columns["tag1"].semantic)
+	assert.Equal(t, greptimepb.ColumnDataType_BOOLEAN, s.columns["tag2"].typ)
+	assert.Equal(t, greptimepb.Column_TAG, s.columns["tag2"].semantic)
+	assert.Equal(t, greptimepb.ColumnDataType_INT32, s.columns["tag3"].typ)
+	assert.Equal(t, greptimepb.Column_TAG, s.columns["tag3"].semantic)
+	assert.Equal(t, greptimepb.ColumnDataType_FLOAT64, s.columns["tag4"].typ)
+	assert.Equal(t, greptimepb.Column_TAG, s.columns["tag4"].semantic)
+	assert.Equal(t, greptimepb.ColumnDataType_STRING, s.columns["field1"].typ)
+	assert.Equal(t, greptimepb.Column_FIELD, s.columns["field1"].semantic)
+	assert.Equal(t, greptimepb.ColumnDataType_FLOAT64, s.columns["field2"].typ)
+	assert.Equal(t, greptimepb.Column_FIELD, s.columns["field2"].semantic)
+	assert.Equal(t, greptimepb.ColumnDataType_UINT32, s.columns["field3"].typ)
+	assert.Equal(t, greptimepb.Column_FIELD, s.columns["field3"].semantic)
+	assert.Equal(t, greptimepb.ColumnDataType_UINT64, s.columns["field4"].typ)
+	assert.Equal(t, greptimepb.Column_FIELD, s.columns["field4"].semantic)
 
 	// check values
 	assert.Equal(t, 8, len(s.vals))
@@ -100,6 +99,7 @@ func TestMetric(t *testing.T) {
 	m := Metric{}
 	err := m.AddSeries(s)
 	assert.Nil(t, err)
+	assert.Equal(t, 1, len(m.GetSeries()))
 }
 
 func TestMetricTypeNotMatch(t *testing.T) {
@@ -165,70 +165,70 @@ func TestGreptimeColumn(t *testing.T) {
 	assert.Nil(t, m.AddSeries(s1))
 	assert.Nil(t, m.AddSeries(s2))
 
-	cols, err := m.IntoGreptimeColumn()
+	cols, err := m.intoGreptimeColumn()
 	assert.Nil(t, err)
 	assert.Equal(t, 9, len(cols))
 
 	col1 := cols[0]
 	assert.Equal(t, "tag1", col1.ColumnName)
-	assert.Equal(t, greptime.ColumnDataType_STRING, col1.Datatype)
-	assert.Equal(t, greptime.Column_TAG, col1.SemanticType)
+	assert.Equal(t, greptimepb.ColumnDataType_STRING, col1.Datatype)
+	assert.Equal(t, greptimepb.Column_TAG, col1.SemanticType)
 	assert.Equal(t, []string{"tag1", "tag2"}, col1.Values.StringValues)
 	assert.Empty(t, col1.NullMask)
 
 	col2 := cols[1]
 	assert.Equal(t, "tag2", col2.ColumnName)
-	assert.Equal(t, greptime.ColumnDataType_BOOLEAN, col2.Datatype)
-	assert.Equal(t, greptime.Column_TAG, col2.SemanticType)
+	assert.Equal(t, greptimepb.ColumnDataType_BOOLEAN, col2.Datatype)
+	assert.Equal(t, greptimepb.Column_TAG, col2.SemanticType)
 	assert.Equal(t, []bool{true, false}, col2.Values.BoolValues)
 	assert.Empty(t, col2.NullMask)
 
 	col3 := cols[2]
 	assert.Equal(t, "tag3", col3.ColumnName)
-	assert.Equal(t, greptime.ColumnDataType_INT32, col3.Datatype)
-	assert.Equal(t, greptime.Column_TAG, col3.SemanticType)
+	assert.Equal(t, greptimepb.ColumnDataType_INT32, col3.Datatype)
+	assert.Equal(t, greptimepb.Column_TAG, col3.SemanticType)
 	assert.Equal(t, []int32{32}, col3.Values.I32Values)
 	assert.Equal(t, []byte{2}, col3.NullMask)
 
 	col4 := cols[3]
 	assert.Equal(t, "tag4", col4.ColumnName)
-	assert.Equal(t, greptime.ColumnDataType_FLOAT64, col4.Datatype)
-	assert.Equal(t, greptime.Column_TAG, col4.SemanticType)
+	assert.Equal(t, greptimepb.ColumnDataType_FLOAT64, col4.Datatype)
+	assert.Equal(t, greptimepb.Column_TAG, col4.SemanticType)
 	assert.Equal(t, []float64{32}, col4.Values.F64Values)
 	assert.Equal(t, []byte{2}, col4.NullMask)
 
 	col5 := cols[4]
 	assert.Equal(t, "field1", col5.ColumnName)
-	assert.Equal(t, greptime.ColumnDataType_UINT32, col5.Datatype)
-	assert.Equal(t, greptime.Column_FIELD, col5.SemanticType)
+	assert.Equal(t, greptimepb.ColumnDataType_UINT32, col5.Datatype)
+	assert.Equal(t, greptimepb.Column_FIELD, col5.SemanticType)
 	assert.Equal(t, []uint32{8, 8}, col5.Values.U32Values)
 	assert.Empty(t, col5.NullMask)
 
 	col6 := cols[5]
 	assert.Equal(t, "field2", col6.ColumnName)
-	assert.Equal(t, greptime.ColumnDataType_UINT64, col6.Datatype)
-	assert.Equal(t, greptime.Column_FIELD, col6.SemanticType)
+	assert.Equal(t, greptimepb.ColumnDataType_UINT64, col6.Datatype)
+	assert.Equal(t, greptimepb.Column_FIELD, col6.SemanticType)
 	assert.Equal(t, []uint64{64, 64}, col6.Values.U64Values)
 	assert.Empty(t, col6.NullMask)
 
 	col7 := cols[6]
 	assert.Equal(t, "field_name3", col7.ColumnName)
-	assert.Equal(t, greptime.ColumnDataType_STRING, col7.Datatype)
-	assert.Equal(t, greptime.Column_FIELD, col7.SemanticType)
+	assert.Equal(t, greptimepb.ColumnDataType_STRING, col7.Datatype)
+	assert.Equal(t, greptimepb.Column_FIELD, col7.SemanticType)
 	assert.Equal(t, []string{"field3"}, col7.Values.StringValues)
 	assert.Equal(t, []byte{1}, col7.NullMask)
 
 	col8 := cols[7]
 	assert.Equal(t, "field_name4", col8.ColumnName)
-	assert.Equal(t, greptime.ColumnDataType_FLOAT64, col8.Datatype)
-	assert.Equal(t, greptime.Column_FIELD, col8.SemanticType)
+	assert.Equal(t, greptimepb.ColumnDataType_FLOAT64, col8.Datatype)
+	assert.Equal(t, greptimepb.Column_FIELD, col8.SemanticType)
 	assert.Equal(t, []float64{32}, col8.Values.F64Values)
 	assert.Equal(t, []byte{1}, col8.NullMask)
 
 	col9 := cols[8]
 	assert.Equal(t, "ts", col9.ColumnName)
-	assert.Equal(t, greptime.ColumnDataType_TIMESTAMP_MILLISECOND, col9.Datatype)
-	assert.Equal(t, greptime.Column_TIMESTAMP, col9.SemanticType)
+	assert.Equal(t, greptimepb.ColumnDataType_TIMESTAMP_MILLISECOND, col9.Datatype)
+	assert.Equal(t, greptimepb.Column_TIMESTAMP, col9.SemanticType)
 	assert.Equal(t, []int64{timestamp.UnixMilli(), timestamp.UnixMilli()}, col9.Values.TsMillisecondValues)
 	assert.Empty(t, col9.NullMask)
 }
@@ -243,70 +243,70 @@ func TestWithoutTimestamp(t *testing.T) {
 func TestSetColumn(t *testing.T) {
 	testCases := []struct {
 		name     string
-		col      *greptime.Column
+		col      *greptimepb.Column
 		val      interface{}
-		expected *greptime.Column
+		expected *greptimepb.Column
 	}{
 		{
 			name: "set int8 value",
-			col: &greptime.Column{
-				Datatype: greptime.ColumnDataType_INT8,
-				Values: &greptime.Column_Values{
+			col: &greptimepb.Column{
+				Datatype: greptimepb.ColumnDataType_INT8,
+				Values: &greptimepb.Column_Values{
 					I8Values: []int32{1, 2, 3},
 				},
 			},
 			val: int8(4),
-			expected: &greptime.Column{
-				Datatype: greptime.ColumnDataType_INT8,
-				Values: &greptime.Column_Values{
+			expected: &greptimepb.Column{
+				Datatype: greptimepb.ColumnDataType_INT8,
+				Values: &greptimepb.Column_Values{
 					I8Values: []int32{1, 2, 3, 4},
 				},
 			},
 		},
 		{
 			name: "set int16 value",
-			col: &greptime.Column{
-				Datatype: greptime.ColumnDataType_INT16,
-				Values: &greptime.Column_Values{
+			col: &greptimepb.Column{
+				Datatype: greptimepb.ColumnDataType_INT16,
+				Values: &greptimepb.Column_Values{
 					I16Values: []int32{1, 2, 3},
 				},
 			},
 			val: int16(4),
-			expected: &greptime.Column{
-				Datatype: greptime.ColumnDataType_INT16,
-				Values: &greptime.Column_Values{
+			expected: &greptimepb.Column{
+				Datatype: greptimepb.ColumnDataType_INT16,
+				Values: &greptimepb.Column_Values{
 					I16Values: []int32{1, 2, 3, 4},
 				},
 			},
 		},
 		{
 			name: "set uint8 value",
-			col: &greptime.Column{
-				Datatype: greptime.ColumnDataType_UINT8,
-				Values: &greptime.Column_Values{
+			col: &greptimepb.Column{
+				Datatype: greptimepb.ColumnDataType_UINT8,
+				Values: &greptimepb.Column_Values{
 					U8Values: []uint32{1, 2, 3},
 				},
 			},
 			val: uint8(4),
-			expected: &greptime.Column{
-				Datatype: greptime.ColumnDataType_UINT8,
-				Values: &greptime.Column_Values{
+			expected: &greptimepb.Column{
+				Datatype: greptimepb.ColumnDataType_UINT8,
+				Values: &greptimepb.Column_Values{
 					U8Values: []uint32{1, 2, 3, 4},
 				},
 			},
 		},
 		{
 			name: "set uint16 value",
-			col: &greptime.Column{
-				Datatype: greptime.ColumnDataType_UINT16,
-				Values: &greptime.Column_Values{
+			col: &greptimepb.Column{
+				Datatype: greptimepb.ColumnDataType_UINT16,
+				Values: &greptimepb.Column_Values{
 					U16Values: []uint32{1, 2, 3},
 				},
 			},
 			val: uint16(4),
-			expected: &greptime.Column{
-				Datatype: greptime.ColumnDataType_UINT16,
-				Values: &greptime.Column_Values{
+			expected: &greptimepb.Column{
+				Datatype: greptimepb.ColumnDataType_UINT16,
+				Values: &greptimepb.Column_Values{
 					U16Values: []uint32{1, 2, 3, 4},
 				},
 			},
@@ -314,32 +314,32 @@ func TestSetColumn(t *testing.T) {
 
 		{
 			name: "set float32 value",
-			col: &greptime.Column{
-				Datatype: greptime.ColumnDataType_FLOAT32,
-				Values: &greptime.Column_Values{
+			col: &greptimepb.Column{
+				Datatype: greptimepb.ColumnDataType_FLOAT32,
+				Values: &greptimepb.Column_Values{
 					F32Values: []float32{1.0, 2.0, 3.0},
 				},
 			},
 			val: float32(4.0),
-			expected: &greptime.Column{
-				Datatype: greptime.ColumnDataType_FLOAT32,
-				Values: &greptime.Column_Values{
+			expected: &greptimepb.Column{
+				Datatype: greptimepb.ColumnDataType_FLOAT32,
+				Values: &greptimepb.Column_Values{
 					F32Values: []float32{1.0, 2.0, 3.0, 4.0},
 				},
 			},
 		},
 		{
 			name: "set binary value",
-			col: &greptime.Column{
-				Datatype: greptime.ColumnDataType_BINARY,
-				Values: &greptime.Column_Values{
+			col: &greptimepb.Column{
+				Datatype: greptimepb.ColumnDataType_BINARY,
+				Values: &greptimepb.Column_Values{
 					BinaryValues: [][]byte{[]byte("hello")},
 				},
 			},
 			val: []byte("world"),
-			expected: &greptime.Column{
-				Datatype: greptime.ColumnDataType_BINARY,
-				Values: &greptime.Column_Values{
+			expected: &greptimepb.Column{
+				Datatype: greptimepb.ColumnDataType_BINARY,
+				Values: &greptimepb.Column_Values{
 					BinaryValues: [][]byte{[]byte("hello"), []byte("world")},
 				},
 			},
@@ -352,14 +352,14 @@ func TestSetColumn(t *testing.T) {
 		assert.Equal(t, cas.expected, cas.col)
 	}
 
-	errCol := &greptime.Column{
-		Datatype: greptime.ColumnDataType(99),
+	errCol := &greptimepb.Column{
+		Datatype: greptimepb.ColumnDataType(99),
 	}
 	err := setColumn(errCol, "wrong")
 	assert.Equal(t, "unknown column data type: 99", err.Error())
 }
 
-func TestSetTimePrecis(t *testing.T) {
+func TestSetTimePrecision(t *testing.T) {
 	m := Metric{}
 	err := m.SetTimePrecision(123)
 	assert.Equal(t, ErrInvalidTimePrecision, err)
