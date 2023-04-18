@@ -3,6 +3,7 @@ package greptime
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -15,8 +16,9 @@ import (
 )
 
 var (
-	database string = "public"
-	grpcAddr string = ""
+	database = "public"
+	addr     = "127.0.0.1"
+	port     = 0
 )
 
 func init() {
@@ -65,7 +67,12 @@ func init() {
 	if err := pool.Retry(func() error {
 		// TODO(vinland-avalon): some functions, like ping() to check if container is ready
 		time.Sleep(time.Second)
-		grpcAddr = resource.GetHostPort("4001/tcp")
+		// grpcAddr = resource.GetHostPort("4001/tcp")
+		port, err = strconv.Atoi(resource.GetPort(("4001/tcp")))
+		fmt.Printf("==== port: %d\n", port)
+		if err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		log.Fatalf("Could not connect to docker: %s", err)
@@ -105,7 +112,7 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr).WithDatabase(database).WithDialOptions(options...)
+	cfg := NewCfg(addr).WithPort(port).WithDatabase(database).WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
@@ -127,9 +134,9 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 	req := InsertRequest{}
 	req.WithDatabase(database).WithTable(table).WithMetric(metric)
 
-	affectedRows, err := client.Insert(context.Background(), req)
+	n, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(len(insertMonitors)), affectedRows.Value)
+	assert.Equal(t, uint32(len(insertMonitors)), n)
 
 	// Query with metric
 	queryReq := QueryRequest{}
@@ -143,8 +150,7 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 	for _, series := range resMetric.GetSeries() {
 		host, ok := series.Get("host")
 		assert.True(t, ok)
-		ts, ok := series.GetTimestamp()
-		assert.True(t, ok)
+		ts := series.GetTimestamp()
 		temperature, ok := series.Get("temperature")
 		assert.True(t, ok)
 		memory, ok := series.Get("memory")
@@ -178,7 +184,7 @@ func TestPrecisionSecond(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr).WithDatabase(database).WithDialOptions(options...)
+	cfg := NewCfg(addr).WithPort(port).WithDatabase(database).WithDialOptions(options...)
 
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
@@ -196,9 +202,9 @@ func TestPrecisionSecond(t *testing.T) {
 	metric.SetTimePrecision(time.Second)
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric).WithDatabase(database)
-	affectedRows, err := client.Insert(context.Background(), req)
+	n, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), affectedRows.Value)
+	assert.Equal(t, uint32(1), n)
 
 	queryReq := QueryRequest{}
 	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
@@ -206,8 +212,7 @@ func TestPrecisionSecond(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(resMetric.GetSeries()))
 
-	resTime, ok := resMetric.GetSeries()[0].GetTimestamp()
-	assert.True(t, ok)
+	resTime := resMetric.GetSeries()[0].GetTimestamp()
 	// since the precision is second, others should not equal
 	assert.Equal(t, sec, resTime)
 	assert.NotEqual(t, milli, resTime)
@@ -233,7 +238,7 @@ func TestNilInColumn(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr).WithDatabase(database).WithDialOptions(options...)
+	cfg := NewCfg(addr).WithPort(port).WithDatabase(database).WithDialOptions(options...)
 
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
@@ -254,9 +259,9 @@ func TestNilInColumn(t *testing.T) {
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric).WithDatabase(database)
 
-	affectedRows, err := client.Insert(context.Background(), req)
+	n, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(len(insertMonitors)), affectedRows.Value)
+	assert.Equal(t, uint32(len(insertMonitors)), n)
 
 	// Query with metric
 	queryReq := QueryRequest{}
@@ -267,18 +272,18 @@ func TestNilInColumn(t *testing.T) {
 	assert.Equal(t, 2, len(resMetric.GetSeries()))
 
 	resSeries0 := resMetric.GetSeries()[0]
-	ts, ok := resSeries0.GetTimestamp()
-	assert.True(t, ok)
+	ts := resSeries0.GetTimestamp()
+
 	assert.Equal(t, insertMonitors[0].ts, ts)
-	_, ok = resSeries0.Get("memory")
+	_, ok := resSeries0.Get("memory")
 	assert.False(t, ok)
 	cpu, ok := resSeries0.Get("cpu")
 	assert.True(t, ok)
 	assert.Equal(t, insertMonitors[0].cpu, cpu.(float64))
 
 	resSeries1 := resMetric.GetSeries()[1]
-	ts, ok = resSeries1.GetTimestamp()
-	assert.True(t, ok)
+	ts = resSeries1.GetTimestamp()
+
 	assert.Equal(t, insertMonitors[1].ts, ts)
 	memory, ok := resSeries1.Get("memory")
 	assert.True(t, ok)
@@ -293,7 +298,7 @@ func TestNoNeedAuth(t *testing.T) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 	// Client can always connect to a no-auth database, even the usernames and passwords are wrong
-	cfg := NewCfg(grpcAddr).WithDatabase(database).WithUserName("user").WithPassword("pwd").WithDialOptions(options...)
+	cfg := NewCfg(addr).WithPort(port).WithDatabase(database).WithAuth("user", "pwd").WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
@@ -306,9 +311,9 @@ func TestNoNeedAuth(t *testing.T) {
 
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric).WithDatabase(database)
-	affectedRows, err := client.Insert(context.Background(), req)
+	n, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), affectedRows.Value)
+	assert.Equal(t, uint32(1), n)
 
 	queryReq := QueryRequest{}
 	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
@@ -316,8 +321,7 @@ func TestNoNeedAuth(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(resMetric.GetSeries()))
 
-	resTime, ok := resMetric.GetSeries()[0].GetTimestamp()
-	assert.True(t, ok)
+	resTime := resMetric.GetSeries()[0].GetTimestamp()
 	// since the precision is second, others should not equal
 	assert.NotEqual(t, nano, resTime)
 }
@@ -366,7 +370,7 @@ func TestDataTypes(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr).WithDatabase(database).WithDialOptions(options...)
+	cfg := NewCfg(addr).WithPort(port).WithDatabase(database).WithDialOptions(options...)
 
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
@@ -396,9 +400,9 @@ func TestDataTypes(t *testing.T) {
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric).WithDatabase(database)
 
-	affectedRows, err := client.Insert(context.Background(), req)
+	n, err := client.Insert(context.Background(), req)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), affectedRows.Value)
+	assert.Equal(t, uint32(1), n)
 
 	// Query with metric
 	queryReq := QueryRequest{}
@@ -439,8 +443,7 @@ func TestDataTypes(t *testing.T) {
 	assert.True(t, ok)
 	boolV, ok := series.Get("bool_v")
 	assert.True(t, ok)
-	timeV, ok := series.GetTimestamp()
-	assert.True(t, ok)
+	timeV := series.GetTimestamp()
 
 	querydata := datatype{
 		int64V:   int64V.(int64),

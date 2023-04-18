@@ -18,30 +18,6 @@ type column struct {
 	semantic greptimepb.Column_SemanticType
 }
 
-type Series struct {
-	orders  []string
-	columns map[string]column
-	vals    map[string]any
-
-	// required field
-	timestamp time.Time
-}
-
-func (s *Series) GetTagsAndFields() []string {
-	dst := make([]string, len(s.orders))
-	copy(dst, s.orders)
-	return dst
-}
-
-func (s *Series) Get(key string) (any, bool) {
-	val, ok := s.vals[key]
-	return val, ok
-}
-
-func (s *Series) GetTimestamp() (time.Time, bool) {
-	return s.timestamp, true
-}
-
 func checkColumnEquality(key string, col1, col2 column) error {
 	if col1.typ != col2.typ {
 		return fmt.Errorf("the type of '%s' does not match: '%T' and '%T'", key, col1.typ, col2.typ)
@@ -53,8 +29,42 @@ func checkColumnEquality(key string, col1, col2 column) error {
 	return nil
 }
 
+// Series represents one row of data you want to insert into GreptimeDB.
+//   - Tag fields are the index columns, which helps you to query data efficiently
+//   - Field fields are the value columns, which are used for value
+//   - Timestamp field is the timestamp column, which is required
+//
+// you do not need to create schema in advance, it will be created based on Series.
+// But once the schema is created, [Client] has no ability to alert it.
+type Series struct {
+	orders  []string
+	columns map[string]column
+	vals    map[string]any
+
+	timestamp time.Time // required
+}
+
+// GetTagsAndFields get all column names from metric, except timestamp column
+func (s *Series) GetTagsAndFields() []string {
+	dst := make([]string, len(s.orders))
+	copy(dst, s.orders)
+	return dst
+}
+
+// Get helps to get value of specifid column. The second return value
+// indicates if the key was present in Series
+func (s *Series) Get(key string) (any, bool) {
+	val, ok := s.vals[key]
+	return val, ok
+}
+
+// GetTimestamp get timestamp field
+func (s *Series) GetTimestamp() time.Time {
+	return s.timestamp
+}
+
 func (s *Series) add(name string, val any, semantic greptimepb.Column_SemanticType) error {
-	key, err := ToColumnName(name)
+	key, err := toColumnName(name)
 	if err != nil {
 		return err
 	}
@@ -100,11 +110,14 @@ func (s *Series) AddField(key string, val any) error {
 	return s.add(key, val, greptimepb.Column_FIELD)
 }
 
+// SetTimestamp is required
 func (s *Series) SetTimestamp(t time.Time) error {
 	s.timestamp = t
 	return nil
 }
 
+// Metric represents multiple rows of data, and also Metric can specify
+// the timestamp column name and precision
 type Metric struct {
 	timestampAlias     string
 	timestampPrecision time.Duration
@@ -115,12 +128,14 @@ type Metric struct {
 	series []Series
 }
 
+// GetTagsAndFields get all column names from metric, except timestamp column
 func (m *Metric) GetTagsAndFields() []string {
 	dst := make([]string, len(m.orders))
 	copy(dst, m.orders)
 	return dst
 }
 
+// GetSeries gets all data from metric
 func (m *Metric) GetSeries() []Series {
 	return m.series
 }
@@ -132,7 +147,6 @@ func buildMetricFromReader(r *flight.Reader) (*Metric, error) {
 		return nil, errors.New("Internal Error, empty reader pointer")
 	}
 
-	fields := r.Schema().Fields()
 	record, err := r.Reader.Read()
 	if err != nil {
 		if err == io.EOF {
@@ -142,6 +156,7 @@ func buildMetricFromReader(r *flight.Reader) (*Metric, error) {
 		}
 	}
 
+	fields := r.Schema().Fields()
 	timestampIndex := extractTimestampIndex(fields)
 
 	precision := time.Millisecond
@@ -161,7 +176,7 @@ func buildMetricFromReader(r *flight.Reader) (*Metric, error) {
 		series := Series{}
 		for j := 0; j < int(record.NumCols()); j++ {
 			column := record.Column(j)
-			colVal, err := FromColumn(column, i)
+			colVal, err := fromColumn(column, i)
 			if err != nil {
 				return nil, err
 			}
@@ -179,7 +194,6 @@ func buildMetricFromReader(r *flight.Reader) (*Metric, error) {
 
 func extractTimestampIndex(fields []arrow.Field) int {
 	for i, field := range fields {
-		// TODO(yuanbohan): check type directly
 		if res := field.Metadata.FindKey("greptime:time_index"); res != -1 {
 			if field.Metadata.Values()[res] == "true" {
 				return i
@@ -213,7 +227,7 @@ func extractPrecision(field *arrow.Field) (time.Duration, error) {
 }
 
 // retrive arrow value from the column at idx position
-func FromColumn(column array.Interface, idx int) (any, error) {
+func fromColumn(column array.Interface, idx int) (any, error) {
 	if column.IsNull(idx) {
 		return nil, nil
 	}
@@ -255,12 +269,16 @@ func FromColumn(column array.Interface, idx int) (any, error) {
 	}
 }
 
-// SetTimePrecision set precsion for Metric. Valid durations include time.Nanosecond, time.Microsecond, time.Millisecond, time.Second.
+// SetTimePrecision set precsion for Metric. Valid durations include:
+//   - time.Nanosecond
+//   - time.Microsecond
+//   - time.Millisecond
+//   - time.Second.
 //
 // # Pay attention
 //
-// - once the precision has been set, it can not be changed
-// - insert will fail if precision does not match with the existing precision of the table in greptimedb
+//   - once the precision has been set, it can not be changed
+//   - insert will fail if precision does not match with the existing precision of the schema in greptimedb
 func (m *Metric) SetTimePrecision(precision time.Duration) error {
 	if !isValidPrecision(precision) {
 		return ErrInvalidTimePrecision
@@ -269,8 +287,9 @@ func (m *Metric) SetTimePrecision(precision time.Duration) error {
 	return nil
 }
 
+// SetTimestampAlias helps to specify the timestamp column name, default is ts.
 func (m *Metric) SetTimestampAlias(alias string) error {
-	alias, err := ToColumnName(alias)
+	alias, err := toColumnName(alias)
 	if err != nil {
 		return err
 	}
@@ -278,6 +297,7 @@ func (m *Metric) SetTimestampAlias(alias string) error {
 	return nil
 }
 
+// GetTimestampAlias get the timestamp column name, default is ts.
 func (m *Metric) GetTimestampAlias() string {
 	if len(m.timestampAlias) == 0 {
 		return "ts"
@@ -285,6 +305,14 @@ func (m *Metric) GetTimestampAlias() string {
 	return m.timestampAlias
 }
 
+// AddSeries add one row to Metric.
+//
+// # Pay Attention
+//
+//   - different row can have different fields, Metric will union all the columns,
+//     leave empty value of one row if the column is not specified in this row
+//   - same column name MUST have same schema, which means Tag,Field,Timestamp and
+//     data type MUST BE the same of the same column name in different rows
 func (m *Metric) AddSeries(s Series) error {
 	if s.timestamp.IsZero() {
 		return ErrEmptyTimestamp

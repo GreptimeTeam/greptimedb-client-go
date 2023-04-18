@@ -7,15 +7,16 @@ import (
 	"google.golang.org/grpc"
 )
 
-// StreamClient is for inserting
+// StreamClient is only for inserting
 type StreamClient struct {
 	client greptimepb.GreptimeDatabase_HandleRequestsClient
 	cfg    *Config
 }
 
-// NewStreamClient has better performance when inserting high cardinality data
+// NewStreamClient helps to create a stream insert client.
+// If Client has performance issue, you can try the stream client.
 func NewStreamClient(cfg *Config) (*StreamClient, error) {
-	conn, err := grpc.Dial(cfg.Address, cfg.DialOptions...)
+	conn, err := grpc.Dial(cfg.getGRPCAddr(), cfg.DialOptions...)
 	if err != nil {
 		return nil, err
 	}

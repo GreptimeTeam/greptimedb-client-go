@@ -7,11 +7,11 @@ type header struct {
 }
 
 func (h *header) Build(cfg *Config) (*greptimepb.RequestHeader, error) {
-	if IsEmptyString(h.database) {
+	if isEmptyString(h.database) {
 		h.database = cfg.Database
 	}
 
-	if IsEmptyString(h.database) {
+	if isEmptyString(h.database) {
 		return nil, ErrEmptyDatabase
 	}
 

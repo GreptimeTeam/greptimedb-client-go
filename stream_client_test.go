@@ -38,7 +38,7 @@ func TestStreamInsert(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr).WithDatabase(database).WithDialOptions(options...).WithCallOptions()
+	cfg := NewCfg(addr).WithPort(port).WithDatabase(database).WithDialOptions(options...).WithCallOptions()
 	streamClient, err := NewStreamClient(cfg)
 	assert.Nil(t, err)
 
@@ -81,8 +81,9 @@ func TestStreamInsert(t *testing.T) {
 	for _, series := range resMetric.GetSeries() {
 		host, ok := series.Get("host")
 		assert.True(t, ok)
-		ts, ok := series.GetTimestamp()
-		assert.True(t, ok)
+
+		ts := series.GetTimestamp()
+
 		fmt.Printf("ts in query: %v\n", ts)
 		temperature, ok := series.Get("temperature")
 		assert.True(t, ok)

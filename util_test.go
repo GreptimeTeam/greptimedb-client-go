@@ -276,38 +276,38 @@ func TestConvertValuePtr(t *testing.T) {
 }
 
 func TestEmptyString(t *testing.T) {
-	assert.True(t, IsEmptyString(""))
-	assert.True(t, IsEmptyString(" "))
-	assert.True(t, IsEmptyString("  "))
-	assert.True(t, IsEmptyString("\t"))
+	assert.True(t, isEmptyString(""))
+	assert.True(t, isEmptyString(" "))
+	assert.True(t, isEmptyString("  "))
+	assert.True(t, isEmptyString("\t"))
 }
 
 func TestColumnName(t *testing.T) {
-	key, err := ToColumnName("ts ")
+	key, err := toColumnName("ts ")
 	assert.Nil(t, err)
 	assert.Equal(t, "ts", key)
 
-	key, err = ToColumnName(" Ts")
+	key, err = toColumnName(" Ts")
 	assert.Nil(t, err)
 	assert.Equal(t, "ts", key)
 
-	key, err = ToColumnName(" TS ")
+	key, err = toColumnName(" TS ")
 	assert.Nil(t, err)
 	assert.Equal(t, "ts", key)
 
-	key, err = ToColumnName("DiskUsage ")
+	key, err = toColumnName("DiskUsage ")
 	assert.Nil(t, err)
 	assert.Equal(t, "disk_usage", key)
 
-	key, err = ToColumnName("Disk-Usage")
+	key, err = toColumnName("Disk-Usage")
 	assert.Nil(t, err)
 	assert.Equal(t, "disk_usage", key)
 
-	key, err = ToColumnName("   ")
+	key, err = toColumnName("   ")
 	assert.NotNil(t, err)
 	assert.Equal(t, "", key)
 
-	key, err = ToColumnName(strings.Repeat("timestamp", 20))
+	key, err = toColumnName(strings.Repeat("timestamp", 20))
 	assert.NotNil(t, err)
 	assert.Equal(t, "", key)
 }

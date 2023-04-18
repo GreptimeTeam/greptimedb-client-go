@@ -31,7 +31,7 @@ func TestInsertAndQueryWithRangePromQL(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(grpcAddr).WithDatabase(database).WithDialOptions(options...)
+	cfg := NewCfg(addr).WithPort(port).WithDatabase(database).WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
@@ -52,9 +52,9 @@ func TestInsertAndQueryWithRangePromQL(t *testing.T) {
 	insertReq := InsertRequest{}
 	insertReq.WithDatabase(database).WithTable(table).WithMetric(metric)
 
-	affectedRows, err := client.Insert(context.Background(), insertReq)
+	n, err := client.Insert(context.Background(), insertReq)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(len(insertMonitors)), affectedRows.Value)
+	assert.Equal(t, uint32(len(insertMonitors)), n)
 
 	// Query with PromQL with metric
 	queryReq := QueryRequest{}
@@ -75,8 +75,8 @@ func TestInsertAndQueryWithRangePromQL(t *testing.T) {
 	for _, series := range resMetric.GetSeries() {
 		host, ok := series.Get("host")
 		assert.True(t, ok)
-		ts, ok := series.GetTimestamp()
-		assert.True(t, ok)
+		ts := series.GetTimestamp()
+
 		temperature, ok := series.Get("temperature")
 		assert.True(t, ok)
 		memory, ok := series.Get("memory")

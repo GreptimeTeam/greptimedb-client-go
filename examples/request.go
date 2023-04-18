@@ -18,7 +18,7 @@ type monitor struct {
 }
 
 var (
-	addr     string = "127.0.0.1:4001"
+	addr     string = "127.0.0.1"
 	table    string = "monitor" // whatever you want
 	database string = "public"  // dbname in `GCP`
 	username string = ""
@@ -36,8 +36,7 @@ func init() {
 	// To connect a local database without authentication, just leave the two fields empty.
 	cfg := greptime.NewCfg(addr).
 		WithDatabase(database).
-		WithUserName(username).
-		WithPassword(password).
+		WithAuth(username, password).
 		WithDialOptions(options...)
 
 	c, err := greptime.NewClient(cfg)
@@ -66,12 +65,12 @@ func insert() {
 	req.WithTable(table).WithMetric(metric)
 
 	// Do the real Insert and Get the result
-	affectedRows, err := client.Insert(context.Background(), req)
+	n, err := client.Insert(context.Background(), req)
 	if err != nil {
 		fmt.Printf("fail to insert, err: %+v\n", err)
 		return
 	}
-	fmt.Printf("Success! AffectedRows: %+v\n", affectedRows)
+	fmt.Printf("Success! AffectedRows: %d\n", n)
 }
 
 func query() {
@@ -89,7 +88,7 @@ func query() {
 	monitors := []monitor{}
 	for _, series := range resMetric.GetSeries() {
 		host, _ := series.Get("host")
-		ts, _ := series.GetTimestamp()
+		ts := series.GetTimestamp()
 		memory, _ := series.Get("memory")
 		cpu, _ := series.Get("cpu")
 		monitors = append(monitors, monitor{
@@ -103,6 +102,6 @@ func query() {
 }
 
 func main() {
-	insert()
+	// insert()
 	query()
 }
