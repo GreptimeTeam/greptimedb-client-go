@@ -343,7 +343,7 @@ func (m *Metric) nullMaskByteSize() int {
 
 // intoDataColumns does not contain timestamp semantic column
 func (m *Metric) intoDataColumns() ([]*greptimepb.Column, error) {
-	nullMasks := map[string]*Mask{}
+	nullMasks := map[string]*mask{}
 	mappedCols := map[string]*greptimepb.Column{}
 	for name, col := range m.columns {
 		column := greptimepb.Column{
@@ -363,12 +363,12 @@ func (m *Metric) intoDataColumns() ([]*greptimepb.Column, error) {
 					return nil, err
 				}
 			} else {
-				mask, exist := nullMasks[name]
+				nullMask, exist := nullMasks[name]
 				if !exist {
-					mask = &Mask{}
-					nullMasks[name] = mask
+					nullMask = &mask{}
+					nullMasks[name] = nullMask
 				}
-				mask.set(uint(rowIdx))
+				nullMask.set(uint(rowIdx))
 			}
 		}
 	}
@@ -399,7 +399,7 @@ func (m *Metric) intoTimestampColumn() (*greptimepb.Column, error) {
 		Values:       &greptimepb.Column_Values{},
 		NullMask:     nil,
 	}
-	nullMask := Mask{}
+	nullMask := mask{}
 	for _, s := range m.series {
 		switch datatype {
 		case greptimepb.ColumnDataType_TIMESTAMP_SECOND:
@@ -464,7 +464,7 @@ func setColumn(col *greptimepb.Column, val any) error {
 	return nil
 }
 
-func setNullMask(cols map[string]*greptimepb.Column, masks map[string]*Mask, size int) error {
+func setNullMask(cols map[string]*greptimepb.Column, masks map[string]*mask, size int) error {
 	for name, mask := range masks {
 		b, err := mask.shrink(size)
 		if err != nil {

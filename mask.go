@@ -8,19 +8,19 @@ import (
 )
 
 // Mask is help to set null bits.
-type Mask struct {
+type mask struct {
 	bs bitset.BitSet
 }
 
 // set is to set which position is to be set to 1
-func (n *Mask) set(idx uint) *Mask {
+func (n *mask) set(idx uint) *mask {
 	n.bs.Set(idx)
 	return n
 }
 
 // shrink is to help to generate the bytes number the caller is interested
 // via LittleEndian
-func (n *Mask) shrink(bSize int) ([]byte, error) {
+func (n *mask) shrink(bSize int) ([]byte, error) {
 	if n.bs.Len() == 0 {
 		return nil, nil
 	}
