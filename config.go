@@ -15,6 +15,9 @@ type Config struct {
 	// DialOptions are passed to grpc.DialContext
 	// when a new gRPC connection is to be created.
 	DialOptions []grpc.DialOption
+
+	// CallOptions are passed to StreamClient
+	CallOptions []grpc.CallOption
 }
 
 // NewCfg init Config with addr only
@@ -45,6 +48,15 @@ func (c *Config) WithDialOptions(options ...grpc.DialOption) *Config {
 	}
 
 	c.DialOptions = append(c.DialOptions, options...)
+	return c
+}
+
+func (c *Config) WithCallOptions(options ...grpc.CallOption) *Config {
+	if c.CallOptions == nil {
+		c.CallOptions = []grpc.CallOption{}
+	}
+
+	c.CallOptions = append(c.CallOptions, options...)
 	return c
 }
 

@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	greptime "github.com/GreptimeTeam/greptimedb-client-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-
-	greptime "github.com/GreptimeTeam/greptimedb-client-go"
 )
 
 type monitor struct {
@@ -23,25 +22,36 @@ var (
 	table    string = "monitor" // whatever you want
 	database string = "public"  // dbname in `GCP`
 	username string = ""
-	passord  string = ""
+	password string = ""
+
+	client *greptime.Client
 )
 
-func main() {
-	// Create a new client using an GreptimeDB server base URL and a database name
+func init() {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := greptime.NewCfg(addr).WithDatabase(database).WithUserName(username).WithPassword(passord).WithDialOptions(options...)
+	// To connect a database that needs authentication, for example, those on Greptime Cloud,
+	// `Username` and `Password` are must.
+	// To connect a local database without authentication, just leave the two fields empty.
+	cfg := greptime.NewCfg(addr).
+		WithDatabase(database).
+		WithUserName(username).
+		WithPassword(password).
+		WithDialOptions(options...)
 
-	client, err := greptime.NewClient(cfg)
+	c, err := greptime.NewClient(cfg)
 	if err != nil {
-		fmt.Printf("Fail in client initiation, err: %s", err)
+		panic("failed to init client")
 	}
+	client = c
+}
 
+func insert() {
 	// Create a Series
 	series := greptime.Series{}
 	series.AddTag("host", "localhost")
-	series.SetTimestamp(time.UnixMilli(1660897955002))
+	series.SetTimestamp(time.Now()) // requird
 	series.AddField("cpu", 0.90)
 	series.AddField("memory", 1024.0)
 
@@ -52,39 +62,47 @@ func main() {
 	// Create an InsertRequest using fluent style
 	// If the table does not exist, automatically create one with Insert
 	req := greptime.InsertRequest{}
-	req.WithTable(table).WithMetric(metric).WithDatabase(database)
+	// if you want to specify another database, you can specify it via: `req.WithDatabase(database)`
+	req.WithTable(table).WithMetric(metric)
 
 	// Do the real Insert and Get the result
 	affectedRows, err := client.Insert(context.Background(), req)
 	if err != nil {
 		fmt.Printf("fail to insert, err: %+v\n", err)
 		return
-	} else {
-		fmt.Printf("affectedRows: %+v\n", affectedRows)
 	}
+	fmt.Printf("Success! AffectedRows: %+v\n", affectedRows)
+}
 
-	// Query with metric
-	queryReq := greptime.QueryRequest{}
-	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
+func query() {
+	// Query with metric via Sql, you can do it via PromQL
+	req := greptime.QueryRequest{}
+	// if you want to specify another database, you can specify it via: `req.WithDatabase(database)`
+	req.WithSql(fmt.Sprintf("SELECT * FROM %s", table))
 
-	resMetric, err := client.Query(context.Background(), queryReq)
+	resMetric, err := client.Query(context.Background(), req)
 	if err != nil {
 		fmt.Printf("fail to query, err: %+v\n", err)
 		return
 	}
 
-	queryMonitors := []monitor{}
+	monitors := []monitor{}
 	for _, series := range resMetric.GetSeries() {
 		host, _ := series.Get("host")
 		ts, _ := series.GetTimestamp()
 		memory, _ := series.Get("memory")
 		cpu, _ := series.Get("cpu")
-		queryMonitors = append(queryMonitors, monitor{
+		monitors = append(monitors, monitor{
 			host:   host.(string),
 			ts:     ts,
 			memory: memory.(float64),
 			cpu:    cpu.(float64),
 		})
 	}
-	fmt.Printf("Query monitors from db: %+v", queryMonitors)
+	fmt.Printf("Query monitors from db: %+v\n", monitors)
+}
+
+func main() {
+	insert()
+	query()
 }

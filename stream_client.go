@@ -14,13 +14,13 @@ type StreamClient struct {
 }
 
 // NewStreamClient has better performance when inserting high cardinality data
-func NewStreamClient(cfg *Config, opts ...grpc.CallOption) (*StreamClient, error) {
+func NewStreamClient(cfg *Config) (*StreamClient, error) {
 	conn, err := grpc.Dial(cfg.Address, cfg.DialOptions...)
 	if err != nil {
 		return nil, err
 	}
 
-	client, err := greptimepb.NewGreptimeDatabaseClient(conn).HandleRequests(context.Background(), opts...)
+	client, err := greptimepb.NewGreptimeDatabaseClient(conn).HandleRequests(context.Background(), cfg.CallOptions...)
 	if err != nil {
 		return nil, err
 	}

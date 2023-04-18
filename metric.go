@@ -23,6 +23,7 @@ type Series struct {
 	columns map[string]column
 	vals    map[string]any
 
+	// required field
 	timestamp time.Time
 }
 
