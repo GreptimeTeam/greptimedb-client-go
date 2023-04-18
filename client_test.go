@@ -67,9 +67,7 @@ func init() {
 	if err := pool.Retry(func() error {
 		// TODO(vinland-avalon): some functions, like ping() to check if container is ready
 		time.Sleep(time.Second)
-		// grpcAddr = resource.GetHostPort("4001/tcp")
 		port, err = strconv.Atoi(resource.GetPort(("4001/tcp")))
-		fmt.Printf("==== port: %d\n", port)
 		if err != nil {
 			return err
 		}
