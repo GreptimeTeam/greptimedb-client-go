@@ -1,4 +1,4 @@
-package request
+package greptime
 
 import (
 	"bytes"
@@ -7,16 +7,20 @@ import (
 	"github.com/bits-and-blooms/bitset"
 )
 
-type Mask struct {
+// Mask is help to set null bits.
+type mask struct {
 	bs bitset.BitSet
 }
 
-func (n *Mask) set(idx uint) *Mask {
+// set is to set which position is to be set to 1
+func (n *mask) set(idx uint) *mask {
 	n.bs.Set(idx)
 	return n
 }
 
-func (n *Mask) shrink(bSize int) ([]byte, error) {
+// shrink is to help to generate the bytes number the caller is interested
+// via LittleEndian
+func (n *mask) shrink(bSize int) ([]byte, error) {
 	if n.bs.Len() == 0 {
 		return nil, nil
 	}
