@@ -4,15 +4,20 @@ import (
 	greptimepb "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
 
+// QueryRequest helps to query data from greptimedb.
+// At least one of Sql, Promql, RangePromql MUST be spicified.
+// The precedence takes places if multiple fields are specified:
+// - Sql
+// - Promql
+// - RangePromql
 type QueryRequest struct {
-	header header
-	sql    string
-
-	// Promql is not supported yet
-	promql      string
+	header      header
+	sql         string
+	promql      string // promql is not supported yet
 	rangePromql RangePromql
 }
 
+// WithDatabase helps to specify different database from the default one.
 func (r *QueryRequest) WithDatabase(database string) *QueryRequest {
 	r.header = header{
 		database: database,
@@ -25,13 +30,19 @@ func (r *QueryRequest) WithSql(sql string) *QueryRequest {
 	return r
 }
 
+// WithPromql is not supported yet
+func (r *QueryRequest) WithPromql(promql string) *QueryRequest {
+	r.promql = promql
+	return r
+}
+
 func (r *QueryRequest) WithRangePromql(rangePromql RangePromql) *QueryRequest {
 	r.rangePromql = rangePromql
 	return r
 }
 
 func (r *QueryRequest) isSqlEmpty() bool {
-	return IsEmptyString(r.sql)
+	return isEmptyString(r.sql)
 }
 
 func (r *QueryRequest) check() error {

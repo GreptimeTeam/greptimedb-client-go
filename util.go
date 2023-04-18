@@ -118,11 +118,11 @@ func precisionToDataType(d time.Duration) (greptimepb.ColumnDataType, error) {
 	}
 }
 
-func IsEmptyString(s string) bool {
+func isEmptyString(s string) bool {
 	return len(strings.TrimSpace(s)) == 0
 }
 
-func ToColumnName(s string) (string, error) {
+func toColumnName(s string) (string, error) {
 	s = strings.TrimSpace(s)
 
 	if len(s) == 0 {

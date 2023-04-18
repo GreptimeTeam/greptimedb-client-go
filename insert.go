@@ -4,6 +4,7 @@ import (
 	greptimepb "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
 
+// InsertRequest insert metric to specified table. You can also specify the database in header.
 type InsertRequest struct {
 	header header
 	table  string
@@ -20,6 +21,7 @@ func (r *InsertRequest) WithMetric(metric Metric) *InsertRequest {
 	return r
 }
 
+// WithDatabase helps to specify different database from the default one.
 func (r *InsertRequest) WithDatabase(database string) *InsertRequest {
 	r.header = header{
 		database: database,
@@ -37,7 +39,7 @@ func (r *InsertRequest) Build(cfg *Config) (*greptimepb.GreptimeRequest, error) 
 		return nil, err
 	}
 
-	if IsEmptyString(r.table) {
+	if isEmptyString(r.table) {
 		return nil, ErrEmptyTable
 	}
 
