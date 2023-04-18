@@ -50,7 +50,6 @@ func TestStreamInsert(t *testing.T) {
 		series := Series{}
 		series.AddTag("host", monitor.host)
 		series.SetTimestamp(monitor.ts)
-		fmt.Printf("ts in insert: %v\n", monitor.ts)
 		series.AddField("memory", monitor.memory)
 		series.AddField("cpu", monitor.cpu)
 		series.AddField("temperature", monitor.temperature)
@@ -84,7 +83,6 @@ func TestStreamInsert(t *testing.T) {
 
 		ts := series.GetTimestamp()
 
-		fmt.Printf("ts in query: %v\n", ts)
 		temperature, ok := series.Get("temperature")
 		assert.True(t, ok)
 		memory, ok := series.Get("memory")
