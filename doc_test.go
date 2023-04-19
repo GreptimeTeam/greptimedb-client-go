@@ -9,21 +9,26 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func Example() {
-	type monitor struct {
-		host   string
-		memory float64
-		cpu    float64
-		ts     time.Time
-	}
+type Monitor struct {
+	host   string
+	cpu    float64
+	memory int64
+	ts     time.Time
+}
 
-	var (
-		addr     string = "127.0.0.1"
-		table    string = "monitor" // whatever you want
-		database string = "public"  // dbname in `GCP`
-		username string = ""
-		password string = ""
-	)
+func (m Monitor) String() string {
+	return fmt.Sprintf("{%s,%.2f,%d}", m.host, m.cpu, m.memory)
+}
+
+func Example() {
+	// leave `addr`, `database`, `username`, `password` untouched in local machine,
+	// but in GreptimeCloud you need to create a service in advance
+	addr := "127.0.0.1"
+	database := "public"
+	username, password := "", "" // authentication of one service
+
+	// replace with your table name
+	table := fmt.Sprintf("monitor_%d", time.Now().Unix())
 
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -34,7 +39,8 @@ func Example() {
 	cfg := NewCfg(addr).
 		WithDatabase(database).
 		WithAuth(username, password).
-		WithDialOptions(options...)
+		WithDialOptions(options...). // specify your gRPC dail options
+		WithCallOptions()            // specify your gRPC call options
 
 	client, err := NewClient(cfg)
 	if err != nil {
@@ -42,36 +48,34 @@ func Example() {
 	}
 
 	// inserting
-	// Create a Series
-	series := Series{}
-	series.AddTag("host", "localhost")
-	series.SetTimestamp(time.Now()) // requird
-	series.AddField("cpu", 0.90)
-	series.AddField("memory", 1024.0)
+	series := Series{}                 // Create one row of data
+	series.AddTag("host", "localhost") // add index column, for query efficiency
+	series.AddField("cpu", 0.90)       // add value column
+	series.AddField("memory", 1024)    // add value column
+	series.SetTimestamp(time.Now())    // requird
 
-	// Create a Metric and add the Series
-	metric := Metric{}
+	metric := Metric{} // Create a Metric and add the Series
 	metric.AddSeries(series)
 
 	// Create an InsertRequest using fluent style
-	// If the table does not exist, automatically create one with Insert
+	// the specified table will be created automatically if it's not exist
 	insertRequest := InsertRequest{}
 	// if you want to specify another database, you can specify it via: `WithDatabase(database)`
-	insertRequest.WithTable(table).WithMetric(metric)
+	insertRequest.WithTable(table).WithMetric(metric) // .WithDatabase(database)
 
-	// Do the real Insert and Get the result
+	// Fire the real Insert request and Get the affected number of rows
 	n, err := client.Insert(context.Background(), insertRequest)
 	if err != nil {
 		fmt.Printf("fail to insert, err: %+v\n", err)
 		return
 	}
-	fmt.Printf("Success! AffectedRows: %d\n", n)
+	fmt.Printf("AffectedRows: %d\n", n)
 
 	// quering
 	// Query with metric via Sql, you can do it via PromQL
 	queryRequest := QueryRequest{}
 	// if you want to specify another database, you can specify it via: `WithDatabase(database)`
-	queryRequest.WithSql("SELECT * FROM " + table)
+	queryRequest.WithSql("SELECT * FROM " + table) // .WithDatabase(database)
 
 	resMetric, err := client.Query(context.Background(), queryRequest)
 	if err != nil {
@@ -79,19 +83,18 @@ func Example() {
 		return
 	}
 
-	monitors := []monitor{}
+	monitors := []Monitor{}
 	for _, series := range resMetric.GetSeries() {
-		host, _ := series.Get("host")
-		ts := series.GetTimestamp()
-		memory, _ := series.Get("memory")
-		cpu, _ := series.Get("cpu")
-		monitors = append(monitors, monitor{
-			host:   host.(string),
-			ts:     ts,
-			memory: memory.(float64),
-			cpu:    cpu.(float64),
-		})
+		one := &Monitor{}
+		host, exist := series.Get("host") // you can directly call Get and do the type assertion
+		if exist {
+			one.host = host.(string)
+		}
+		one.cpu, _ = series.GetFloat("cpu")     // you can directly GetFloat
+		one.memory, _ = series.GetInt("memory") // you can directly GetInt
+		one.ts = series.GetTimestamp()          // GetTimestamp
+		monitors = append(monitors, *one)
 	}
-	fmt.Printf("Query monitors from db: %+v\n", monitors)
-
+	fmt.Println(len(monitors) == 1)
+	fmt.Println(monitors[0])
 }

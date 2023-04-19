@@ -15,6 +15,15 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+type monitor struct {
+	host        string
+	memory      uint64
+	cpu         float64
+	temperature int64
+	ts          time.Time
+	isAuthed    bool
+}
+
 var (
 	database = "public"
 	addr     = "127.0.0.1"
@@ -77,15 +86,6 @@ func init() {
 	}
 }
 
-type monitor struct {
-	host        string
-	memory      uint64
-	cpu         float64
-	temperature int64
-	ts          time.Time
-	isAuthed    bool
-}
-
 func TestInsertAndQueryWithSql(t *testing.T) {
 	table := "test_insert_and_query_with_sql"
 	insertMonitors := []monitor{
@@ -146,24 +146,25 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 
 	queryMonitors := []monitor{}
 	for _, series := range resMetric.GetSeries() {
-		host, ok := series.Get("host")
+		host, ok := series.GetString("host")
 		assert.True(t, ok)
+		temperature, ok := series.GetInt("temperature")
+		assert.True(t, ok)
+		memory, ok := series.GetUint("memory")
+		assert.True(t, ok)
+		cpu, ok := series.GetFloat("cpu")
+		assert.True(t, ok)
+		isAuthed, ok := series.GetBool("is_authed")
+		assert.True(t, ok)
+
 		ts := series.GetTimestamp()
-		temperature, ok := series.Get("temperature")
-		assert.True(t, ok)
-		memory, ok := series.Get("memory")
-		assert.True(t, ok)
-		cpu, ok := series.Get("cpu")
-		assert.True(t, ok)
-		isAuthed, ok := series.Get("is_authed")
-		assert.True(t, ok)
 		queryMonitors = append(queryMonitors, monitor{
-			host:        host.(string),
+			host:        host,
 			ts:          ts,
-			memory:      memory.(uint64),
-			cpu:         cpu.(float64),
-			temperature: temperature.(int64),
-			isAuthed:    isAuthed.(bool),
+			memory:      memory,
+			cpu:         cpu,
+			temperature: temperature,
+			isAuthed:    isAuthed,
 		})
 	}
 	assert.Equal(t, insertMonitors, queryMonitors)
@@ -382,13 +383,16 @@ func TestDataTypes(t *testing.T) {
 	series.AddTag("int16_v", data.int16V)
 	series.AddTag("int8_v", data.int8V)
 	series.AddTag("int_v", data.intV)
+
 	series.AddTag("uint64_v", data.uint64V)
 	series.AddField("uint32_v", data.uint32V)
 	series.AddField("uint16_v", data.uint16V)
 	series.AddField("uint8_v", data.uint8V)
 	series.AddField("uint_v", data.uintV)
+
 	series.AddField("float64_v", data.float64V)
 	series.AddField("float32_v", data.float32V)
+
 	series.AddField("string_v", data.stringV)
 	series.AddField("byte_v", data.byteV)
 	series.AddField("bool_v", data.boolV)
@@ -411,54 +415,54 @@ func TestDataTypes(t *testing.T) {
 	assert.Equal(t, 1, len(resMetric.GetSeries()))
 
 	series = resMetric.GetSeries()[0]
-	int64V, ok := series.Get("int64_v")
+	int64V, ok := series.GetInt("int64_v")
 	assert.True(t, ok)
-	int32V, ok := series.Get("int32_v")
+	int32V, ok := series.GetInt("int32_v")
 	assert.True(t, ok)
-	int16V, ok := series.Get("int16_v")
+	int16V, ok := series.GetInt("int16_v")
 	assert.True(t, ok)
-	int8V, ok := series.Get("int8_v")
+	int8V, ok := series.GetInt("int8_v")
 	assert.True(t, ok)
-	intV, ok := series.Get("int_v")
+	intV, ok := series.GetInt("int_v")
 	assert.True(t, ok)
-	uint64V, ok := series.Get("uint64_v")
+	uint64V, ok := series.GetUint("uint64_v")
 	assert.True(t, ok)
-	uint32V, ok := series.Get("uint32_v")
+	uint32V, ok := series.GetUint("uint32_v")
 	assert.True(t, ok)
-	uint16V, ok := series.Get("uint16_v")
+	uint16V, ok := series.GetUint("uint16_v")
 	assert.True(t, ok)
-	uint8V, ok := series.Get("uint8_v")
+	uint8V, ok := series.GetUint("uint8_v")
 	assert.True(t, ok)
-	uintV, ok := series.Get("uint_v")
+	uintV, ok := series.GetUint("uint_v")
 	assert.True(t, ok)
-	float64V, ok := series.Get("float64_v")
+	float64V, ok := series.GetFloat("float64_v")
 	assert.True(t, ok)
-	float32V, ok := series.Get("float32_v")
+	float32V, ok := series.GetFloat("float32_v")
 	assert.True(t, ok)
-	stringV, ok := series.Get("string_v")
+	stringV, ok := series.GetString("string_v")
 	assert.True(t, ok)
-	byteV, ok := series.Get("byte_v")
+	byteV, ok := series.GetBytes("byte_v")
 	assert.True(t, ok)
-	boolV, ok := series.Get("bool_v")
+	boolV, ok := series.GetBool("bool_v")
 	assert.True(t, ok)
 	timeV := series.GetTimestamp()
 
 	querydata := datatype{
-		int64V:   int64V.(int64),
-		int32V:   int32V.(int32),
-		int16V:   int16(int16V.(int32)),
-		int8V:    int8(int8V.(int32)),
-		intV:     int(intV.(int64)),
-		uint64V:  uint64V.(uint64),
-		uint32V:  uint32V.(uint32),
-		uint16V:  uint16(uint16V.(uint32)),
-		uint8V:   uint8(uint8V.(uint32)),
-		uintV:    uint(uintV.(uint64)),
-		float64V: float64V.(float64),
-		float32V: float32(float32V.(float64)),
-		stringV:  stringV.(string),
-		byteV:    []byte(byteV.(string)),
-		boolV:    boolV.(bool),
+		int64V:   int64V,
+		int32V:   int32(int32V),
+		int16V:   int16(int16V),
+		int8V:    int8(int8V),
+		intV:     int(intV),
+		uint64V:  uint64V,
+		uint32V:  uint32(uint32V),
+		uint16V:  uint16(uint16V),
+		uint8V:   uint8(uint8V),
+		uintV:    uint(uintV),
+		float64V: float64V,
+		float32V: float32(float32V),
+		stringV:  stringV,
+		byteV:    byteV,
+		boolV:    boolV,
 		timeV:    timeV,
 	}
 	assert.Equal(t, data, querydata)

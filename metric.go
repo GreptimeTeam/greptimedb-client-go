@@ -54,8 +54,93 @@ func (s *Series) GetTagsAndFields() []string {
 // Get helps to get value of specifid column. The second return value
 // indicates if the key was present in Series
 func (s *Series) Get(key string) (any, bool) {
-	val, ok := s.vals[key]
-	return val, ok
+	val, exist := s.vals[key]
+	return val, exist
+}
+
+func (s *Series) GetUint(key string) (uint64, bool) {
+	val, exist := s.Get(key)
+	if !exist {
+		return 0, exist
+	}
+
+	switch val.(type) {
+	case uint64:
+		return val.(uint64), true
+	case uint32:
+		return uint64(val.(uint32)), true
+	case uint16:
+		return uint64(val.(uint16)), true
+	case uint8:
+		return uint64(val.(uint8)), true
+	default:
+		return 0, false
+	}
+}
+
+func (s *Series) GetInt(key string) (int64, bool) {
+	val, exist := s.Get(key)
+	if !exist {
+		return 0, exist
+	}
+
+	switch val.(type) {
+	case int64:
+		return val.(int64), true
+	case int32:
+		return int64(val.(int32)), true
+	case int16:
+		return int64(val.(int16)), true
+	case int8:
+		return int64(val.(int8)), true
+	default:
+		return 0, false
+	}
+}
+
+func (s *Series) GetFloat(key string) (float64, bool) {
+	val, exist := s.Get(key)
+	if !exist {
+		return 0, exist
+	}
+
+	switch val.(type) {
+	case float64:
+		return val.(float64), true
+	case float32:
+		return float64(val.(float32)), true
+	default:
+		return 0, false
+	}
+}
+
+func (s *Series) GetBool(key string) (bool, bool) {
+	val, exist := s.Get(key)
+	if !exist {
+		return false, exist
+	}
+
+	v, ok := val.(bool)
+	return v, ok
+}
+
+func (s *Series) GetString(key string) (string, bool) {
+	val, exist := s.Get(key)
+	if !exist {
+		return "", exist
+	}
+
+	v, ok := val.(string)
+	return v, ok
+}
+
+func (s *Series) GetBytes(key string) ([]byte, bool) {
+	val, exist := s.GetString(key)
+	if !exist {
+		return nil, exist
+	}
+
+	return []byte(val), true
 }
 
 // GetTimestamp get timestamp field
