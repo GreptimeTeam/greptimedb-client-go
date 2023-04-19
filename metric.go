@@ -59,12 +59,11 @@ func buildMetricFromReader(r *flight.Reader) (*Metric, error) {
 	}
 
 	record, err := r.Reader.Read()
+	if err == io.EOF {
+		return &metric, nil
+	}
 	if err != nil {
-		if err == io.EOF {
-			return &metric, nil
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	fields := r.Schema().Fields()

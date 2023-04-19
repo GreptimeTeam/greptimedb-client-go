@@ -28,6 +28,16 @@ func TestPromQL(t *testing.T) {
 	// TODO(yuanbohan): waiting for gRPC server
 }
 
+func TestRangePromqlEmptyStep(t *testing.T) {
+	rp := RangePromql{
+		Query: "up",
+		Start: time.Unix(1677728740, 0),
+		End:   time.Unix(1677728740, 0),
+	}
+
+	assert.ErrorIs(t, rp.check(), ErrEmptyStep)
+}
+
 func TestInsertAndQueryWithRangePromQL(t *testing.T) {
 	table := "test_insert_and_query_with_range_promql"
 	insertMonitors := []monitor{
@@ -74,11 +84,11 @@ func TestInsertAndQueryWithRangePromQL(t *testing.T) {
 	queryReq := QueryRequest{}
 	rp := RangePromql{
 		Query: table,
-		Start: time.Unix(1677728740, 0),
-		End:   time.Unix(1677728740, 0),
-		Step:  "50s",
+		// Start: time.Unix(1677728740, 0),
+		// End:   time.Unix(1677728740, 0),
+		Step: "50s",
 	}
-	// rp.WithStartSecond(1677728740).WithEndSecond(1677728740)
+	rp.WithStartSecond(1677728740).WithEndSecond(1677728740)
 	queryReq.WithRangePromql(rp).WithDatabase(database)
 
 	resMetric, err := client.Query(context.Background(), queryReq)

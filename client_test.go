@@ -100,6 +100,33 @@ func init() {
 	}
 }
 
+func newClient(t *testing.T) *Client {
+	options := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+	cfg := NewCfg(addr).WithPort(port).WithDatabase(database).WithDialOptions(options...)
+	client, err := NewClient(cfg)
+	assert.Nil(t, err)
+	return client
+}
+
+func TestInvalidClient(t *testing.T) {
+	options := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+		grpc.WithTimeout(time.Second),
+	}
+	cfg := NewCfg("invalid addr").WithPort(port).WithDatabase(database).WithDialOptions(options...)
+	client, err := NewClient(cfg)
+	assert.Nil(t, client)
+	assert.NotNil(t, err)
+
+	cfg = NewCfg(addr).WithPort(1111).WithDatabase(database).WithDialOptions(options...)
+	client, err = NewClient(cfg)
+	assert.Nil(t, client)
+	assert.NotNil(t, err)
+}
+
 func TestInsertAndQueryWithSql(t *testing.T) {
 	table := "test_insert_and_query_with_sql"
 	insertMonitors := []monitor{
@@ -120,13 +147,7 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 			isAuthed:    true,
 		},
 	}
-
-	options := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	}
-	cfg := NewCfg(addr).WithPort(port).WithDatabase(database).WithDialOptions(options...)
-	client, err := NewClient(cfg)
-	assert.Nil(t, err)
+	client := newClient(t)
 
 	metric := Metric{}
 	metric.SetTimePrecision(time.Microsecond)
@@ -194,13 +215,7 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 
 func TestPrecisionSecond(t *testing.T) {
 	table := "test_precision_second"
-	options := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	}
-	cfg := NewCfg(addr).WithPort(port).WithDatabase(database).WithDialOptions(options...)
-
-	client, err := NewClient(cfg)
-	assert.Nil(t, err)
+	client := newClient(t)
 
 	nano := time.Unix(1677728740, 123456789)
 	micro := time.UnixMicro(nano.UnixMicro())
@@ -211,8 +226,8 @@ func TestPrecisionSecond(t *testing.T) {
 	series.SetTimestamp(nano)
 	metric := Metric{}
 	metric.AddSeries(series)
-	// We set the precision as second
-	metric.SetTimePrecision(time.Second)
+	// We set the precision as nanosecond
+	metric.SetTimePrecision(time.Nanosecond)
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric).WithDatabase(database)
 	n, err := client.Insert(context.Background(), req)
@@ -227,9 +242,9 @@ func TestPrecisionSecond(t *testing.T) {
 
 	resTime := resMetric.GetSeries()[0].GetTimestamp()
 	// since the precision is second, others should not equal
-	assert.Equal(t, sec, resTime)
+	assert.Equal(t, nano, resTime)
+	assert.NotEqual(t, sec, resTime)
 	assert.NotEqual(t, milli, resTime)
-	assert.NotEqual(t, nano, resTime)
 	assert.NotEqual(t, micro, resTime)
 }
 
@@ -247,15 +262,9 @@ func TestNilInColumn(t *testing.T) {
 		},
 	}
 
+	client := newClient(t)
+
 	// Insert
-	options := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	}
-	cfg := NewCfg(addr).WithPort(port).WithDatabase(database).WithDialOptions(options...)
-
-	client, err := NewClient(cfg)
-	assert.Nil(t, err)
-
 	metric := Metric{}
 	metric.SetTimePrecision(time.Microsecond)
 
@@ -316,9 +325,8 @@ func TestNoNeedAuth(t *testing.T) {
 	assert.Nil(t, err)
 
 	nano := time.Unix(1677728740, 123456789)
-
 	series := Series{}
-	series.SetTimestamp(nano)
+	series.SetTimestamp(time.Now())
 	metric := Metric{}
 	metric.AddSeries(series)
 
@@ -337,6 +345,173 @@ func TestNoNeedAuth(t *testing.T) {
 	resTime := resMetric.GetSeries()[0].GetTimestamp()
 	// since the precision is second, others should not equal
 	assert.NotEqual(t, nano, resTime)
+}
+
+func TestInsertSameColumnWithDifferentType(t *testing.T) {
+	table := "insert_same_column_with_different_type"
+	client := newClient(t)
+
+	// insert at first
+	series := Series{}
+	series.AddIntTag("count", 1)
+	series.SetTimestamp(time.Now())
+	metric := Metric{}
+	metric.AddSeries(series)
+
+	req := InsertRequest{}
+	req.WithTable(table).WithMetric(metric)
+	n, err := client.Insert(context.Background(), req)
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(1), n)
+
+	// insert again but with different type
+	series = Series{}
+	series.AddFloatTag("count", 1)
+	series.SetTimestamp(time.Now())
+	metric = Metric{}
+	metric.AddSeries(series)
+
+	req = InsertRequest{}
+	req.WithTable(table).WithMetric(metric)
+	n, err = client.Insert(context.Background(), req)
+	assert.NotNil(t, err)
+	assert.ErrorContains(t, err, "Type of column count does not match type in schema, expect Int64(Int64Type), given Float64(Float64Type)")
+}
+
+func TestInsertTimestampWithDifferentPrecision(t *testing.T) {
+	table := "insert_timestamp_with_different_precision"
+	client := newClient(t)
+
+	// insert with Second precision at first
+	series := Series{}
+	series.AddIntTag("count", 1)
+	series.SetTimestamp(time.Now())
+	metric := Metric{}
+	metric.AddSeries(series)
+	metric.SetTimePrecision(time.Second)
+
+	req := InsertRequest{}
+	req.WithTable(table).WithMetric(metric)
+	n, err := client.Insert(context.Background(), req)
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(1), n)
+
+	// insert again but with different type
+	series = Series{}
+	series.AddIntTag("count", 1)
+	series.SetTimestamp(time.Now())
+	metric = Metric{}
+	metric.AddSeries(series)
+	metric.SetTimePrecision(time.Millisecond)
+
+	req = InsertRequest{}
+	req.WithTable(table).WithMetric(metric)
+	n, err = client.Insert(context.Background(), req)
+	assert.NotNil(t, err)
+	assert.ErrorContains(t, err, "Type of column ts does not match type in schema, expect Timestamp(Second(TimestampSecondType)), given Timestamp(Millisecond(TimestampMillisecondType))")
+}
+
+func TestGetNonMatchedTypeColumn(t *testing.T) {
+	table := "get_non_matched_type_column"
+	client := newClient(t)
+
+	column := "count"
+	var val int64 = 1
+	series := Series{}
+	series.AddIntTag(column, 1) // int64 type
+	series.SetTimestamp(time.Now())
+	metric := Metric{}
+	metric.AddSeries(series)
+	metric.SetTimePrecision(time.Second)
+
+	req := InsertRequest{}
+	req.WithTable(table).WithMetric(metric)
+	n, err := client.Insert(context.Background(), req)
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(1), n)
+
+	// Query with metric
+	queryReq := QueryRequest{}
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table))
+
+	resMetric, err := client.Query(context.Background(), queryReq)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(resMetric.GetSeries()))
+
+	// get non exist column
+	series = resMetric.GetSeries()[0]
+
+	v, ok := series.Get(column)
+	assert.True(t, ok)
+	assert.Equal(t, val, v)
+
+	v, ok = series.GetInt(column)
+	assert.True(t, ok)
+	assert.Equal(t, val, v)
+
+	_, ok = series.GetUint(column)
+	assert.False(t, ok)
+
+	_, ok = series.GetFloat(column)
+	assert.False(t, ok)
+
+	_, ok = series.GetBool(column)
+	assert.False(t, ok)
+
+	_, ok = series.GetString(column)
+	assert.False(t, ok)
+
+	_, ok = series.GetBytes(column)
+	assert.False(t, ok)
+}
+
+func TestGetNotExistColumn(t *testing.T) {
+	table := "get_not_exist_column"
+	client := newClient(t)
+
+	series := Series{}
+	series.AddIntTag("count", 1)
+	series.SetTimestamp(time.Now())
+	metric := Metric{}
+	metric.AddSeries(series)
+	metric.SetTimePrecision(time.Second)
+
+	req := InsertRequest{}
+	req.WithTable(table).WithMetric(metric)
+	n, err := client.Insert(context.Background(), req)
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(1), n)
+
+	// Query with metric
+	queryReq := QueryRequest{}
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table))
+
+	resMetric, err := client.Query(context.Background(), queryReq)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(resMetric.GetSeries()))
+
+	// get non exist column
+	series = resMetric.GetSeries()[0]
+	_, ok := series.Get("non_exist")
+	assert.False(t, ok)
+
+	_, ok = series.GetInt("non_exist")
+	assert.False(t, ok)
+
+	_, ok = series.GetUint("non_exist")
+	assert.False(t, ok)
+
+	_, ok = series.GetFloat("non_exist")
+	assert.False(t, ok)
+
+	_, ok = series.GetBool("non_exist")
+	assert.False(t, ok)
+
+	_, ok = series.GetString("non_exist")
+	assert.False(t, ok)
+
+	_, ok = series.GetBytes("non_exist")
+	assert.False(t, ok)
 }
 
 func TestDataTypes(t *testing.T) {
@@ -379,15 +554,9 @@ func TestDataTypes(t *testing.T) {
 		timeV:    time.UnixMilli(1677728740012),
 	}
 
+	client := newClient(t)
+
 	// Insert
-	options := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	}
-	cfg := NewCfg(addr).WithPort(port).WithDatabase(database).WithDialOptions(options...)
-
-	client, err := NewClient(cfg)
-	assert.Nil(t, err)
-
 	metric := Metric{}
 	metric.SetTimestampAlias("time_v")
 
