@@ -9,17 +9,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type Monitor struct {
-	host   string
-	cpu    float64
-	memory int64
-	ts     time.Time
-}
-
-func (m Monitor) String() string {
-	return fmt.Sprintf("{%s,%.2f,%d}", m.host, m.cpu, m.memory)
-}
-
 func Example() {
 	// leave `addr`, `database`, `username`, `password` untouched in local machine,
 	// but in GreptimeCloud you need to create a service in advance
@@ -48,11 +37,11 @@ func Example() {
 	}
 
 	// inserting
-	series := Series{}                 // Create one row of data
-	series.AddTag("host", "localhost") // add index column, for query efficiency
-	series.AddField("cpu", 0.90)       // add value column
-	series.AddField("memory", 1024)    // add value column
-	series.SetTimestamp(time.Now())    // requird
+	series := Series{}                       // Create one row of data
+	series.AddStringTag("host", "localhost") // add index column, for query efficiency
+	series.AddFloatField("cpu", 0.90)        // add value column
+	series.AddIntField("memory", 1024)       // add value column
+	series.SetTimestamp(time.Now())          // requird
 
 	metric := Metric{} // Create a Metric and add the Series
 	metric.AddSeries(series)
@@ -83,6 +72,13 @@ func Example() {
 		return
 	}
 
+	type Monitor struct {
+		host   string
+		cpu    float64
+		memory int64
+		ts     time.Time
+	}
+
 	monitors := []Monitor{}
 	for _, series := range resMetric.GetSeries() {
 		one := &Monitor{}
@@ -90,11 +86,10 @@ func Example() {
 		if exist {
 			one.host = host.(string)
 		}
-		one.cpu, _ = series.GetFloat("cpu")     // you can directly GetFloat
-		one.memory, _ = series.GetInt("memory") // you can directly GetInt
+		one.cpu, _ = series.GetFloat("cpu")     // also, you can directly GetFloat
+		one.memory, _ = series.GetInt("memory") // also, you can directly GetInt
 		one.ts = series.GetTimestamp()          // GetTimestamp
 		monitors = append(monitors, *one)
 	}
-	fmt.Println(len(monitors) == 1)
-	fmt.Println(monitors[0])
+	fmt.Println(monitors)
 }
