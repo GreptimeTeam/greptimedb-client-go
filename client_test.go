@@ -378,25 +378,49 @@ func TestDataTypes(t *testing.T) {
 	metric.SetTimestampAlias("time_v")
 
 	series := Series{}
-	series.AddTag("int64_v", data.int64V)
-	series.AddTag("int32_v", data.int32V)
-	series.AddTag("int16_v", data.int16V)
-	series.AddTag("int8_v", data.int8V)
-	series.AddTag("int_v", data.intV)
+	// int
+	assert.Nil(t, series.AddIntTag("int64_v_tag", data.int64V))
+	assert.Nil(t, series.AddTag("int32_v_tag", data.int32V))
+	assert.Nil(t, series.AddTag("int16_v_tag", data.int16V))
+	assert.Nil(t, series.AddTag("int8_v_tag", data.int8V))
+	assert.Nil(t, series.AddTag("int_v_tag", data.intV))
+	assert.Nil(t, series.AddIntField("int64_v_field", data.int64V))
+	assert.Nil(t, series.AddField("int32_v_field", data.int32V))
+	assert.Nil(t, series.AddField("int16_v_field", data.int16V))
+	assert.Nil(t, series.AddField("int8_v_field", data.int8V))
+	assert.Nil(t, series.AddField("int_v_field", data.intV))
 
-	series.AddTag("uint64_v", data.uint64V)
-	series.AddField("uint32_v", data.uint32V)
-	series.AddField("uint16_v", data.uint16V)
-	series.AddField("uint8_v", data.uint8V)
-	series.AddField("uint_v", data.uintV)
+	// uint
+	assert.Nil(t, series.AddUintTag("uint64_v_tag", data.uint64V))
+	assert.Nil(t, series.AddTag("uint32_v_tag", data.uint32V))
+	assert.Nil(t, series.AddTag("uint16_v_tag", data.uint16V))
+	assert.Nil(t, series.AddTag("uint8_v_tag", data.uint8V))
+	assert.Nil(t, series.AddTag("uint_v_tag", data.uintV))
+	assert.Nil(t, series.AddUintField("uint64_v_field", data.uint64V))
+	assert.Nil(t, series.AddField("uint32_v_field", data.uint32V))
+	assert.Nil(t, series.AddField("uint16_v_field", data.uint16V))
+	assert.Nil(t, series.AddField("uint8_v_field", data.uint8V))
+	assert.Nil(t, series.AddField("uint_v_field", data.uintV))
 
-	series.AddField("float64_v", data.float64V)
-	series.AddField("float32_v", data.float32V)
+	// float
+	assert.Nil(t, series.AddFloatTag("float64_v_tag", data.float64V))
+	assert.Nil(t, series.AddTag("float32_v_tag", data.float32V))
+	assert.Nil(t, series.AddFloatField("float64_v_field", data.float64V))
+	assert.Nil(t, series.AddField("float32_v_field", data.float32V))
 
-	series.AddField("string_v", data.stringV)
-	series.AddField("byte_v", data.byteV)
-	series.AddField("bool_v", data.boolV)
-	series.SetTimestamp(data.timeV)
+	// string
+	assert.Nil(t, series.AddStringTag("string_v_tag", data.stringV))
+	assert.Nil(t, series.AddStringField("string_v_field", data.stringV))
+
+	// bytes
+	assert.Nil(t, series.AddBytesTag("byte_v_tag", data.byteV))
+	assert.Nil(t, series.AddBytesField("byte_v_field", data.byteV))
+
+	// bool
+	assert.Nil(t, series.AddBoolTag("bool_v_tag", data.boolV))
+	assert.Nil(t, series.AddBoolField("bool_v_field", data.boolV))
+
+	assert.Nil(t, series.SetTimestamp(data.timeV))
 	metric.AddSeries(series)
 
 	req := InsertRequest{}
@@ -415,36 +439,84 @@ func TestDataTypes(t *testing.T) {
 	assert.Equal(t, 1, len(resMetric.GetSeries()))
 
 	series = resMetric.GetSeries()[0]
-	int64V, ok := series.GetInt("int64_v")
+	// int
+	int64V, ok := series.GetInt("int64_v_tag")
 	assert.True(t, ok)
-	int32V, ok := series.GetInt("int32_v")
+	int32V, ok := series.GetInt("int32_v_tag")
 	assert.True(t, ok)
-	int16V, ok := series.GetInt("int16_v")
+	int16V, ok := series.GetInt("int16_v_tag")
 	assert.True(t, ok)
-	int8V, ok := series.GetInt("int8_v")
+	int8V, ok := series.GetInt("int8_v_tag")
 	assert.True(t, ok)
-	intV, ok := series.GetInt("int_v")
+	intV, ok := series.GetInt("int_v_tag")
 	assert.True(t, ok)
-	uint64V, ok := series.GetUint("uint64_v")
+
+	_, ok = series.GetInt("int64_v_field")
 	assert.True(t, ok)
-	uint32V, ok := series.GetUint("uint32_v")
+	_, ok = series.GetInt("int32_v_field")
 	assert.True(t, ok)
-	uint16V, ok := series.GetUint("uint16_v")
+	_, ok = series.GetInt("int16_v_field")
 	assert.True(t, ok)
-	uint8V, ok := series.GetUint("uint8_v")
+	_, ok = series.GetInt("int8_v_field")
 	assert.True(t, ok)
-	uintV, ok := series.GetUint("uint_v")
+	_, ok = series.GetInt("int_v_field")
 	assert.True(t, ok)
-	float64V, ok := series.GetFloat("float64_v")
+
+	// uint
+	uint64V, ok := series.GetUint("uint64_v_tag")
 	assert.True(t, ok)
-	float32V, ok := series.GetFloat("float32_v")
+	uint32V, ok := series.GetUint("uint32_v_tag")
 	assert.True(t, ok)
-	stringV, ok := series.GetString("string_v")
+	uint16V, ok := series.GetUint("uint16_v_tag")
 	assert.True(t, ok)
-	byteV, ok := series.GetBytes("byte_v")
+	uint8V, ok := series.GetUint("uint8_v_tag")
 	assert.True(t, ok)
-	boolV, ok := series.GetBool("bool_v")
+	uintV, ok := series.GetUint("uint_v_tag")
 	assert.True(t, ok)
+
+	_, ok = series.GetUint("uint64_v_field")
+	assert.True(t, ok)
+	_, ok = series.GetUint("uint32_v_field")
+	assert.True(t, ok)
+	_, ok = series.GetUint("uint16_v_field")
+	assert.True(t, ok)
+	_, ok = series.GetUint("uint8_v_field")
+	assert.True(t, ok)
+	_, ok = series.GetUint("uint_v_field")
+	assert.True(t, ok)
+
+	// float
+	float64V, ok := series.GetFloat("float64_v_tag")
+	assert.True(t, ok)
+	float32V, ok := series.GetFloat("float32_v_tag")
+	assert.True(t, ok)
+
+	_, ok = series.GetFloat("float64_v_field")
+	assert.True(t, ok)
+	_, ok = series.GetFloat("float32_v_field")
+	assert.True(t, ok)
+
+	// string
+	stringV, ok := series.GetString("string_v_tag")
+	assert.True(t, ok)
+
+	_, ok = series.GetString("string_v_field")
+	assert.True(t, ok)
+
+	// bytes
+	byteV, ok := series.GetBytes("byte_v_tag")
+	assert.True(t, ok)
+
+	_, ok = series.GetBytes("byte_v_field")
+	assert.True(t, ok)
+
+	// bool
+	boolV, ok := series.GetBool("bool_v_tag")
+	assert.True(t, ok)
+
+	_, ok = series.GetBool("bool_v_field")
+	assert.True(t, ok)
+
 	timeV := series.GetTimestamp()
 
 	querydata := datatype{
