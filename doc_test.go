@@ -42,24 +42,22 @@ func Example() {
 	}
 
 	// inserting
-	// Create a Series
-	series := Series{}
-	series.AddTag("host", "localhost")
-	series.SetTimestamp(time.Now()) // requird
-	series.AddField("cpu", 0.90)
-	series.AddField("memory", 1024.0)
+	series := Series{}                 // Create one row of data
+	series.AddTag("host", "localhost") // index, for query efficiency
+	series.AddField("cpu", 0.90)       // value
+	series.AddField("memory", 1024.0)  // value
+	series.SetTimestamp(time.Now())    // requird
 
-	// Create a Metric and add the Series
-	metric := Metric{}
+	metric := Metric{} // Create a Metric and add the Series
 	metric.AddSeries(series)
 
 	// Create an InsertRequest using fluent style
-	// If the table does not exist, automatically create one with Insert
+	// the specified table will be created automatically if it's not exist
 	insertRequest := InsertRequest{}
 	// if you want to specify another database, you can specify it via: `WithDatabase(database)`
-	insertRequest.WithTable(table).WithMetric(metric)
+	insertRequest.WithTable(table).WithMetric(metric) // .WithDatabase(database)
 
-	// Do the real Insert and Get the result
+	// Fire the real Insert request and Get the affected number of rows
 	n, err := client.Insert(context.Background(), insertRequest)
 	if err != nil {
 		fmt.Printf("fail to insert, err: %+v\n", err)
@@ -71,7 +69,7 @@ func Example() {
 	// Query with metric via Sql, you can do it via PromQL
 	queryRequest := QueryRequest{}
 	// if you want to specify another database, you can specify it via: `WithDatabase(database)`
-	queryRequest.WithSql("SELECT * FROM " + table)
+	queryRequest.WithSql("SELECT * FROM " + table) // .WithDatabase(database)
 
 	resMetric, err := client.Query(context.Background(), queryRequest)
 	if err != nil {
@@ -81,17 +79,15 @@ func Example() {
 
 	monitors := []monitor{}
 	for _, series := range resMetric.GetSeries() {
-		host, _ := series.Get("host")
-		ts := series.GetTimestamp()
-		memory, _ := series.Get("memory")
-		cpu, _ := series.Get("cpu")
-		monitors = append(monitors, monitor{
-			host:   host.(string),
-			ts:     ts,
-			memory: memory.(float64),
-			cpu:    cpu.(float64),
-		})
+		one := &monitor{}
+		host, exist := series.Get("host") // you can directly call Get and do the type assertion
+		if exist {
+			one.host = host.(string)
+		}
+		one.memory, _ = series.GetFloat("memory") // you can directly GetFloat
+		one.cpu, _ = series.GetFloat("cpu")       // you can directly GetFloat
+		one.ts = series.GetTimestamp()            // GetTimestamp
+		monitors = append(monitors, *one)
 	}
 	fmt.Printf("Query monitors from db: %+v\n", monitors)
-
 }
