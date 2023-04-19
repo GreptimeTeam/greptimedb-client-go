@@ -15,6 +15,15 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+type monitor struct {
+	host        string
+	memory      uint64
+	cpu         float64
+	temperature int64
+	ts          time.Time
+	isAuthed    bool
+}
+
 var (
 	database = "public"
 	addr     = "127.0.0.1"
@@ -75,15 +84,6 @@ func init() {
 	}); err != nil {
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
-}
-
-type monitor struct {
-	host        string
-	memory      uint64
-	cpu         float64
-	temperature int64
-	ts          time.Time
-	isAuthed    bool
 }
 
 func TestInsertAndQueryWithSql(t *testing.T) {

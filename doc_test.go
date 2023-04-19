@@ -9,21 +9,26 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func Example() {
-	type monitor struct {
-		host   string
-		memory float64
-		cpu    float64
-		ts     time.Time
-	}
+type Monitor struct {
+	host   string
+	cpu    float64
+	memory int64
+	ts     time.Time
+}
 
-	var (
-		addr     string = "127.0.0.1"
-		table    string = "monitor" // whatever you want
-		database string = "public"  // dbname in `GCP`
-		username string = ""
-		password string = ""
-	)
+func (m Monitor) String() string {
+	return fmt.Sprintf("{%s,%.2f,%d}", m.host, m.cpu, m.memory)
+}
+
+func Example() {
+	// leave `addr`, `database`, `username`, `password` untouched in local machine,
+	// but in GreptimeCloud you need to create a service in advance
+	addr := "127.0.0.1"
+	database := "public"
+	username, password := "", "" // authentication of one service
+
+	// replace with your table name
+	table := fmt.Sprintf("monitor_%d", time.Now().Unix())
 
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -34,7 +39,8 @@ func Example() {
 	cfg := NewCfg(addr).
 		WithDatabase(database).
 		WithAuth(username, password).
-		WithDialOptions(options...)
+		WithDialOptions(options...). // specify your gRPC dail options
+		WithCallOptions()            // specify your gRPC call options
 
 	client, err := NewClient(cfg)
 	if err != nil {
@@ -43,9 +49,9 @@ func Example() {
 
 	// inserting
 	series := Series{}                 // Create one row of data
-	series.AddTag("host", "localhost") // index, for query efficiency
-	series.AddField("cpu", 0.90)       // value
-	series.AddField("memory", 1024.0)  // value
+	series.AddTag("host", "localhost") // add index column, for query efficiency
+	series.AddField("cpu", 0.90)       // add value column
+	series.AddField("memory", 1024)    // add value column
 	series.SetTimestamp(time.Now())    // requird
 
 	metric := Metric{} // Create a Metric and add the Series
@@ -63,7 +69,7 @@ func Example() {
 		fmt.Printf("fail to insert, err: %+v\n", err)
 		return
 	}
-	fmt.Printf("Success! AffectedRows: %d\n", n)
+	fmt.Printf("AffectedRows: %d\n", n)
 
 	// quering
 	// Query with metric via Sql, you can do it via PromQL
@@ -77,17 +83,18 @@ func Example() {
 		return
 	}
 
-	monitors := []monitor{}
+	monitors := []Monitor{}
 	for _, series := range resMetric.GetSeries() {
-		one := &monitor{}
+		one := &Monitor{}
 		host, exist := series.Get("host") // you can directly call Get and do the type assertion
 		if exist {
 			one.host = host.(string)
 		}
-		one.memory, _ = series.GetFloat("memory") // you can directly GetFloat
-		one.cpu, _ = series.GetFloat("cpu")       // you can directly GetFloat
-		one.ts = series.GetTimestamp()            // GetTimestamp
+		one.cpu, _ = series.GetFloat("cpu")     // you can directly GetFloat
+		one.memory, _ = series.GetInt("memory") // you can directly GetInt
+		one.ts = series.GetTimestamp()          // GetTimestamp
 		monitors = append(monitors, *one)
 	}
-	fmt.Printf("Query monitors from db: %+v\n", monitors)
+	fmt.Println(len(monitors) == 1)
+	fmt.Println(monitors[0])
 }
