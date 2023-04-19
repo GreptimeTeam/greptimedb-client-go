@@ -52,6 +52,12 @@ func NewCfg(addr string) *Config {
 	return &Config{
 		Addr: addr,
 		Port: 4001,
+
+		DialOptions: []grpc.DialOption{
+			grpc.WithUserAgent("greptimedb-client-go"),
+		},
+
+		CallOptions: []grpc.CallOption{},
 	}
 }
 

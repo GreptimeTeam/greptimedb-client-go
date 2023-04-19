@@ -85,14 +85,14 @@ func (s *Series) GetUint(key string) (uint64, bool) {
 	}
 
 	switch val.(type) {
-	case uint64:
-		return val.(uint64), true
-	case uint32:
-		return uint64(val.(uint32)), true
-	case uint16:
-		return uint64(val.(uint16)), true
 	case uint8:
 		return uint64(val.(uint8)), true
+	case uint16:
+		return uint64(val.(uint16)), true
+	case uint32:
+		return uint64(val.(uint32)), true
+	case uint64:
+		return val.(uint64), true
 	case uint:
 		return uint64(val.(uint)), true
 	default:
@@ -119,16 +119,16 @@ func (s *Series) GetInt(key string) (int64, bool) {
 	}
 
 	switch val.(type) {
-	case int:
-		return int64(val.(int)), true
-	case int64:
-		return val.(int64), true
-	case int32:
-		return int64(val.(int32)), true
-	case int16:
-		return int64(val.(int16)), true
 	case int8:
 		return int64(val.(int8)), true
+	case int16:
+		return int64(val.(int16)), true
+	case int32:
+		return int64(val.(int32)), true
+	case int64:
+		return val.(int64), true
+	case int:
+		return int64(val.(int)), true
 	default:
 		return 0, false
 	}
@@ -150,10 +150,10 @@ func (s *Series) GetFloat(key string) (float64, bool) {
 	}
 
 	switch val.(type) {
-	case float64:
-		return val.(float64), true
 	case float32:
 		return float64(val.(float32)), true
+	case float64:
+		return val.(float64), true
 	default:
 		return 0, false
 	}
