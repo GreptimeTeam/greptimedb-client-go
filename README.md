@@ -19,31 +19,31 @@ you can visit [Example][example] for usage details.
 ## Usage
 
 #### Datatype Supported
-```go
-int32, int64, int (as int64),
-uint32, uint64, uint (as uint64),
-float32, float64,
-bool,
-[]byte,
-string,
-time.Time,
-```
 
-```go
-// Attention! The following data types may cause conversion, not recommended.
-int8, int16    // stored as int32
-uint8, uint16  // stored as uint32
-```
+- int32
+- int64
+- int            (as int64)
+- uint32
+- uint64
+- uint           (as uint64)
+- float32
+- float64
+- bool
+- []byte
+- string
+- time.Time
+- int8, int16    (as int32)  // not recommended
+- uint8, uint16  (as uint32) // not recommended
 
 #### Precision for Timestamp
 
 The default precision is `Millisecond`, you can set a different precision,
 once the precision is setted, you can not change it any more.
 
-- `Second`
-- `Millisecond`
-- `Microsecond`
-- `Nanosecond`
+- time.Second
+- time.Millisecond
+- time.Microsecond
+- time.Nanosecond
 
 ```go
 metric.SetTimePrecision(time.Microsecond)
