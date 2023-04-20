@@ -24,40 +24,37 @@ import (
 )
 
 func Example() {
-	// leave `addr`, `database`, `username`, `password` untouched in local machine,
-	// but in GreptimeCloud you need to create a service in advance
-	addr := "127.0.0.1"
-	database := "public"
-	username, password := "", "" // authentication of one service
-
-	// replace with your table name
-	table := fmt.Sprintf("monitor_%d", time.Now().Unix())
-
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 	// To connect a database that needs authentication, for example, those on Greptime Cloud,
-	// `Username` and `Password` are must.
-	// To connect a local database without authentication, just leave the two fields empty.
-	cfg := NewCfg(addr).
-		WithDatabase(database).
-		WithAuth(username, password).
+	// `Username` and `Password` are needed when connecting to a database that requires authentication.
+	// Leave the two fields empty if connecting a database without authentication.
+	cfg := NewCfg("127.0.0.1").
+		WithPort(4001).              // default is 4001.
+		WithDatabase("public").      // specify your database
+		WithAuth("", "").            // specify Username,Password for authentication enabled GreptimeDB
 		WithDialOptions(options...). // specify your gRPC dail options
 		WithCallOptions()            // specify your gRPC call options
-
 	client, err := NewClient(cfg)
 	if err != nil {
 		panic("failed to init client")
 	}
 
-	// inserting
-	series := Series{}                       // Create one row of data
-	series.AddStringTag("host", "localhost") // add index column, for query efficiency
-	series.AddFloatField("cpu", 0.90)        // add value column
-	series.AddIntField("memory", 1024)       // add value column
-	series.SetTimestamp(time.Now())          // requird
+	table := "monitor"
 
-	metric := Metric{} // Create a Metric and add the Series
+	// inserting
+	series := Series{}
+	// Tag is index column, for query efficiency
+	series.AddTag("region", "az")            // type is checked automatically
+	series.AddStringTag("host", "localhost") // type is specified by user
+	// Field is value column
+	series.AddFloatField("cpu", 0.90) // type is specified by user
+	series.AddField("memory", 1024)   // type is checked automatically
+	// Timestamp is required
+	series.SetTimestamp(time.Now())
+
+	metric := Metric{}
 	metric.AddSeries(series)
 
 	// Create an InsertRequest using fluent style
@@ -74,7 +71,7 @@ func Example() {
 	}
 	fmt.Printf("AffectedRows: %d\n", n)
 
-	// quering
+	// querying
 	// Query with metric via Sql, you can do it via PromQL
 	queryRequest := QueryRequest{}
 	// if you want to specify another database, you can specify it via: `WithDatabase(database)`
@@ -87,6 +84,7 @@ func Example() {
 	}
 
 	type Monitor struct {
+		region string
 		host   string
 		cpu    float64
 		memory int64
@@ -100,6 +98,7 @@ func Example() {
 		if exist {
 			one.host = host.(string)
 		}
+		one.region, _ = series.GetString("region")
 		one.cpu, _ = series.GetFloat("cpu")     // also, you can directly GetFloat
 		one.memory, _ = series.GetInt("memory") // also, you can directly GetInt
 		one.ts = series.GetTimestamp()          // GetTimestamp
