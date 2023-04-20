@@ -12,54 +12,72 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package greptime
+package greptime_test
 
 import (
 	"context"
 	"fmt"
 	"time"
 
+	greptime "github.com/GreptimeTeam/greptimedb-client-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func Example() {
+var (
+	client *greptime.Client
+
+	// table used in this Example, you don't have to create it in advance,
+	// if the table not exist, it will be created automatically.
+	table string = "monitor"
+)
+
+// initClient creates a client with config.
+//
+// `Username` and `Password` are needed when connecting to a database that requires authentication.
+// Leave the two fields empty if connecting a database without authentication.
+func initClient() {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	// To connect a database that needs authentication, for example, those on Greptime Cloud,
-	// `Username` and `Password` are needed when connecting to a database that requires authentication.
-	// Leave the two fields empty if connecting a database without authentication.
-	cfg := NewCfg("127.0.0.1").
-		WithPort(4001).              // default is 4001.
-		WithDatabase("public").      // specify your database
-		WithAuth("", "").            // specify Username,Password for authentication enabled GreptimeDB
+	cfg := greptime.NewCfg("127.0.0.1").
+		WithPort(4001).         // default is 4001.
+		WithDatabase("public"). // specify your database
+		WithAuth("", "").
 		WithDialOptions(options...). // specify your gRPC dail options
 		WithCallOptions()            // specify your gRPC call options
-	client, err := NewClient(cfg)
+	c, err := greptime.NewClient(cfg)
 	if err != nil {
 		panic("failed to init client")
 	}
+	client = c
+}
 
-	table := "monitor"
-
-	// inserting
-	series := Series{}
-	// Tag is index column, for query efficiency
+// insert one Series
+//   - Tag is index column, for query efficiency
+//   - Field is value column
+//   - Timestamp is required
+//
+// you can specify the column type, or let the type checking to be done by sdk
+//
+//   - series.AddTag
+//   - series.AddField
+//   - series.AddXxxTag
+//   - series.AddXxxField
+func insert() {
+	series := greptime.Series{}
 	series.AddTag("region", "az")            // type is checked automatically
 	series.AddStringTag("host", "localhost") // type is specified by user
-	// Field is value column
-	series.AddFloatField("cpu", 0.90) // type is specified by user
-	series.AddField("memory", 1024)   // type is checked automatically
-	// Timestamp is required
+	series.AddFloatField("cpu", 0.90)        // type is specified by user
+	series.AddField("memory", 1024)          // type is checked automatically
 	series.SetTimestamp(time.Now())
 
-	metric := Metric{}
+	metric := greptime.Metric{}
 	metric.AddSeries(series)
 
 	// Create an InsertRequest using fluent style
 	// the specified table will be created automatically if it's not exist
-	insertRequest := InsertRequest{}
+	insertRequest := greptime.InsertRequest{}
 	// if you want to specify another database, you can specify it via: `WithDatabase(database)`
 	insertRequest.WithTable(table).WithMetric(metric) // .WithDatabase(database)
 
@@ -70,10 +88,25 @@ func Example() {
 		return
 	}
 	fmt.Printf("AffectedRows: %d\n", n)
+}
 
-	// querying
-	// Query with metric via Sql, you can do it via PromQL
-	queryRequest := QueryRequest{}
+// Monitor is the metrics used in this Example
+type Monitor struct {
+	region string
+	host   string
+	cpu    float64
+	memory int64
+	ts     time.Time
+}
+
+// query via Sql, you can do it via PromQL
+//
+// you can get the column by type, or do the type conversion by yourself
+//
+//   - series.Get     // you have to do the conversion explitely
+//   - series.GetXxx  // GetFloat, GetInt, GetUint, GetString, GetBool, GetBytes
+func query() {
+	queryRequest := greptime.QueryRequest{}
 	// if you want to specify another database, you can specify it via: `WithDatabase(database)`
 	queryRequest.WithSql("SELECT * FROM " + table) // .WithDatabase(database)
 
@@ -83,26 +116,24 @@ func Example() {
 		return
 	}
 
-	type Monitor struct {
-		region string
-		host   string
-		cpu    float64
-		memory int64
-		ts     time.Time
-	}
-
 	monitors := []Monitor{}
 	for _, series := range resMetric.GetSeries() {
-		one := &Monitor{}
+		monitor := &Monitor{}
 		host, exist := series.Get("host") // you can directly call Get and do the type assertion
 		if exist {
-			one.host = host.(string)
+			monitor.host = host.(string)
 		}
-		one.region, _ = series.GetString("region")
-		one.cpu, _ = series.GetFloat("cpu")     // also, you can directly GetFloat
-		one.memory, _ = series.GetInt("memory") // also, you can directly GetInt
-		one.ts = series.GetTimestamp()          // GetTimestamp
-		monitors = append(monitors, *one)
+		monitor.region, _ = series.GetString("region")
+		monitor.cpu, _ = series.GetFloat("cpu")     // also, you can directly GetFloat
+		monitor.memory, _ = series.GetInt("memory") // also, you can directly GetInt
+		monitor.ts = series.GetTimestamp()          // GetTimestamp
+		monitors = append(monitors, *monitor)
 	}
 	fmt.Println(monitors)
+}
+
+func Example() {
+	initClient()
+	insert()
+	query()
 }
