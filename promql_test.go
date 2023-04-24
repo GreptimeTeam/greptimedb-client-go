@@ -55,7 +55,7 @@ func TestInsertAndQueryWithRangePromQL(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(addr).WithPort(port).WithDatabase(database).WithDialOptions(options...)
+	cfg := NewCfg(host).WithPort(port).WithDatabase(database).WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
