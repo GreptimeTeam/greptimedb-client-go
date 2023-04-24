@@ -40,7 +40,7 @@ type monitor struct {
 
 var (
 	database = "public"
-	addr     = "127.0.0.1"
+	host     = "127.0.0.1"
 	port     = 0
 )
 
@@ -104,7 +104,7 @@ func newClient(t *testing.T) *Client {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(addr).WithPort(port).WithDatabase(database).WithDialOptions(options...)
+	cfg := NewCfg(host).WithPort(port).WithDatabase(database).WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 	return client
@@ -116,12 +116,12 @@ func TestInvalidClient(t *testing.T) {
 		grpc.WithBlock(),
 		grpc.WithTimeout(time.Second),
 	}
-	cfg := NewCfg("invalid addr").WithPort(port).WithDatabase(database).WithDialOptions(options...)
+	cfg := NewCfg("invalid host").WithPort(port).WithDatabase(database).WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, client)
 	assert.NotNil(t, err)
 
-	cfg = NewCfg(addr).WithPort(1111).WithDatabase(database).WithDialOptions(options...)
+	cfg = NewCfg(host).WithPort(1111).WithDatabase(database).WithDialOptions(options...)
 	client, err = NewClient(cfg)
 	assert.Nil(t, client)
 	assert.NotNil(t, err)
@@ -320,7 +320,7 @@ func TestNoNeedAuth(t *testing.T) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 	// Client can always connect to a no-auth database, even the usernames and passwords are wrong
-	cfg := NewCfg(addr).WithPort(port).WithDatabase(database).WithAuth("user", "pwd").WithDialOptions(options...)
+	cfg := NewCfg(host).WithPort(port).WithDatabase(database).WithAuth("user", "pwd").WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 

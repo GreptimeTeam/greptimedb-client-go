@@ -23,9 +23,8 @@ import (
 
 // Config is to define how the Client behaves.
 //
-//   - Addr is 127.0.0.1 in local environment. You can find the address in
-//     the detail page if you create one service in GreptimeCloud
-//   - Port default value is 4001
+//   - Host is 127.0.0.1 in local environment.
+//   - Port default value is 4001.
 //   - Username and Password can be left to empty in local environment.
 //     you can find them in GreptimeCloud service detail page.
 //   - Database is the default database the client will operate on.
@@ -33,7 +32,7 @@ import (
 //   - DialOptions and CallOptions are for gRPC service.
 //     You can specify them or leave them empty.
 type Config struct {
-	Addr     string // example: 127.0.0.1
+	Host     string // example: 127.0.0.1
 	Port     int    // default: 4001
 	Username string
 	Password string
@@ -47,10 +46,10 @@ type Config struct {
 	CallOptions []grpc.CallOption
 }
 
-// NewCfg helps to init Config with addr only
-func NewCfg(addr string) *Config {
+// NewCfg helps to init Config with host only
+func NewCfg(host string) *Config {
 	return &Config{
-		Addr: addr,
+		Host: host,
 		Port: 4001,
 
 		DialOptions: []grpc.DialOption{
@@ -116,5 +115,5 @@ func (c *Config) BuildAuthHeader() *greptimepb.AuthHeader {
 }
 
 func (c *Config) getGRPCAddr() string {
-	return fmt.Sprintf("%s:%d", c.Addr, c.Port)
+	return fmt.Sprintf("%s:%d", c.Host, c.Port)
 }
