@@ -68,12 +68,12 @@ func (c *Client) Insert(ctx context.Context, req InsertRequest) (uint32, error) 
 		return 0, err
 	}
 
-	response, err := c.greptimeClient.Handle(ctx, request)
+	resp, err := c.greptimeClient.Handle(ctx, request)
 	if err != nil {
 		return 0, err
 	}
 
-	return response.GetAffectedRows().Value, nil
+	return resp.GetAffectedRows().Value, nil
 }
 
 // Query helps to retrieve data from greptimedb
@@ -101,27 +101,17 @@ func (c *Client) Query(ctx context.Context, req QueryRequest) (*Metric, error) {
 	return buildMetricFromReader(reader)
 }
 
-// Query helps to retrieve data from greptimedb
-func (c *Client) PromqlInstantQuery(ctx context.Context, req PromqlRequest) ([]byte, error) {
-	request, err := req.buildInstantPromqlRequest(c.cfg)
+// PromqlQuery helps to retrieve data from greptimedb via InstantQuery or RangeQuery
+func (c *Client) PromqlQuery(ctx context.Context, req *PromqlRequest) ([]byte, error) {
+	request, err := req.buildPromqlRequest(c.cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	b, err := proto.Marshal(request)
+	resp, err := c.promqlClient.Handle(ctx, request)
 	if err != nil {
 		return nil, err
 	}
 
-	sr, err := c.flightClient.DoGet(ctx, &flight.Ticket{Ticket: b})
-	if err != nil {
-		return nil, err
-	}
-
-	reader, err := flight.NewRecordReader(sr)
-	if err != nil {
-		return nil, err
-	}
-
-	return buildMetricFromReader(reader)
+	return resp.GetBody(), nil
 }

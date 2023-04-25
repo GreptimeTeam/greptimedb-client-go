@@ -106,8 +106,8 @@ func (r *QueryRequest) build(cfg *Config) (*greptimepb.GreptimeRequest, error) {
 type PromqlRequest struct {
 	header header
 
-	instantPromql InstantPromql
-	rangePromql   RangePromql
+	instantPromql *InstantPromql
+	rangePromql   *RangePromql
 }
 
 // WithDatabase helps to specify different database from the default one.
@@ -118,44 +118,31 @@ func (r *PromqlRequest) WithDatabase(database string) *PromqlRequest {
 	return r
 }
 
-func (r *PromqlRequest) WithInstantPromql(instantPromql InstantPromql) *PromqlRequest {
+func (r *PromqlRequest) WithInstantPromql(instantPromql *InstantPromql) *PromqlRequest {
 	r.instantPromql = instantPromql
 	return r
 }
 
-func (r *PromqlRequest) WithRangePromql(rangePromql RangePromql) *PromqlRequest {
+func (r *PromqlRequest) WithRangePromql(rangePromql *RangePromql) *PromqlRequest {
 	r.rangePromql = rangePromql
 	return r
 }
 
-func (r *PromqlRequest) buildInstantPromqlRequest(cfg *Config) (*greptimepb.PromqlRequest, error) {
+func (r *PromqlRequest) buildPromqlRequest(cfg *Config) (*greptimepb.PromqlRequest, error) {
 	header, err := r.header.build(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := r.instantPromql.check(); err != nil {
-		return nil, err
+	request := &greptimepb.PromqlRequest{Header: header}
+
+	if r.instantPromql.check() == nil {
+		request.Promql = r.instantPromql.buildPromqlRequest()
+	} else if r.rangePromql.check() == nil {
+		request.Promql = r.rangePromql.buildPromqlRequest()
+	} else {
+		return nil, ErrEmptyPromqlQuery
 	}
 
-	return &greptimepb.PromqlRequest{
-		Header: header,
-		Promql: r.instantPromql.buildPromqlRequest(),
-	}, nil
-}
-
-func (r *PromqlRequest) buildRangePromqlRequest(cfg *Config) (*greptimepb.PromqlRequest, error) {
-	header, err := r.header.build(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := r.rangePromql.check(); err != nil {
-		return nil, err
-	}
-
-	return &greptimepb.PromqlRequest{
-		Header: header,
-		Promql: r.rangePromql.buildPromqlRequest(),
-	}, nil
+	return request, nil
 }
