@@ -20,7 +20,7 @@ type header struct {
 	database string
 }
 
-func (h *header) Build(cfg *Config) (*greptimepb.RequestHeader, error) {
+func (h *header) build(cfg *Config) (*greptimepb.RequestHeader, error) {
 	if isEmptyString(h.database) {
 		h.database = cfg.Database
 	}
@@ -31,7 +31,7 @@ func (h *header) Build(cfg *Config) (*greptimepb.RequestHeader, error) {
 
 	header := &greptimepb.RequestHeader{
 		Dbname:        h.database,
-		Authorization: cfg.BuildAuthHeader(),
+		Authorization: cfg.buildAuthHeader(),
 	}
 
 	return header, nil

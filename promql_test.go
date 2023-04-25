@@ -88,7 +88,7 @@ func TestInsertAndQueryWithRangePromQL(t *testing.T) {
 		// End:   time.Unix(1677728740, 0),
 		Step: "50s",
 	}
-	rp.WithStartSecond(1677728740).WithEndSecond(1677728740)
+	rp.WithStart(time.Unix(1677728740, 0)).WithEnd(time.Unix(1677728740, 0))
 	queryReq.WithRangePromql(rp).WithDatabase(database)
 
 	resMetric, err := client.Query(context.Background(), queryReq)

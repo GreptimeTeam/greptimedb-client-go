@@ -27,10 +27,15 @@ import (
 // use by multiple goroutines,you can have one Client instance in your application.
 type Client struct {
 	cfg *Config
+
 	// For `query`, since unary calls have not been inplemented for query and only do_get helps
 	flightClient flight.Client
+
 	// For `insert`, unary calls are supported
 	greptimeClient greptimepb.GreptimeDatabaseClient
+
+	// For `Promql` query
+	promqlClient greptimepb.PrometheusGatewayClient
 }
 
 // NewClient helps to create the greptimedb client, which will be responsible Write/Read data To/From GreptimeDB
@@ -46,17 +51,19 @@ func NewClient(cfg *Config) (*Client, error) {
 	}
 
 	greptimeClient := greptimepb.NewGreptimeDatabaseClient(conn)
+	promqlClient := greptimepb.NewPrometheusGatewayClient(conn)
 
 	return &Client{
 		cfg:            cfg,
 		flightClient:   flightClient,
 		greptimeClient: greptimeClient,
+		promqlClient:   promqlClient,
 	}, nil
 }
 
 // Insert helps to insert multiple rows into greptimedb
 func (c *Client) Insert(ctx context.Context, req InsertRequest) (uint32, error) {
-	request, err := req.Build(c.cfg)
+	request, err := req.build(c.cfg)
 	if err != nil {
 		return 0, err
 	}
@@ -71,7 +78,32 @@ func (c *Client) Insert(ctx context.Context, req InsertRequest) (uint32, error) 
 
 // Query helps to retrieve data from greptimedb
 func (c *Client) Query(ctx context.Context, req QueryRequest) (*Metric, error) {
-	request, err := req.Build(c.cfg)
+	request, err := req.build(c.cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := proto.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	sr, err := c.flightClient.DoGet(ctx, &flight.Ticket{Ticket: b})
+	if err != nil {
+		return nil, err
+	}
+
+	reader, err := flight.NewRecordReader(sr)
+	if err != nil {
+		return nil, err
+	}
+
+	return buildMetricFromReader(reader)
+}
+
+// Query helps to retrieve data from greptimedb
+func (c *Client) PromqlInstantQuery(ctx context.Context, req PromqlRequest) ([]byte, error) {
+	request, err := req.buildInstantPromqlRequest(c.cfg)
 	if err != nil {
 		return nil, err
 	}

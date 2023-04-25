@@ -3,9 +3,9 @@ module github.com/GreptimeTeam/greptimedb-client-go
 go 1.19
 
 require (
-	github.com/GreptimeTeam/greptime-proto v0.0.0-20230414063041-0bebe5f69c91
+	github.com/GreptimeTeam/greptime-proto v0.0.0-20230424095535-a26c40c004f9
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40
-	github.com/bits-and-blooms/bitset v1.6.0
+	github.com/bits-and-blooms/bitset v1.7.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stoewer/go-strcase v1.3.0
 	github.com/stretchr/testify v1.8.1

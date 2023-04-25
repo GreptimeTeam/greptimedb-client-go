@@ -24,18 +24,18 @@ import (
 func TestHeaderBuild(t *testing.T) {
 	h := &header{}
 
-	gh, err := h.Build(&Config{})
+	gh, err := h.build(&Config{})
 	assert.ErrorIs(t, err, ErrEmptyDatabase)
 	assert.Nil(t, gh)
 
-	gh, err = h.Build(&Config{Database: "database"})
+	gh, err = h.build(&Config{Database: "database"})
 	assert.Nil(t, err)
 	assert.Equal(t, &greptimepb.RequestHeader{
 		Dbname: "database",
 	}, gh)
 
 	h.database = "db_in_header"
-	gh, err = h.Build(&Config{Database: "database"})
+	gh, err = h.build(&Config{Database: "database"})
 	assert.Nil(t, err)
 	assert.Equal(t, &greptimepb.RequestHeader{
 		Dbname: "db_in_header",

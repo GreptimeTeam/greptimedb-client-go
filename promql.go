@@ -21,10 +21,62 @@ import (
 	greptimepb "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
 
-// RangePromql helps to fire a request to greptimedb compatible with Prometheus, you can visit
-// [query range] for detail.
+// InstantPromql helps to fire a request to greptimedb compatible with Prometheus instant query,
+// you can visit [instant query] for detail.
 //
-// [query range]: https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries
+// [instant query]: https://prometheus.io/docs/prometheus/latest/querying/api/#instant-queries
+type InstantPromql struct {
+	Query string
+	ts    time.Time
+}
+
+func NewInstantPromql(query string) *InstantPromql {
+	return &InstantPromql{
+		Query: query,
+		ts:    time.Now(),
+	}
+}
+
+// WithQuery helps to update the query
+func (ip *InstantPromql) WithQuery(query string) *InstantPromql {
+	ip.Query = query
+	return ip
+}
+
+// WithTime to specify the evaluation time. Default is now.
+func (ip *InstantPromql) WithTime(ts time.Time) *InstantPromql {
+	ip.ts = ts
+	return ip
+}
+
+func (ip *InstantPromql) check() error {
+	if isEmptyString(ip.Query) {
+		return ErrEmptyQuery
+	}
+
+	return nil
+}
+
+// buildPromqlRequest helps to construct a InstantQuery, expecting the response is totally
+// the same as Prometheus [instant query]
+//
+// [instant query]: https://prometheus.io/docs/prometheus/latest/querying/api/#instant-queries
+func (ip *InstantPromql) buildPromqlRequest() *greptimepb.PromqlRequest_InstantQuery {
+	query := &greptimepb.PromInstantQuery{
+		Query: ip.Query,
+	}
+	if !ip.ts.IsZero() {
+		query.Time = fmt.Sprintf("%d", ip.ts.Unix())
+	}
+	return &greptimepb.PromqlRequest_InstantQuery{
+		InstantQuery: query,
+	}
+}
+
+// RangePromql helps to fire a request to greptimedb compatible with Prometheus range query,
+// you can visit [range query] for detail.
+//
+// [range query]: https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries
 type RangePromql struct {
 	Query string
 	Start time.Time
@@ -32,15 +84,33 @@ type RangePromql struct {
 	Step  string
 }
 
-// WithStartSecond helps to specify the start field in unix second.
-func (rp *RangePromql) WithStartSecond(second int64) *RangePromql {
-	rp.Start = time.Unix(second, 0)
+func NewRangePromql(query string) *RangePromql {
+	return &RangePromql{
+		Query: query,
+	}
+}
+
+// WithQuery helps to update the query
+func (rp *RangePromql) WithQuery(query string) *RangePromql {
+	rp.Query = query
 	return rp
 }
 
-// WithEndSecond helps to specify the end field in unix second.
-func (rp *RangePromql) WithEndSecond(second int64) *RangePromql {
-	rp.End = time.Unix(second, 0)
+// WithStart helps to specify the start of the range
+func (rp *RangePromql) WithStart(start time.Time) *RangePromql {
+	rp.Start = start
+	return rp
+}
+
+// WithEnd helps to specify the end of the range
+func (rp *RangePromql) WithEnd(end time.Time) *RangePromql {
+	rp.End = end
+	return rp
+}
+
+// WithStep helps to specify the step of the range
+func (rp *RangePromql) WithStep(step string) *RangePromql {
+	rp.Step = step
 	return rp
 }
 
@@ -56,7 +126,22 @@ func (rp *RangePromql) check() error {
 	return nil
 }
 
-func (rp *RangePromql) Build() *greptimepb.QueryRequest_PromRangeQuery {
+// buildPromqlRequest helps to construct a RangeQuery, expecting the response is totally
+// the same as Prometheus [range query]
+//
+// [range query]: https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries
+func (rp *RangePromql) buildPromqlRequest() *greptimepb.PromqlRequest_RangeQuery {
+	return &greptimepb.PromqlRequest_RangeQuery{
+		RangeQuery: &greptimepb.PromRangeQuery{
+			Query: rp.Query,
+			Start: fmt.Sprintf("%d", rp.Start.Unix()),
+			End:   fmt.Sprintf("%d", rp.End.Unix()),
+			Step:  rp.Step,
+		},
+	}
+}
+
+func (rp *RangePromql) buildQueryRequest() *greptimepb.QueryRequest_PromRangeQuery {
 	return &greptimepb.QueryRequest_PromRangeQuery{
 		PromRangeQuery: &greptimepb.PromRangeQuery{
 			Query: rp.Query,
@@ -65,5 +150,4 @@ func (rp *RangePromql) Build() *greptimepb.QueryRequest_PromRangeQuery {
 			Step:  rp.Step,
 		},
 	}
-
 }

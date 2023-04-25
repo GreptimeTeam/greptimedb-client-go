@@ -18,17 +18,22 @@ import (
 	greptimepb "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
 
-// QueryRequest helps to query data from greptimedb.
-// At least one of Sql, Promql, RangePromql MUST be spicified.
+// QueryRequest helps to query data from greptimedb, and the response is in Metric.
+// But if you expect the response format is the same as Prometheus, you should consider
+// [PromqlRequest].
+//
+// At least one of Sql, InstantPromql, RangePromql MUST be spicified.
 // The precedence takes places if multiple fields are specified:
-// - Sql
-// - Promql
-// - RangePromql
+//
+//   - Sql
+//   - InstantPromql (not implemented)
+//   - RangePromql
 type QueryRequest struct {
-	header      header
-	sql         string
-	promql      string // promql is not supported yet
-	rangePromql RangePromql
+	header header
+
+	sql           string
+	instantPromql InstantPromql
+	rangePromql   RangePromql
 }
 
 // WithDatabase helps to specify different database from the default one.
@@ -44,9 +49,9 @@ func (r *QueryRequest) WithSql(sql string) *QueryRequest {
 	return r
 }
 
-// WithPromql is not supported yet
-func (r *QueryRequest) WithPromql(promql string) *QueryRequest {
-	r.promql = promql
+// WithInstantPromql is not implemented!
+func (r *QueryRequest) WithInstantPromql(instantPromql InstantPromql) *QueryRequest {
+	r.instantPromql = instantPromql
 	return r
 }
 
@@ -55,19 +60,20 @@ func (r *QueryRequest) WithRangePromql(rangePromql RangePromql) *QueryRequest {
 	return r
 }
 
-func (r *QueryRequest) isSqlEmpty() bool {
-	return isEmptyString(r.sql)
-}
-
 func (r *QueryRequest) check() error {
-	if r.isSqlEmpty() {
-		return r.rangePromql.check()
+	if !isEmptyString(r.sql) {
+		return nil
 	}
-	return nil
+
+	if !isEmptyString(r.instantPromql.Query) {
+		return nil
+	}
+
+	return r.rangePromql.check()
 }
 
-func (r *QueryRequest) Build(cfg *Config) (*greptimepb.GreptimeRequest, error) {
-	header, err := r.header.Build(cfg)
+func (r *QueryRequest) build(cfg *Config) (*greptimepb.GreptimeRequest, error) {
+	header, err := r.header.build(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -80,14 +86,76 @@ func (r *QueryRequest) Build(cfg *Config) (*greptimepb.GreptimeRequest, error) {
 		Query: &greptimepb.QueryRequest{},
 	}
 
-	if !r.isSqlEmpty() {
+	if !isEmptyString(r.sql) {
 		request.Query.Query = &greptimepb.QueryRequest_Sql{Sql: r.sql}
+	} else if !isEmptyString(r.instantPromql.Query) {
+		// TODO(yuanbohan): not implemented!
 	} else {
-		request.Query.Query = r.rangePromql.Build()
+		request.Query.Query = r.rangePromql.buildQueryRequest()
 	}
 
 	return &greptimepb.GreptimeRequest{
 		Header:  header,
 		Request: request,
+	}, nil
+}
+
+// PromqlRequest helps to query data from greptimedb, and the response
+// is the same as Prometheus
+// At least one of InstantPromql, RangePromql MUST be spicified.
+type PromqlRequest struct {
+	header header
+
+	instantPromql InstantPromql
+	rangePromql   RangePromql
+}
+
+// WithDatabase helps to specify different database from the default one.
+func (r *PromqlRequest) WithDatabase(database string) *PromqlRequest {
+	r.header = header{
+		database: database,
+	}
+	return r
+}
+
+func (r *PromqlRequest) WithInstantPromql(instantPromql InstantPromql) *PromqlRequest {
+	r.instantPromql = instantPromql
+	return r
+}
+
+func (r *PromqlRequest) WithRangePromql(rangePromql RangePromql) *PromqlRequest {
+	r.rangePromql = rangePromql
+	return r
+}
+
+func (r *PromqlRequest) buildInstantPromqlRequest(cfg *Config) (*greptimepb.PromqlRequest, error) {
+	header, err := r.header.build(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := r.instantPromql.check(); err != nil {
+		return nil, err
+	}
+
+	return &greptimepb.PromqlRequest{
+		Header: header,
+		Promql: r.instantPromql.buildPromqlRequest(),
+	}, nil
+}
+
+func (r *PromqlRequest) buildRangePromqlRequest(cfg *Config) (*greptimepb.PromqlRequest, error) {
+	header, err := r.header.build(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := r.rangePromql.check(); err != nil {
+		return nil, err
+	}
+
+	return &greptimepb.PromqlRequest{
+		Header: header,
+		Promql: r.rangePromql.buildPromqlRequest(),
 	}, nil
 }

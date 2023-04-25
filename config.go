@@ -97,8 +97,8 @@ func (c *Config) WithCallOptions(options ...grpc.CallOption) *Config {
 	return c
 }
 
-// BuildAuthHeader only supports Basic Auth so far
-func (c *Config) BuildAuthHeader() *greptimepb.AuthHeader {
+// buildAuthHeader only supports Basic Auth so far
+func (c *Config) buildAuthHeader() *greptimepb.AuthHeader {
 	if isEmptyString(c.Username) || isEmptyString(c.Password) {
 		return nil
 	}
