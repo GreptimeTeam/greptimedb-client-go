@@ -81,7 +81,7 @@ func TestStreamInsert(t *testing.T) {
 	assert.Equal(t, uint32(size), affectedRows.Value)
 
 	// Query with metric
-	queryReq := QueryRequest{}
+	queryReq := &QueryRequest{}
 	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table))
 
 	client, err := NewClient(cfg)

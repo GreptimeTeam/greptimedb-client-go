@@ -45,8 +45,8 @@ var (
 )
 
 func init() {
-	repo := "greptime/greptimedb"
-	tag := "0.2.0-nightly-20230328"
+	repo := "ghcr.io/greptimeteam/greptimedb-oss"
+	tag := "20230426-8d8a480-nightly"
 
 	var err error
 	pool, err := dockertest.NewPool("")
@@ -172,7 +172,7 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 	assert.Equal(t, uint32(len(insertMonitors)), n)
 
 	// Query with metric
-	queryReq := QueryRequest{}
+	queryReq := &QueryRequest{}
 	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
 
 	resMetric, err := client.Query(context.Background(), queryReq)
@@ -205,7 +205,7 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 	assert.Equal(t, insertMonitors, queryMonitors)
 
 	// query but no data
-	queryReq = QueryRequest{}
+	queryReq = &QueryRequest{}
 	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s WHERE host = 'not_exist'", table)).WithDatabase(database)
 
 	resMetric, err = client.Query(context.Background(), queryReq)
@@ -234,7 +234,7 @@ func TestPrecisionSecond(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), n)
 
-	queryReq := QueryRequest{}
+	queryReq := &QueryRequest{}
 	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
 	resMetric, err := client.Query(context.Background(), queryReq)
 	assert.Nil(t, err)
@@ -286,7 +286,7 @@ func TestNilInColumn(t *testing.T) {
 	assert.Equal(t, uint32(len(insertMonitors)), n)
 
 	// Query with metric
-	queryReq := QueryRequest{}
+	queryReq := &QueryRequest{}
 	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
 
 	resMetric, err := client.Query(context.Background(), queryReq)
@@ -336,7 +336,7 @@ func TestNoNeedAuth(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), n)
 
-	queryReq := QueryRequest{}
+	queryReq := &QueryRequest{}
 	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
 	resMetric, err := client.Query(context.Background(), queryReq)
 	assert.Nil(t, err)
@@ -431,7 +431,7 @@ func TestGetNonMatchedTypeColumn(t *testing.T) {
 	assert.Equal(t, uint32(1), n)
 
 	// Query with metric
-	queryReq := QueryRequest{}
+	queryReq := &QueryRequest{}
 	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table))
 
 	resMetric, err := client.Query(context.Background(), queryReq)
@@ -483,7 +483,7 @@ func TestGetNotExistColumn(t *testing.T) {
 	assert.Equal(t, uint32(1), n)
 
 	// Query with metric
-	queryReq := QueryRequest{}
+	queryReq := &QueryRequest{}
 	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table))
 
 	resMetric, err := client.Query(context.Background(), queryReq)
@@ -614,7 +614,7 @@ func TestDataTypes(t *testing.T) {
 	assert.Equal(t, uint32(1), n)
 
 	// Query with metric
-	queryReq := QueryRequest{}
+	queryReq := &QueryRequest{}
 	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
 
 	resMetric, err := client.Query(context.Background(), queryReq)
