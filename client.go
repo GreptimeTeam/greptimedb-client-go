@@ -77,7 +77,7 @@ func (c *Client) Insert(ctx context.Context, req InsertRequest) (uint32, error) 
 }
 
 // Query helps to retrieve data from greptimedb
-func (c *Client) Query(ctx context.Context, req *QueryRequest) (*Metric, error) {
+func (c *Client) Query(ctx context.Context, req QueryRequest) (*Metric, error) {
 	request, err := req.buildGreptimeRequest(c.cfg)
 	if err != nil {
 		return nil, err
@@ -102,7 +102,7 @@ func (c *Client) Query(ctx context.Context, req *QueryRequest) (*Metric, error) 
 }
 
 // PromqlQuery helps to retrieve data from greptimedb via InstantQuery or RangeQuery
-func (c *Client) PromqlQuery(ctx context.Context, req *QueryRequest) ([]byte, error) {
+func (c *Client) PromqlQuery(ctx context.Context, req QueryRequest) ([]byte, error) {
 	request, err := req.buildPromqlRequest(c.cfg)
 	if err != nil {
 		return nil, err

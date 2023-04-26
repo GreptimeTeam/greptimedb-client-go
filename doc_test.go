@@ -106,7 +106,7 @@ func queryViaSql() {
 		ts     time.Time
 	}
 
-	req := &greptime.QueryRequest{}
+	req := greptime.QueryRequest{}
 	// if you want to specify another database, you can specify it via: `WithDatabase(database)`
 	req.WithSql("SELECT * FROM " + table) // .WithDatabase(database)
 
@@ -135,7 +135,7 @@ func queryViaSql() {
 // the response format is in []byte, and is absolutely the same as Prometheus
 func queryViaInstantPromql() {
 	promql := greptime.NewInstantPromql(table)
-	req := &greptime.QueryRequest{}
+	req := greptime.QueryRequest{}
 	req.WithInstantPromql(promql)
 	body, err := client.PromqlQuery(context.Background(), req)
 	if err != nil {
@@ -151,7 +151,7 @@ func queryViaRangePromql() {
 	end := time.Now()
 	start := end.Add(time.Duration(-15) * time.Second) // 15 seconds before
 	promql := greptime.NewRangePromql(table).WithStart(start).WithEnd(end).WithStep(time.Second)
-	req := &greptime.QueryRequest{}
+	req := greptime.QueryRequest{}
 	req.WithRangePromql(promql)
 	body, err := client.PromqlQuery(context.Background(), req)
 	if err != nil {

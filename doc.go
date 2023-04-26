@@ -16,10 +16,16 @@
 //
 // # Basic Insert and Query
 //
-// call [NewClient] with [Config] to init a concurrent safe [Client], and
-// prepare rows of data by [Metric] and [Series], call [Client.Insert] to insert
+// You can call [NewClient] with [Config] to init a concurrent safe [Client], and
+// construct rows of data by [Metric] and [Series], call [Client.Insert] to insert
 // [InsertRequest] into greptimedb, and call [Client.Query] to retrieve data from
 // greptimedb via [QueryRequest].
+//
+// # Promql
+//
+// You can also call [Client.PromqlQuery] to retrieve data in []byte format, which
+// is absolutely the same as Prometheus. You can choose [InstantPromql] or [RangePromql]
+// to get vector or matrix result.
 //
 // # Series
 //

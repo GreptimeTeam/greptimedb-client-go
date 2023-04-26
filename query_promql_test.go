@@ -85,7 +85,7 @@ func TestInsertAndQueryWithRangePromQL(t *testing.T) {
 	assert.Equal(t, uint32(len(insertMonitors)), n)
 
 	// Query with PromQL with metric
-	queryReq := &QueryRequest{}
+	queryReq := QueryRequest{}
 	rp := &RangePromql{Query: table}
 	rp.WithStart(time.Unix(1677728740, 0)).WithEnd(time.Unix(1677728740, 0)).WithStep(time.Second * 50)
 	queryReq.WithRangePromql(rp).WithDatabase(database)
