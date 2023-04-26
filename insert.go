@@ -47,8 +47,8 @@ func (r *InsertRequest) RowCount() uint32 {
 	return uint32(len(r.metric.series))
 }
 
-func (r *InsertRequest) Build(cfg *Config) (*greptimepb.GreptimeRequest, error) {
-	header, err := r.header.Build(cfg)
+func (r *InsertRequest) build(cfg *Config) (*greptimepb.GreptimeRequest, error) {
+	header, err := r.header.build(cfg)
 	if err != nil {
 		return nil, err
 	}

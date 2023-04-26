@@ -90,27 +90,27 @@ func insert() {
 	fmt.Printf("AffectedRows: %d\n", n)
 }
 
-// Monitor is the metrics used in this Example
-type Monitor struct {
-	region string
-	host   string
-	cpu    float64
-	memory int64
-	ts     time.Time
-}
-
-// query via Sql, you can do it via PromQL
+// queryViaSql via Sql
 //
 // you can get the column by type, or do the type conversion by yourself
 //
 //   - series.Get     // you have to do the conversion explitely
 //   - series.GetXxx  // GetFloat, GetInt, GetUint, GetString, GetBool, GetBytes
-func query() {
-	queryRequest := greptime.QueryRequest{}
-	// if you want to specify another database, you can specify it via: `WithDatabase(database)`
-	queryRequest.WithSql("SELECT * FROM " + table) // .WithDatabase(database)
+func queryViaSql() {
+	// Monitor is the metrics used in this Example
+	type Monitor struct {
+		region string
+		host   string
+		cpu    float64
+		memory int64
+		ts     time.Time
+	}
 
-	resMetric, err := client.Query(context.Background(), queryRequest)
+	req := greptime.QueryRequest{}
+	// if you want to specify another database, you can specify it via: `WithDatabase(database)`
+	req.WithSql("SELECT * FROM " + table) // .WithDatabase(database)
+
+	resMetric, err := client.Query(context.Background(), req)
 	if err != nil {
 		fmt.Printf("fail to query, err: %+v\n", err)
 		return
@@ -132,8 +132,40 @@ func query() {
 	fmt.Println(monitors)
 }
 
+// the response format is in []byte, and is absolutely the same as Prometheus
+func queryViaInstantPromql() {
+	promql := greptime.NewInstantPromql(table)
+	req := greptime.QueryRequest{}
+	req.WithInstantPromql(promql)
+	body, err := client.PromqlQuery(context.Background(), req)
+	if err != nil {
+		fmt.Printf("failed to do instant promql query: %+v\n", err)
+		return
+	}
+
+	fmt.Printf("%s\n", string(body))
+}
+
+// the response format is in []byte, and is absolutely the same as Prometheus
+func queryViaRangePromql() {
+	end := time.Now()
+	start := end.Add(time.Duration(-15) * time.Second) // 15 seconds before
+	promql := greptime.NewRangePromql(table).WithStart(start).WithEnd(end).WithStep(time.Second)
+	req := greptime.QueryRequest{}
+	req.WithRangePromql(promql)
+	body, err := client.PromqlQuery(context.Background(), req)
+	if err != nil {
+		fmt.Printf("failed to do range promql query: %+v\n", err)
+		return
+	}
+	fmt.Printf("%s\n", string(body))
+}
+
 func Example() {
 	initClient()
 	insert()
-	query()
+
+	queryViaSql()
+	queryViaInstantPromql()
+	queryViaRangePromql()
 }

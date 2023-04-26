@@ -15,29 +15,36 @@
 package greptime
 
 import (
-	"testing"
-
 	greptimepb "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
-	"github.com/stretchr/testify/assert"
 )
 
-func TestHeaderBuild(t *testing.T) {
-	h := &header{}
+// Sql helps to fire a request to greptimedb in SQL. It can not be used
+// as Promql Query
+type Sql struct {
+	sql string
+}
 
-	gh, err := h.build(&Config{})
-	assert.ErrorIs(t, err, ErrEmptyDatabase)
-	assert.Nil(t, gh)
+var (
+	_ query = (*Sql)(nil)
+)
 
-	gh, err = h.build(&Config{Database: "database"})
-	assert.Nil(t, err)
-	assert.Equal(t, &greptimepb.RequestHeader{
-		Dbname: "database",
-	}, gh)
+func (s *Sql) buildGreptimeRequest(header *greptimepb.RequestHeader) (*greptimepb.GreptimeRequest, error) {
+	if isEmptyString(s.sql) {
+		return nil, ErrEmptySql
+	}
 
-	h.database = "db_in_header"
-	gh, err = h.build(&Config{Database: "database"})
-	assert.Nil(t, err)
-	assert.Equal(t, &greptimepb.RequestHeader{
-		Dbname: "db_in_header",
-	}, gh)
+	request := &greptimepb.GreptimeRequest_Query{
+		Query: &greptimepb.QueryRequest{
+			Query: &greptimepb.QueryRequest_Sql{Sql: s.sql},
+		},
+	}
+
+	return &greptimepb.GreptimeRequest{
+		Header:  header,
+		Request: request,
+	}, nil
+}
+
+func (s *Sql) buildPromqlRequest(header *greptimepb.RequestHeader) (*greptimepb.PromqlRequest, error) {
+	return nil, ErrSqlInPromql
 }

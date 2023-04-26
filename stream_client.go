@@ -44,7 +44,7 @@ func NewStreamClient(cfg *Config) (*StreamClient, error) {
 }
 
 func (c *StreamClient) Send(ctx context.Context, req InsertRequest) error {
-	request, err := req.Build(c.cfg)
+	request, err := req.build(c.cfg)
 	if err != nil {
 		return err
 	}

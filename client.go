@@ -27,10 +27,15 @@ import (
 // use by multiple goroutines,you can have one Client instance in your application.
 type Client struct {
 	cfg *Config
+
 	// For `query`, since unary calls have not been inplemented for query and only do_get helps
 	flightClient flight.Client
+
 	// For `insert`, unary calls are supported
 	greptimeClient greptimepb.GreptimeDatabaseClient
+
+	// For `Promql` query
+	promqlClient greptimepb.PrometheusGatewayClient
 }
 
 // NewClient helps to create the greptimedb client, which will be responsible Write/Read data To/From GreptimeDB
@@ -46,32 +51,34 @@ func NewClient(cfg *Config) (*Client, error) {
 	}
 
 	greptimeClient := greptimepb.NewGreptimeDatabaseClient(conn)
+	promqlClient := greptimepb.NewPrometheusGatewayClient(conn)
 
 	return &Client{
 		cfg:            cfg,
 		flightClient:   flightClient,
 		greptimeClient: greptimeClient,
+		promqlClient:   promqlClient,
 	}, nil
 }
 
 // Insert helps to insert multiple rows into greptimedb
 func (c *Client) Insert(ctx context.Context, req InsertRequest) (uint32, error) {
-	request, err := req.Build(c.cfg)
+	request, err := req.build(c.cfg)
 	if err != nil {
 		return 0, err
 	}
 
-	response, err := c.greptimeClient.Handle(ctx, request)
+	resp, err := c.greptimeClient.Handle(ctx, request)
 	if err != nil {
 		return 0, err
 	}
 
-	return response.GetAffectedRows().Value, nil
+	return resp.GetAffectedRows().Value, nil
 }
 
 // Query helps to retrieve data from greptimedb
 func (c *Client) Query(ctx context.Context, req QueryRequest) (*Metric, error) {
-	request, err := req.Build(c.cfg)
+	request, err := req.buildGreptimeRequest(c.cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -92,4 +99,19 @@ func (c *Client) Query(ctx context.Context, req QueryRequest) (*Metric, error) {
 	}
 
 	return buildMetricFromReader(reader)
+}
+
+// PromqlQuery helps to retrieve data from greptimedb via InstantQuery or RangeQuery
+func (c *Client) PromqlQuery(ctx context.Context, req QueryRequest) ([]byte, error) {
+	request, err := req.buildPromqlRequest(c.cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.promqlClient.Handle(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.GetBody(), nil
 }

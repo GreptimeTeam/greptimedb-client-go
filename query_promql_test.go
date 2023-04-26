@@ -24,7 +24,11 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func TestPromQL(t *testing.T) {
+func TestInstantPromqlInPrometheusWay(t *testing.T) {
+	// TODO(yuanbohan): waiting for gRPC server
+}
+
+func TestRangePromqlInPrometheusWay(t *testing.T) {
 	// TODO(yuanbohan): waiting for gRPC server
 }
 
@@ -82,13 +86,8 @@ func TestInsertAndQueryWithRangePromQL(t *testing.T) {
 
 	// Query with PromQL with metric
 	queryReq := QueryRequest{}
-	rp := RangePromql{
-		Query: table,
-		// Start: time.Unix(1677728740, 0),
-		// End:   time.Unix(1677728740, 0),
-		Step: "50s",
-	}
-	rp.WithStartSecond(1677728740).WithEndSecond(1677728740)
+	rp := &RangePromql{Query: table}
+	rp.WithStart(time.Unix(1677728740, 0)).WithEnd(time.Unix(1677728740, 0)).WithStep(time.Second * 50)
 	queryReq.WithRangePromql(rp).WithDatabase(database)
 
 	resMetric, err := client.Query(context.Background(), queryReq)
