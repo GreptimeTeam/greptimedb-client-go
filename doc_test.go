@@ -20,6 +20,7 @@ import (
 	"time"
 
 	greptime "github.com/GreptimeTeam/greptimedb-client-go"
+	"github.com/GreptimeTeam/greptimedb-client-go/prom"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -137,13 +138,20 @@ func queryViaInstantPromql() {
 	promql := greptime.NewInstantPromql(table)
 	req := greptime.QueryRequest{}
 	req.WithInstantPromql(promql)
-	body, err := client.PromqlQuery(context.Background(), req)
+	resp, err := client.PromqlQuery(context.Background(), req)
 	if err != nil {
 		fmt.Printf("failed to do instant promql query: %+v\n", err)
 		return
 	}
 
-	fmt.Printf("%s\n", string(body))
+	// you can use prom package to unmarshal the response as you want
+	result, err := prom.UnmarshalApiResponse(resp)
+	if err != nil {
+		fmt.Printf("failed to unmarshal instant promql, body: %s, err: %+v", string(resp), err)
+		return
+	}
+	fmt.Printf("%s:\n%+v\n", result.Type, result.Val)
+
 }
 
 // the response format is in []byte, and is absolutely the same as Prometheus
@@ -153,12 +161,19 @@ func queryViaRangePromql() {
 	promql := greptime.NewRangePromql(table).WithStart(start).WithEnd(end).WithStep(time.Second)
 	req := greptime.QueryRequest{}
 	req.WithRangePromql(promql)
-	body, err := client.PromqlQuery(context.Background(), req)
+	resp, err := client.PromqlQuery(context.Background(), req)
 	if err != nil {
 		fmt.Printf("failed to do range promql query: %+v\n", err)
 		return
 	}
-	fmt.Printf("%s\n", string(body))
+
+	// you can use prom package to unmarshal the response as you want
+	result, err := prom.UnmarshalApiResponse(resp)
+	if err != nil {
+		fmt.Printf("failed to unmarshal instant promql, body: %s, err: %+v", string(resp), err)
+		return
+	}
+	fmt.Printf("%s:\n%+v\n", result.Type, result.Val)
 }
 
 func Example() {

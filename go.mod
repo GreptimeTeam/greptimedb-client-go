@@ -6,6 +6,7 @@ require (
 	github.com/GreptimeTeam/greptime-proto v0.0.0-20230424095535-a26c40c004f9
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40
 	github.com/bits-and-blooms/bitset v1.7.0
+	github.com/prometheus/common v0.42.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stoewer/go-strcase v1.3.0
 	github.com/stretchr/testify v1.8.1
@@ -48,7 +49,6 @@ require (
 	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
