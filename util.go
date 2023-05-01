@@ -49,7 +49,7 @@ func convert(v any) (*value, error) {
 	case uint64:
 		return newValue(t, greptimepb.ColumnDataType_UINT64), nil
 	case uint32:
-		return newValue(uint32(t), greptimepb.ColumnDataType_UINT32), nil
+		return newValue(t, greptimepb.ColumnDataType_UINT32), nil
 	case uint16:
 		return newValue(uint32(t), greptimepb.ColumnDataType_UINT32), nil
 	case uint8:
@@ -59,7 +59,7 @@ func convert(v any) (*value, error) {
 	case int64:
 		return newValue(t, greptimepb.ColumnDataType_INT64), nil
 	case int32:
-		return newValue(int32(t), greptimepb.ColumnDataType_INT32), nil
+		return newValue(t, greptimepb.ColumnDataType_INT32), nil
 	case int16:
 		return newValue(int32(t), greptimepb.ColumnDataType_INT32), nil
 	case int8:
@@ -83,7 +83,7 @@ func convert(v any) (*value, error) {
 	case *uint64:
 		return newValue(*t, greptimepb.ColumnDataType_UINT64), nil
 	case *uint32:
-		return newValue(uint32(*t), greptimepb.ColumnDataType_UINT32), nil
+		return newValue(*t, greptimepb.ColumnDataType_UINT32), nil
 	case *uint16:
 		return newValue(uint32(*t), greptimepb.ColumnDataType_UINT32), nil
 	case *uint8:
@@ -93,7 +93,7 @@ func convert(v any) (*value, error) {
 	case *int64:
 		return newValue(*t, greptimepb.ColumnDataType_INT64), nil
 	case *int32:
-		return newValue(int32(*t), greptimepb.ColumnDataType_INT32), nil
+		return newValue(*t, greptimepb.ColumnDataType_INT32), nil
 	case *int16:
 		return newValue(int32(*t), greptimepb.ColumnDataType_INT32), nil
 	case *int8:
@@ -114,7 +114,7 @@ func isValidPrecision(t time.Duration) bool {
 }
 
 func precisionToDataType(d time.Duration) (greptimepb.ColumnDataType, error) {
-	// if the precision has not been set, use defalut precision `time.Millisecond`
+	// if the precision has not been set, use default precision `time.Millisecond`
 	if d == 0 {
 		d = time.Millisecond
 	}

@@ -32,7 +32,7 @@
 // You don't need to create the table, it will be created automatically via [Series] fields.
 // What you have to know about [Series] in advance:
 //
-//   - Tag is like index, it helps you to retrive data more efficiently
+//   - Tag is like index, it helps you to retrieve data more efficiently
 //   - Field is like value, it can be used to analyze, calculate, aggregate, etc,.
 //   - Timestamp is required for timeseries data
 //

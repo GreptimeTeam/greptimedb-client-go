@@ -34,7 +34,7 @@ func TestStreamInsert(t *testing.T) {
 			one := monitor{
 				host: "127.0.0.1",
 				// default precision is millisecond, this conversion
-				// is to make the Equal assersion passed
+				// is to make the Equal assertion passed
 				ts:          time.UnixMilli(ts), // you can directly use time.Now()
 				memory:      22,
 				cpu:         0.45,

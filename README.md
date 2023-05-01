@@ -38,7 +38,7 @@ you can visit [Example][example] for usage details.
 #### Precision for Timestamp
 
 The default precision is `Millisecond`, you can set a different precision,
-once the precision is setted, you can not change it any more.
+once the precision is set, you can not change it anymore.
 
 - time.Second
 - time.Millisecond

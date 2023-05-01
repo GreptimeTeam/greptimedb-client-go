@@ -136,7 +136,7 @@ func extractPrecision(field *arrow.Field) (time.Duration, error) {
 
 }
 
-// retrive arrow value from the column at idx position
+// fromColumn retrieves arrow value from the column at idx position
 func fromColumn(column array.Interface, idx int) (any, error) {
 	if column.IsNull(idx) {
 		return nil, nil
@@ -179,7 +179,7 @@ func fromColumn(column array.Interface, idx int) (any, error) {
 	}
 }
 
-// SetTimePrecision set precsion for Metric. Valid durations include:
+// SetTimePrecision set precision for Metric. Valid durations include:
 //   - time.Nanosecond
 //   - time.Microsecond
 //   - time.Millisecond

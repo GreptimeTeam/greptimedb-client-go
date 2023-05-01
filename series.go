@@ -59,7 +59,7 @@ func (s *Series) GetTagsAndFields() []string {
 	return dst
 }
 
-// Get helps to get value of specifid column. The second return value
+// Get helps to get value of specified column. The second return value
 // indicates if the key was present in Series
 func (s *Series) Get(key string) (any, bool) {
 	val, exist := s.vals[key]
@@ -84,17 +84,17 @@ func (s *Series) GetUint(key string) (uint64, bool) {
 		return 0, exist
 	}
 
-	switch val.(type) {
+	switch t := val.(type) {
 	case uint8:
-		return uint64(val.(uint8)), true
+		return uint64(t), true
 	case uint16:
-		return uint64(val.(uint16)), true
+		return uint64(t), true
 	case uint32:
-		return uint64(val.(uint32)), true
+		return uint64(t), true
 	case uint64:
-		return val.(uint64), true
+		return t, true
 	case uint:
-		return uint64(val.(uint)), true
+		return uint64(t), true
 	default:
 		return 0, false
 	}
@@ -118,17 +118,17 @@ func (s *Series) GetInt(key string) (int64, bool) {
 		return 0, exist
 	}
 
-	switch val.(type) {
+	switch t := val.(type) {
 	case int8:
-		return int64(val.(int8)), true
+		return int64(t), true
 	case int16:
-		return int64(val.(int16)), true
+		return int64(t), true
 	case int32:
-		return int64(val.(int32)), true
+		return int64(t), true
 	case int64:
-		return val.(int64), true
+		return t, true
 	case int:
-		return int64(val.(int)), true
+		return int64(t), true
 	default:
 		return 0, false
 	}
@@ -149,11 +149,11 @@ func (s *Series) GetFloat(key string) (float64, bool) {
 		return 0, exist
 	}
 
-	switch val.(type) {
+	switch t := val.(type) {
 	case float32:
-		return float64(val.(float32)), true
+		return float64(t), true
 	case float64:
-		return val.(float64), true
+		return t, true
 	default:
 		return 0, false
 	}
@@ -230,7 +230,7 @@ func (s *Series) add(name string, val any, semantic greptimepb.Column_SemanticTy
 
 // AddTag prepare tag column, and old value will be replaced if same tag is set.
 // the length of key CAN NOT be longer than 100.
-// If you want to constain the column type, you can directly use like:
+// If you want to contain the column type, you can directly use like:
 //   - [Series.AddFloatTag]
 //   - [Series.AddIntTag]
 //   - ...
