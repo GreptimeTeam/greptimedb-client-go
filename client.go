@@ -28,7 +28,7 @@ import (
 type Client struct {
 	cfg *Config
 
-	// For `query`, since unary calls have not been inplemented for query and only do_get helps
+	// For `query`, since unary calls have not been implemented for query and only do_get helps
 	flightClient flight.Client
 
 	// For `insert`, unary calls are supported

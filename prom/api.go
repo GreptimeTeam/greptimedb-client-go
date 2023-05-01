@@ -27,7 +27,7 @@ func UnmarshalApiResponse(resp []byte) (*QueryResult, error) {
 	return &res, nil
 }
 
-// queryResult contains result data for a query.
+// QueryResult contains result data for a query.
 type QueryResult struct {
 	Type   model.ValueType `json:"resultType"`
 	Result any             `json:"result"`
