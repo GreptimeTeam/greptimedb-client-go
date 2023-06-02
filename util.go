@@ -43,7 +43,7 @@ func convert(v any) (*value, error) {
 	case float64:
 		return newValue(t, greptimepb.ColumnDataType_FLOAT64), nil
 	case float32:
-		return newValue(float64(t), greptimepb.ColumnDataType_FLOAT64), nil
+		return newValue(t, greptimepb.ColumnDataType_FLOAT32), nil
 	case uint:
 		return newValue(uint64(t), greptimepb.ColumnDataType_UINT64), nil
 	case uint64:
@@ -51,9 +51,9 @@ func convert(v any) (*value, error) {
 	case uint32:
 		return newValue(t, greptimepb.ColumnDataType_UINT32), nil
 	case uint16:
-		return newValue(uint32(t), greptimepb.ColumnDataType_UINT32), nil
+		return newValue(t, greptimepb.ColumnDataType_UINT16), nil
 	case uint8:
-		return newValue(uint32(t), greptimepb.ColumnDataType_UINT32), nil
+		return newValue(t, greptimepb.ColumnDataType_UINT8), nil
 	case int:
 		return newValue(int64(t), greptimepb.ColumnDataType_INT64), nil
 	case int64:
@@ -61,9 +61,9 @@ func convert(v any) (*value, error) {
 	case int32:
 		return newValue(t, greptimepb.ColumnDataType_INT32), nil
 	case int16:
-		return newValue(int32(t), greptimepb.ColumnDataType_INT32), nil
+		return newValue(t, greptimepb.ColumnDataType_INT16), nil
 	case int8:
-		return newValue(int32(t), greptimepb.ColumnDataType_INT32), nil
+		return newValue(t, greptimepb.ColumnDataType_INT8), nil
 	// TODO(vinland-avalon): convert with different precision
 	case time.Time:
 		return newValue(t.UnixMilli(), greptimepb.ColumnDataType_TIMESTAMP_MILLISECOND), nil
@@ -77,7 +77,7 @@ func convert(v any) (*value, error) {
 	case *float64:
 		return newValue(*t, greptimepb.ColumnDataType_FLOAT64), nil
 	case *float32:
-		return newValue(float64(*t), greptimepb.ColumnDataType_FLOAT64), nil
+		return newValue(*t, greptimepb.ColumnDataType_FLOAT32), nil
 	case *uint:
 		return newValue(uint64(*t), greptimepb.ColumnDataType_UINT64), nil
 	case *uint64:
@@ -85,9 +85,9 @@ func convert(v any) (*value, error) {
 	case *uint32:
 		return newValue(*t, greptimepb.ColumnDataType_UINT32), nil
 	case *uint16:
-		return newValue(uint32(*t), greptimepb.ColumnDataType_UINT32), nil
+		return newValue(*t, greptimepb.ColumnDataType_UINT16), nil
 	case *uint8:
-		return newValue(uint32(*t), greptimepb.ColumnDataType_UINT32), nil
+		return newValue(*t, greptimepb.ColumnDataType_UINT8), nil
 	case *int:
 		return newValue(int64(*t), greptimepb.ColumnDataType_INT64), nil
 	case *int64:
@@ -95,9 +95,9 @@ func convert(v any) (*value, error) {
 	case *int32:
 		return newValue(*t, greptimepb.ColumnDataType_INT32), nil
 	case *int16:
-		return newValue(int32(*t), greptimepb.ColumnDataType_INT32), nil
+		return newValue(*t, greptimepb.ColumnDataType_INT16), nil
 	case *int8:
-		return newValue(int32(*t), greptimepb.ColumnDataType_INT32), nil
+		return newValue(*t, greptimepb.ColumnDataType_INT8), nil
 	// TODO(vinland-avalon): convert with different precision, as `time.Time` abovementioned
 	case *time.Time:
 		return newValue(t.UnixMilli(), greptimepb.ColumnDataType_TIMESTAMP_MILLISECOND), nil

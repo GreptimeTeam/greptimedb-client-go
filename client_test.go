@@ -17,13 +17,13 @@ package greptime
 import (
 	"context"
 	"fmt"
-	"strconv"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/ory/dockertest/v3"
-	dc "github.com/ory/dockertest/v3/docker"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -39,66 +39,68 @@ type monitor struct {
 }
 
 var (
-	database = "public"
+	database = "test"
 	host     = "127.0.0.1"
-	port     = 0
+	port     = 4001
 )
 
-func init() {
-	repo := "greptime/greptimedb"
-	tag := "0.2.0-nightly-20230328"
+// func init() {
+//	repo := "greptime/greptimedb"
+//	tag := "0.3.0-20230530-nightly"
 
-	var err error
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		log.Fatalf("Could not connect to docker: %s", err)
-	}
+//	var err error
+//	pool, err := dockertest.NewPool("")
+//	if err != nil {
+//		log.Fatalf("Could not connect to docker: %s", err)
+//	}
 
-	log.WithFields(log.Fields{
-		"repository": repo,
-		"tag":        tag,
-	}).Infof("Preparing container %s:%s", repo, tag)
+//	log.WithFields(log.Fields{
+//		"repository": repo,
+//		"tag":        tag,
+//	}).Infof("Preparing container %s:%s", repo, tag)
 
-	// pulls an image, creates a container based on it and runs it
-	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
-		Repository:   repo,
-		Tag:          tag,
-		ExposedPorts: []string{"4001", "4002"},
-		Entrypoint:   []string{"greptime", "standalone", "start", "--rpc-addr=0.0.0.0:4001", "--mysql-addr=0.0.0.0:4002"},
-	}, func(config *dc.HostConfig) {
-		// set AutoRemove to true so that stopped container goes away by itself
-		config.AutoRemove = true
-		config.RestartPolicy = dc.RestartPolicy{Name: "no"}
-	})
-	if err != nil {
-		log.Fatalf("Could not start resource: %s", err)
-	}
-	var expire uint = 30
-	log.WithFields(log.Fields{
-		"repository": repo,
-		"tag":        tag,
-		"expire":     expire,
-	}).Infof("Container starting...")
+//	// pulls an image, creates a container based on it and runs it
+//	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
+//		Repository:   repo,
+//		Tag:          tag,
+//		ExposedPorts: []string{"4001", "4002"},
+//		Entrypoint: []string{"greptime", "standalone", "start",
+//			"--rpc-addr=0.0.0.0:4001",
+//			"--mysql-addr=0.0.0.0:4002"},
+//	}, func(config *dc.HostConfig) {
+//		// set AutoRemove to true so that stopped container goes away by itself
+//		config.AutoRemove = true
+//		config.RestartPolicy = dc.RestartPolicy{Name: "no"}
+//	})
+//	if err != nil {
+//		log.Fatalf("Could not start resource: %s", err)
+//	}
+//	var expire uint = 30
+//	log.WithFields(log.Fields{
+//		"repository": repo,
+//		"tag":        tag,
+//		"expire":     expire,
+//	}).Infof("Container starting...")
 
-	err = resource.Expire(expire) // Tell docker to hard kill the container
-	if err != nil {
-		log.WithError(nil).Warn("Expire container failed")
-	}
+//	err = resource.Expire(expire) // Tell docker to hard kill the container
+//	if err != nil {
+//		log.WithError(nil).Warn("Expire container failed")
+//	}
 
-	pool.MaxWait = 60 * time.Second
+//	pool.MaxWait = 60 * time.Second
 
-	if err := pool.Retry(func() error {
-		// TODO(vinland-avalon): some functions, like ping() to check if container is ready
-		time.Sleep(time.Second)
-		port, err = strconv.Atoi(resource.GetPort(("4001/tcp")))
-		if err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
-		log.Fatalf("Could not connect to docker: %s", err)
-	}
-}
+//	if err := pool.Retry(func() error {
+//		// TODO(vinland-avalon): some functions, like ping() to check if container is ready
+//		time.Sleep(time.Second)
+//		port, err = strconv.Atoi(resource.GetPort(("4001/tcp")))
+//		if err != nil {
+//			return err
+//		}
+//		return nil
+//	}); err != nil {
+//		log.Fatalf("Could not connect to docker: %s", err)
+//	}
+// }
 
 func newClient(t *testing.T) *Client {
 	options := []grpc.DialOption{
@@ -108,6 +110,17 @@ func newClient(t *testing.T) *Client {
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 	return client
+}
+
+func createTable(t *testing.T, schema string) {
+	data := url.Values{}
+	data.Set("sql", schema)
+	body := strings.NewReader(data.Encode())
+	uri := fmt.Sprintf("http://localhost:4000/v1/sql?db=%s", database)
+	resp, err := http.DefaultClient.Post(uri, "application/x-www-form-urlencoded", body)
+	defer resp.Body.Close()
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
 func TestInvalidClient(t *testing.T) {
@@ -721,4 +734,26 @@ func TestDataTypes(t *testing.T) {
 		timeV:    timeV,
 	}
 	assert.Equal(t, data, querydata)
+}
+
+func TestCreateTableInAdvance(t *testing.T) {
+	table := "create_datatypes_table_in_advance"
+	schema := "CREATE TABLE " + table + " (" +
+		" id varchar," +
+		" i64 bigint," +
+		" i32 int," +
+		" i16 smallint," +
+		" i8 tinyint," +
+		" u64 bigint unsigned," +
+		" u32 int unsigned," +
+		" u16 smallint unsigned," +
+		" u8 tinyint unsigned," +
+		" f32 float," +
+		" f64 double," +
+		" bool boolean," +
+		" bytes varbinary," +
+		" times TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
+		" TIME INDEX (times)," +
+		" PRIMARY KEY(id))"
+	createTable(t, schema)
 }

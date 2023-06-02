@@ -137,9 +137,9 @@ func TestGreptimeColumn(t *testing.T) {
 
 	col5 := cols[4]
 	assert.Equal(t, "field1", col5.ColumnName)
-	assert.Equal(t, greptimepb.ColumnDataType_UINT32, col5.Datatype)
+	assert.Equal(t, greptimepb.ColumnDataType_UINT8, col5.Datatype)
 	assert.Equal(t, greptimepb.Column_FIELD, col5.SemanticType)
-	assert.Equal(t, []uint32{8, 8}, col5.Values.U32Values)
+	assert.Equal(t, []uint32{8, 8}, col5.Values.U8Values)
 	assert.Empty(t, col5.NullMask)
 
 	col6 := cols[5]
@@ -158,9 +158,9 @@ func TestGreptimeColumn(t *testing.T) {
 
 	col8 := cols[7]
 	assert.Equal(t, "field_name4", col8.ColumnName)
-	assert.Equal(t, greptimepb.ColumnDataType_FLOAT64, col8.Datatype)
+	assert.Equal(t, greptimepb.ColumnDataType_FLOAT32, col8.Datatype)
 	assert.Equal(t, greptimepb.Column_FIELD, col8.SemanticType)
-	assert.Equal(t, []float64{32}, col8.Values.F64Values)
+	assert.Equal(t, []float32{32}, col8.Values.F32Values)
 	assert.Equal(t, []byte{1}, col8.NullMask)
 
 	col9 := cols[8]
