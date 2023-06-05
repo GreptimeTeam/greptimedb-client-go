@@ -24,7 +24,6 @@ you can visit [Documentation][document] for usage details and documentation,
 - uint8, uint16, uint32, uint64, uint
 - float32, float64
 - bool
-- []byte
 - string
 - time.Time
 
@@ -48,8 +47,7 @@ metric.SetTimePrecision(time.Microsecond)
 
 ##### alias
 
-The default timestamp column name is `ts`, if you want to use another name, you
-can change it:
+The default timestamp column name is `ts`, if you want to use another name, you can change it:
 
 ```go
 metric.SetTimestampAlias("timestamp")
