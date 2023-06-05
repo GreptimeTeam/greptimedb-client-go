@@ -43,8 +43,8 @@ func TestConvertValue(t *testing.T) {
 	var expectBytes []byte = []byte("bytes")
 	val, err = convert(expectBytes)
 	assert.Nil(t, err)
-	assert.Equal(t, "bytes", val.val)
-	assert.Equal(t, greptime.ColumnDataType_STRING, val.typ)
+	assert.Equal(t, []byte("bytes"), val.val)
+	assert.Equal(t, greptime.ColumnDataType_BINARY, val.typ)
 
 	// float64
 	var expectFloat64 float64 = float64(64.0)
@@ -54,12 +54,11 @@ func TestConvertValue(t *testing.T) {
 	assert.Equal(t, greptime.ColumnDataType_FLOAT64, val.typ)
 
 	// float32
-	var originFloat32 float32 = float32(32.0)
-	var expectFloat32 float64 = float64(32.0)
-	val, err = convert(originFloat32)
+	var expectFloat32 float32 = float32(32.0)
+	val, err = convert(expectFloat32)
 	assert.Nil(t, err)
 	assert.Equal(t, expectFloat32, val.val)
-	assert.Equal(t, greptime.ColumnDataType_FLOAT64, val.typ)
+	assert.Equal(t, greptime.ColumnDataType_FLOAT32, val.typ)
 
 	// uint
 	var originUint uint = uint(64)
@@ -70,36 +69,32 @@ func TestConvertValue(t *testing.T) {
 	assert.Equal(t, greptime.ColumnDataType_UINT64, val.typ)
 
 	// uint64
-	var originUint64 uint64 = uint64(64)
 	var expectUint64 uint64 = uint64(64)
-	val, err = convert(originUint64)
+	val, err = convert(expectUint64)
 	assert.Nil(t, err)
 	assert.Equal(t, expectUint64, val.val)
 	assert.Equal(t, greptime.ColumnDataType_UINT64, val.typ)
 
 	// uint32
-	var originUint32 uint32 = uint32(32)
 	var expectUint32 uint32 = uint32(32)
-	val, err = convert(originUint32)
+	val, err = convert(expectUint32)
 	assert.Nil(t, err)
 	assert.Equal(t, expectUint32, val.val)
 	assert.Equal(t, greptime.ColumnDataType_UINT32, val.typ)
 
 	// uint16
-	var originUint16 uint16 = uint16(16)
-	var expectUint16 uint32 = uint32(16)
-	val, err = convert(originUint16)
+	var expectUint16 uint16 = uint16(16)
+	val, err = convert(expectUint16)
 	assert.Nil(t, err)
 	assert.Equal(t, expectUint16, val.val)
-	assert.Equal(t, greptime.ColumnDataType_UINT32, val.typ)
+	assert.Equal(t, greptime.ColumnDataType_UINT16, val.typ)
 
 	// uint8
-	var originUint8 uint8 = uint8(8)
-	var expectUint8 uint32 = uint32(8)
-	val, err = convert(originUint8)
+	var expectUint8 uint8 = uint8(8)
+	val, err = convert(expectUint8)
 	assert.Nil(t, err)
 	assert.Equal(t, expectUint8, val.val)
-	assert.Equal(t, greptime.ColumnDataType_UINT32, val.typ)
+	assert.Equal(t, greptime.ColumnDataType_UINT8, val.typ)
 
 	// int
 	var originInt int = int(64)
@@ -110,36 +105,32 @@ func TestConvertValue(t *testing.T) {
 	assert.Equal(t, greptime.ColumnDataType_INT64, val.typ)
 
 	// int64
-	var originInt64 int64 = int64(64)
 	var expectInt64 int64 = int64(64)
-	val, err = convert(originInt64)
+	val, err = convert(expectInt64)
 	assert.Nil(t, err)
 	assert.Equal(t, expectInt64, val.val)
 	assert.Equal(t, greptime.ColumnDataType_INT64, val.typ)
 
 	// int32
-	var originInt32 int32 = int32(32)
 	var expectInt32 int32 = int32(32)
-	val, err = convert(originInt32)
+	val, err = convert(expectInt32)
 	assert.Nil(t, err)
 	assert.Equal(t, expectInt32, val.val)
 	assert.Equal(t, greptime.ColumnDataType_INT32, val.typ)
 
 	// int16
-	var originInt16 int16 = int16(16)
-	var expectInt16 int32 = int32(16)
-	val, err = convert(originInt16)
+	var expectInt16 int16 = int16(16)
+	val, err = convert(expectInt16)
 	assert.Nil(t, err)
 	assert.Equal(t, expectInt16, val.val)
-	assert.Equal(t, greptime.ColumnDataType_INT32, val.typ)
+	assert.Equal(t, greptime.ColumnDataType_INT16, val.typ)
 
 	// int8
-	var originInt8 int8 = int8(8)
-	var expectInt8 int32 = int32(8)
-	val, err = convert(originInt8)
+	var expectInt8 int8 = int8(8)
+	val, err = convert(expectInt8)
 	assert.Nil(t, err)
 	assert.Equal(t, expectInt8, val.val)
-	assert.Equal(t, greptime.ColumnDataType_INT32, val.typ)
+	assert.Equal(t, greptime.ColumnDataType_INT8, val.typ)
 
 	// time.Time
 	var originTime time.Time = time.UnixMilli(1677571339623)
@@ -178,8 +169,8 @@ func TestConvertValuePtr(t *testing.T) {
 	var expectBytes []byte = []byte("bytes")
 	val, err = convert(&expectBytes)
 	assert.Nil(t, err)
-	assert.Equal(t, "bytes", val.val)
-	assert.Equal(t, greptime.ColumnDataType_STRING, val.typ)
+	assert.Equal(t, []byte("bytes"), val.val)
+	assert.Equal(t, greptime.ColumnDataType_BINARY, val.typ)
 
 	// float64
 	var expectFloat64 float64 = float64(64.0)
@@ -189,12 +180,11 @@ func TestConvertValuePtr(t *testing.T) {
 	assert.Equal(t, greptime.ColumnDataType_FLOAT64, val.typ)
 
 	// float32
-	var originFloat32 float32 = float32(32.0)
-	var expectFloat32 float64 = float64(32.0)
-	val, err = convert(&originFloat32)
+	var expectFloat32 float32 = float32(32.0)
+	val, err = convert(&expectFloat32)
 	assert.Nil(t, err)
 	assert.Equal(t, expectFloat32, val.val)
-	assert.Equal(t, greptime.ColumnDataType_FLOAT64, val.typ)
+	assert.Equal(t, greptime.ColumnDataType_FLOAT32, val.typ)
 
 	// uint
 	var originUint uint = uint(64)
@@ -205,36 +195,32 @@ func TestConvertValuePtr(t *testing.T) {
 	assert.Equal(t, greptime.ColumnDataType_UINT64, val.typ)
 
 	// uint64
-	var originUint64 uint64 = uint64(64)
 	var expectUint64 uint64 = uint64(64)
-	val, err = convert(&originUint64)
+	val, err = convert(&expectUint64)
 	assert.Nil(t, err)
 	assert.Equal(t, expectUint64, val.val)
 	assert.Equal(t, greptime.ColumnDataType_UINT64, val.typ)
 
 	// uint32
-	var originUint32 uint32 = uint32(32)
 	var expectUint32 uint32 = uint32(32)
-	val, err = convert(&originUint32)
+	val, err = convert(&expectUint32)
 	assert.Nil(t, err)
 	assert.Equal(t, expectUint32, val.val)
 	assert.Equal(t, greptime.ColumnDataType_UINT32, val.typ)
 
 	// uint16
-	var originUint16 uint16 = uint16(16)
-	var expectUint16 uint32 = uint32(16)
-	val, err = convert(&originUint16)
+	var expectUint16 uint16 = uint16(16)
+	val, err = convert(&expectUint16)
 	assert.Nil(t, err)
 	assert.Equal(t, expectUint16, val.val)
-	assert.Equal(t, greptime.ColumnDataType_UINT32, val.typ)
+	assert.Equal(t, greptime.ColumnDataType_UINT16, val.typ)
 
 	// uint8
-	var originUint8 uint8 = uint8(8)
-	var expectUint8 uint32 = uint32(8)
-	val, err = convert(&originUint8)
+	var expectUint8 uint8 = uint8(8)
+	val, err = convert(&expectUint8)
 	assert.Nil(t, err)
 	assert.Equal(t, expectUint8, val.val)
-	assert.Equal(t, greptime.ColumnDataType_UINT32, val.typ)
+	assert.Equal(t, greptime.ColumnDataType_UINT8, val.typ)
 
 	// int
 	var originInt int = int(64)
@@ -245,36 +231,32 @@ func TestConvertValuePtr(t *testing.T) {
 	assert.Equal(t, greptime.ColumnDataType_INT64, val.typ)
 
 	// int64
-	var originInt64 int64 = int64(64)
 	var expectInt64 int64 = int64(64)
-	val, err = convert(&originInt64)
+	val, err = convert(&expectInt64)
 	assert.Nil(t, err)
 	assert.Equal(t, expectInt64, val.val)
 	assert.Equal(t, greptime.ColumnDataType_INT64, val.typ)
 
 	// int32
-	var originInt32 int32 = int32(32)
 	var expectInt32 int32 = int32(32)
-	val, err = convert(&originInt32)
+	val, err = convert(&expectInt32)
 	assert.Nil(t, err)
 	assert.Equal(t, expectInt32, val.val)
 	assert.Equal(t, greptime.ColumnDataType_INT32, val.typ)
 
 	// int16
-	var originInt16 int16 = int16(16)
-	var expectInt16 int32 = int32(16)
-	val, err = convert(&originInt16)
+	var expectInt16 int16 = int16(16)
+	val, err = convert(&expectInt16)
 	assert.Nil(t, err)
 	assert.Equal(t, expectInt16, val.val)
-	assert.Equal(t, greptime.ColumnDataType_INT32, val.typ)
+	assert.Equal(t, greptime.ColumnDataType_INT16, val.typ)
 
 	// int8
-	var originInt8 int8 = int8(8)
-	var expectInt8 int32 = int32(8)
-	val, err = convert(&originInt8)
+	var expectInt8 int8 = int8(8)
+	val, err = convert(&expectInt8)
 	assert.Nil(t, err)
 	assert.Equal(t, expectInt8, val.val)
-	assert.Equal(t, greptime.ColumnDataType_INT32, val.typ)
+	assert.Equal(t, greptime.ColumnDataType_INT8, val.typ)
 
 	// time.Time
 	var originTime time.Time = time.UnixMilli(1677571339623)

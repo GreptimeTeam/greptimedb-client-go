@@ -17,7 +17,10 @@ package greptime
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -39,14 +42,14 @@ type monitor struct {
 }
 
 var (
-	database = "public"
-	host     = "127.0.0.1"
-	port     = 0
+	database           = "public"
+	host               = "127.0.0.1"
+	grpcPort, httpPort = 4001, 4000
 )
 
 func init() {
 	repo := "greptime/greptimedb"
-	tag := "0.2.0-nightly-20230328"
+	tag := "0.3.0-alpha"
 
 	var err error
 	pool, err := dockertest.NewPool("")
@@ -63,8 +66,11 @@ func init() {
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository:   repo,
 		Tag:          tag,
-		ExposedPorts: []string{"4001", "4002"},
-		Entrypoint:   []string{"greptime", "standalone", "start", "--rpc-addr=0.0.0.0:4001", "--mysql-addr=0.0.0.0:4002"},
+		ExposedPorts: []string{"4000", "4001", "4002"},
+		Entrypoint: []string{"greptime", "standalone", "start",
+			"--http-addr=0.0.0.0:4000",
+			"--rpc-addr=0.0.0.0:4001",
+			"--mysql-addr=0.0.0.0:4002"},
 	}, func(config *dc.HostConfig) {
 		// set AutoRemove to true so that stopped container goes away by itself
 		config.AutoRemove = true
@@ -85,12 +91,13 @@ func init() {
 		log.WithError(nil).Warn("Expire container failed")
 	}
 
-	pool.MaxWait = 60 * time.Second
+	pool.MaxWait = 30 * time.Second
 
 	if err := pool.Retry(func() error {
 		// TODO(vinland-avalon): some functions, like ping() to check if container is ready
 		time.Sleep(time.Second)
-		port, err = strconv.Atoi(resource.GetPort(("4001/tcp")))
+		httpPort, err = strconv.Atoi(resource.GetPort(("4000/tcp")))
+		grpcPort, err = strconv.Atoi(resource.GetPort(("4001/tcp")))
 		if err != nil {
 			return err
 		}
@@ -104,10 +111,22 @@ func newClient(t *testing.T) *Client {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(host).WithPort(port).WithDatabase(database).WithDialOptions(options...)
+	cfg := NewCfg(host).WithPort(grpcPort).WithDatabase(database).WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 	return client
+}
+
+func createTable(t *testing.T, schema string) {
+	data := url.Values{}
+	data.Set("sql", schema)
+	body := strings.NewReader(data.Encode())
+	uri := fmt.Sprintf("http://localhost:%d/v1/sql?db=%s", httpPort, database)
+	resp, err := http.DefaultClient.Post(uri, "application/x-www-form-urlencoded", body)
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	defer resp.Body.Close()
 }
 
 func TestInvalidClient(t *testing.T) {
@@ -116,7 +135,7 @@ func TestInvalidClient(t *testing.T) {
 		grpc.WithBlock(),
 		grpc.WithTimeout(time.Second),
 	}
-	cfg := NewCfg("invalid host").WithPort(port).WithDatabase(database).WithDialOptions(options...)
+	cfg := NewCfg("invalid host").WithPort(grpcPort).WithDatabase(database).WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, client)
 	assert.NotNil(t, err)
@@ -165,9 +184,11 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 	}
 
 	req := InsertRequest{}
-	req.WithDatabase(database).WithTable(table).WithMetric(metric)
+	req.WithTable(table).WithMetric(metric)
+	reqs := InsertsRequest{}
+	reqs.WithDatabase(database).Insert(req)
 
-	n, err := client.Insert(context.Background(), req)
+	n, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(len(insertMonitors)), n)
 
@@ -229,8 +250,11 @@ func TestPrecisionSecond(t *testing.T) {
 	// We set the precision as nanosecond
 	metric.SetTimePrecision(time.Nanosecond)
 	req := InsertRequest{}
-	req.WithTable(table).WithMetric(metric).WithDatabase(database)
-	n, err := client.Insert(context.Background(), req)
+	req.WithTable(table).WithMetric(metric)
+	reqs := InsertsRequest{}
+	reqs.WithDatabase(database).Insert(req)
+
+	n, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), n)
 
@@ -279,9 +303,11 @@ func TestNilInColumn(t *testing.T) {
 	metric.AddSeries(series2)
 
 	req := InsertRequest{}
-	req.WithTable(table).WithMetric(metric).WithDatabase(database)
+	req.WithTable(table).WithMetric(metric)
+	reqs := InsertsRequest{}
+	reqs.WithDatabase(database).Insert(req)
 
-	n, err := client.Insert(context.Background(), req)
+	n, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(len(insertMonitors)), n)
 
@@ -320,7 +346,7 @@ func TestNoNeedAuth(t *testing.T) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 	// Client can always connect to a no-auth database, even the usernames and passwords are wrong
-	cfg := NewCfg(host).WithPort(port).WithDatabase(database).WithAuth("user", "pwd").WithDialOptions(options...)
+	cfg := NewCfg(host).WithPort(grpcPort).WithDatabase(database).WithAuth("user", "pwd").WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
@@ -331,8 +357,10 @@ func TestNoNeedAuth(t *testing.T) {
 	metric.AddSeries(series)
 
 	req := InsertRequest{}
-	req.WithTable(table).WithMetric(metric).WithDatabase(database)
-	n, err := client.Insert(context.Background(), req)
+	req.WithTable(table).WithMetric(metric)
+	reqs := InsertsRequest{}
+	reqs.WithDatabase(database).Insert(req)
+	n, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), n)
 
@@ -360,7 +388,9 @@ func TestInsertSameColumnWithDifferentType(t *testing.T) {
 
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
-	n, err := client.Insert(context.Background(), req)
+	reqs := InsertsRequest{}
+	reqs.WithDatabase(database).Insert(req)
+	n, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), n)
 
@@ -373,7 +403,9 @@ func TestInsertSameColumnWithDifferentType(t *testing.T) {
 
 	req = InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
-	n, err = client.Insert(context.Background(), req)
+	reqs = InsertsRequest{}
+	reqs.WithDatabase(database).Insert(req)
+	n, err = client.Insert(context.Background(), reqs)
 	assert.NotNil(t, err)
 	assert.ErrorContains(t, err, "Type of column count does not match type in schema, expect Int64(Int64Type), given Float64(Float64Type)")
 }
@@ -392,7 +424,9 @@ func TestInsertTimestampWithDifferentPrecision(t *testing.T) {
 
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
-	n, err := client.Insert(context.Background(), req)
+	reqs := InsertsRequest{}
+	reqs.WithDatabase(database).Insert(req)
+	n, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), n)
 
@@ -406,7 +440,9 @@ func TestInsertTimestampWithDifferentPrecision(t *testing.T) {
 
 	req = InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
-	n, err = client.Insert(context.Background(), req)
+	reqs = InsertsRequest{}
+	reqs.WithDatabase(database).Insert(req)
+	n, err = client.Insert(context.Background(), reqs)
 	assert.NotNil(t, err)
 	assert.ErrorContains(t, err, "Type of column ts does not match type in schema, expect Timestamp(Second(TimestampSecondType)), given Timestamp(Millisecond(TimestampMillisecondType))")
 }
@@ -426,7 +462,9 @@ func TestGetNonMatchedTypeColumn(t *testing.T) {
 
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
-	n, err := client.Insert(context.Background(), req)
+	reqs := InsertsRequest{}
+	reqs.WithDatabase(database).Insert(req)
+	n, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), n)
 
@@ -478,7 +516,9 @@ func TestGetNotExistColumn(t *testing.T) {
 
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
-	n, err := client.Insert(context.Background(), req)
+	reqs := InsertsRequest{}
+	reqs.WithDatabase(database).Insert(req)
+	n, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), n)
 
@@ -530,9 +570,9 @@ func TestDataTypes(t *testing.T) {
 		float64V float64
 		float32V float32
 		stringV  string
-		byteV    []byte
-		boolV    bool
-		timeV    time.Time
+		// byteV    []byte
+		boolV bool
+		timeV time.Time
 	}
 
 	data := datatype{
@@ -549,9 +589,9 @@ func TestDataTypes(t *testing.T) {
 		float64V: 64.0,
 		float32V: 32.0,
 		stringV:  "string",
-		byteV:    []byte("byte"),
-		boolV:    true,
-		timeV:    time.UnixMilli(1677728740012),
+		// byteV:    []byte("byte"),
+		boolV: true,
+		timeV: time.UnixMilli(1677728740012),
 	}
 
 	client := newClient(t)
@@ -595,9 +635,9 @@ func TestDataTypes(t *testing.T) {
 	assert.Nil(t, series.AddStringTag("string_v_tag", data.stringV))
 	assert.Nil(t, series.AddStringField("string_v_field", data.stringV))
 
-	// bytes
-	assert.Nil(t, series.AddBytesTag("byte_v_tag", data.byteV))
-	assert.Nil(t, series.AddBytesField("byte_v_field", data.byteV))
+	// TODO(yuanbohan): support []byte
+	// assert.Nil(t, series.AddBytesTag("byte_v_tag", data.byteV))
+	// assert.Nil(t, series.AddBytesField("byte_v_field", data.byteV))
 
 	// bool
 	assert.Nil(t, series.AddBoolTag("bool_v_tag", data.boolV))
@@ -607,9 +647,11 @@ func TestDataTypes(t *testing.T) {
 	metric.AddSeries(series)
 
 	req := InsertRequest{}
-	req.WithTable(table).WithMetric(metric).WithDatabase(database)
+	req.WithTable(table).WithMetric(metric)
+	reqs := InsertsRequest{}
+	reqs.WithDatabase(database).Insert(req)
 
-	n, err := client.Insert(context.Background(), req)
+	n, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), n)
 
@@ -687,11 +729,10 @@ func TestDataTypes(t *testing.T) {
 	assert.True(t, ok)
 
 	// bytes
-	byteV, ok := series.GetBytes("byte_v_tag")
-	assert.True(t, ok)
-
-	_, ok = series.GetBytes("byte_v_field")
-	assert.True(t, ok)
+	// byteV, ok := series.GetBytes("byte_v_tag")
+	// assert.True(t, ok)
+	// _, ok = series.GetBytes("byte_v_field")
+	// assert.True(t, ok)
 
 	// bool
 	boolV, ok := series.GetBool("bool_v_tag")
@@ -716,9 +757,183 @@ func TestDataTypes(t *testing.T) {
 		float64V: float64V,
 		float32V: float32(float32V),
 		stringV:  stringV,
-		byteV:    byteV,
-		boolV:    boolV,
-		timeV:    timeV,
+		// byteV:    byteV,
+		boolV: boolV,
+		timeV: timeV,
 	}
 	assert.Equal(t, data, querydata)
+}
+
+func TestCreateTableInAdvance(t *testing.T) {
+	table := "create_datatypes_table_in_advance"
+	schema := "CREATE TABLE " + table + " (" +
+		" id varchar," +
+		" i64 bigint," +
+		" i32 int," +
+		" i16 smallint," +
+		" i8 tinyint," +
+		" u64 bigint unsigned," +
+		" u32 int unsigned," +
+		" u16 smallint unsigned," +
+		" u8 tinyint unsigned," +
+		" f32 float," +
+		" f64 double," +
+		" bool boolean," +
+		// TODO(yuanbohan): support []byte
+		// " bytes varbinary," +
+		" times TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP," +
+		" TIME INDEX (times)," +
+		" PRIMARY KEY(id))"
+	createTable(t, schema)
+
+	type datatype struct {
+		id   string
+		i64  int64
+		i32  int32
+		i16  int16
+		i8   int8
+		u64  uint64
+		u32  uint32
+		u16  uint16
+		u8   uint8
+		f64  float64
+		f32  float32
+		bool bool
+		// bytes []byte
+	}
+
+	now := time.Now()
+	data := datatype{
+		id:  "test",
+		i64: 64,
+		i32: 32,
+		i16: 16,
+		i8:  8,
+		u64: 64,
+		u32: 32,
+		u16: 16,
+		u8:  8,
+		f64: 64.0,
+		f32: 32.0,
+		// bytes: []byte("byte"),
+		bool: true,
+	}
+
+	client := newClient(t)
+
+	series := Series{}
+
+	// string
+	assert.Nil(t, series.AddTag("id", data.id))
+
+	// int
+	assert.Nil(t, series.AddField("i64", data.i64))
+	assert.Nil(t, series.AddField("i32", data.i32))
+	assert.Nil(t, series.AddField("i16", data.i16))
+	assert.Nil(t, series.AddField("i8", data.i8))
+
+	// uint
+	assert.Nil(t, series.AddField("u64", data.u64))
+	assert.Nil(t, series.AddField("u32", data.u32))
+	assert.Nil(t, series.AddField("u16", data.u16))
+	assert.Nil(t, series.AddField("u8", data.u8))
+
+	// float
+	assert.Nil(t, series.AddField("f64", data.f64))
+	assert.Nil(t, series.AddField("f32", data.f32))
+
+	// TODO(yuanbohan): support []byte
+	// assert.Nil(t, series.AddField("bytes", data.bytes))
+
+	// bool
+	assert.Nil(t, series.AddBoolField("bool", data.bool))
+
+	assert.Nil(t, series.SetTimestamp(now))
+
+	// Insert
+	metric := Metric{}
+	metric.SetTimestampAlias("times")
+	metric.SetTimePrecision(time.Second)
+	metric.AddSeries(series)
+
+	req := InsertRequest{}
+	req.WithTable(table).WithMetric(metric)
+	reqs := InsertsRequest{}
+	reqs.WithDatabase(database).Insert(req)
+
+	n, err := client.Insert(context.Background(), reqs)
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(1), n)
+
+	// Query with metric
+	queryReq := QueryRequest{}
+	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
+
+	resMetric, err := client.Query(context.Background(), queryReq)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(resMetric.GetSeries()))
+
+	series = resMetric.GetSeries()[0]
+
+	// int
+	int64V, ok := series.Get("i64")
+	assert.True(t, ok)
+	int32V, ok := series.Get("i32")
+	assert.True(t, ok)
+	int16V, ok := series.Get("i16")
+	assert.True(t, ok)
+	int8V, ok := series.Get("i8")
+	assert.True(t, ok)
+
+	// uint
+	uint64V, ok := series.Get("u64")
+	assert.True(t, ok)
+	uint32V, ok := series.Get("u32")
+	assert.True(t, ok)
+	uint16V, ok := series.Get("u16")
+	assert.True(t, ok)
+	uint8V, ok := series.Get("u8")
+	assert.True(t, ok)
+
+	// float
+	float64V, ok := series.Get("f64")
+	assert.True(t, ok)
+	float32V, ok := series.Get("f32")
+	assert.True(t, ok)
+
+	// string
+	stringV, ok := series.Get("id")
+	assert.True(t, ok)
+
+	// TODO(yuanbohan): support []byte
+	// byteV, ok := series.Get("bytes")
+	// assert.True(t, ok)
+
+	// bool
+	boolV, ok := series.Get("bool")
+	assert.True(t, ok)
+
+	querydata := datatype{
+		id: stringV.(string),
+
+		i64: int64V.(int64),
+		i32: int32V.(int32),
+		i16: int16V.(int16),
+		i8:  int8V.(int8),
+
+		u64: uint64V.(uint64),
+		u32: uint32V.(uint32),
+		u16: uint16V.(uint16),
+		u8:  uint8V.(uint8),
+
+		f64: float64V.(float64),
+		f32: float32V.(float32),
+
+		// bytes: byteV.([]byte),
+		bool: boolV.(bool),
+	}
+	assert.Equal(t, data, querydata)
+
+	timeV := series.GetTimestamp()
+	assert.Equal(t, now.Unix(), timeV.Unix())
 }

@@ -14,31 +14,28 @@ go get github.com/GreptimeTeam/greptimedb-client-go
 
 ## Example
 
-you can visit [Example][example] for usage details.
+you can visit [Documentation][document] for usage details and documentation,
 
 ## Usage
 
 #### Datatype Supported
 
-- int32
-- int64
-- int            (as int64)
-- uint32
-- uint64
-- uint           (as uint64)
-- float32
-- float64
+- int8, int16, int32, int64, int
+- uint8, uint16, uint32, uint64, uint
+- float32, float64
 - bool
 - []byte
 - string
 - time.Time
-- int8, int16    (as int32)  // not recommended
-- uint8, uint16  (as uint32) // not recommended
 
-#### Precision for Timestamp
+#### Timestamp
 
-The default precision is `Millisecond`, you can set a different precision,
-once the precision is set, you can not change it anymore.
+you can customize timestamp index via calling methods of [Metric][metric_doc]
+
+##### precision
+
+The default timestamp column precision is `Millisecond`, you can set a different precision.
+And once the precision is setted, you can not change it any more.
 
 - time.Second
 - time.Millisecond
@@ -49,17 +46,24 @@ once the precision is set, you can not change it anymore.
 metric.SetTimePrecision(time.Microsecond)
 ```
 
-#### Stream Insert
+##### alias
 
-You can send several insert request by `Send()` and notify DB no more messages by `CloseAndRecv()`
+The default timestamp column name is `ts`, if you want to use another name, you
+can change it:
 
-you can visit [stream_client_test.go](stream_client_test.go) for details
+```go
+metric.SetTimestampAlias("timestamp")
+```
 
 #### Prometheus
 
-We also support querying with RangePromql and Promql(TODO).
+How to query with RangePromql and Promql, you can visit [promql_test.go](query_promql_test.go) for details
 
-you can visit [promql_test.go](promql_test.go) for details
+#### Stream Insert
+
+You can send several insert requests by `Send()` and notify GreptimeDB no more messages by `CloseAndRecv()`
+
+You can visit [stream_client_test.go](stream_client_test.go) for details
 
 ## License
 
@@ -67,4 +71,5 @@ This greptimedb-client-go uses the __Apache 2.0 license__ to strike a balance
 between open contributions and allowing you to use the software however you want.
 
 <!-- links -->
-[example]: https://pkg.go.dev/github.com/GreptimeTeam/greptimedb-client-go#example-package
+[document]: https://pkg.go.dev/github.com/GreptimeTeam/greptimedb-client-go
+[metric_doc]: https://pkg.go.dev/github.com/GreptimeTeam/greptimedb-client-go#Metric

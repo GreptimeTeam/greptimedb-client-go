@@ -28,9 +28,9 @@ import (
 var (
 	client *greptime.Client
 
-	// table used in this Example, you don't have to create it in advance,
-	// if the table not exist, it will be created automatically.
-	table string = "monitor"
+	// monitorTable used in this Example, you don't have to create it in advance,
+	// if the monitorTable not exist, it will be created automatically.
+	monitorTable string = "monitor"
 )
 
 // initClient creates a client with config.
@@ -65,7 +65,7 @@ func initClient() {
 //   - series.AddField
 //   - series.AddXxxTag
 //   - series.AddXxxField
-func insert() {
+func constructInsertRequest(table string) greptime.InsertRequest {
 	series := greptime.Series{}
 	series.AddTag("region", "az")            // type is checked automatically
 	series.AddStringTag("host", "localhost") // type is specified by user
@@ -79,11 +79,27 @@ func insert() {
 	// Create an InsertRequest using fluent style
 	// the specified table will be created automatically if it's not exist
 	insertRequest := greptime.InsertRequest{}
-	// if you want to specify another database, you can specify it via: `WithDatabase(database)`
-	insertRequest.WithTable(table).WithMetric(metric) // .WithDatabase(database)
+	insertRequest.WithTable(table).WithMetric(metric)
 
-	// Fire the real Insert request and Get the affected number of rows
-	n, err := client.Insert(context.Background(), insertRequest)
+	return insertRequest
+}
+
+func insert() {
+	insertsRequest := greptime.InsertsRequest{}
+	// You can insert data of different tables into greptimedb in one InsertsRequest.
+	// This insertsRequest includes two InsertRequest of two different tables
+	insertsRequest.
+		Insert(constructInsertRequest(monitorTable)).
+		Insert(constructInsertRequest("temperatures"))
+
+	// if you want to insert into different table in one request, you can construct
+	// another InsertRequest, and include it via: insertsRequest.Insert(insertRequest)
+
+	// if you want to specify another database, you can specify it via: `WithDatabase(database)`
+	// insertsRequest.WithDatabase("your database")
+
+	// Fire the real Inserts request and Get the affected number of rows
+	n, err := client.Insert(context.Background(), insertsRequest)
 	if err != nil {
 		fmt.Printf("fail to insert, err: %+v\n", err)
 		return
@@ -109,7 +125,7 @@ func queryViaSql() {
 
 	req := greptime.QueryRequest{}
 	// if you want to specify another database, you can specify it via: `WithDatabase(database)`
-	req.WithSql("SELECT * FROM " + table) // .WithDatabase(database)
+	req.WithSql("SELECT * FROM " + monitorTable) // .WithDatabase(database)
 
 	resMetric, err := client.Query(context.Background(), req)
 	if err != nil {
@@ -135,7 +151,7 @@ func queryViaSql() {
 
 // the response format is in []byte, and is absolutely the same as Prometheus
 func queryViaInstantPromql() {
-	promql := greptime.NewInstantPromql(table)
+	promql := greptime.NewInstantPromql(monitorTable)
 	req := greptime.QueryRequest{}
 	req.WithInstantPromql(promql)
 	resp, err := client.PromqlQuery(context.Background(), req)
@@ -158,7 +174,7 @@ func queryViaInstantPromql() {
 func queryViaRangePromql() {
 	end := time.Now()
 	start := end.Add(time.Duration(-15) * time.Second) // 15 seconds before
-	promql := greptime.NewRangePromql(table).WithStart(start).WithEnd(end).WithStep(time.Second)
+	promql := greptime.NewRangePromql(monitorTable).WithStart(start).WithEnd(end).WithStep(time.Second)
 	req := greptime.QueryRequest{}
 	req.WithRangePromql(promql)
 	resp, err := client.PromqlQuery(context.Background(), req)

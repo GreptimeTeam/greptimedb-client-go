@@ -21,6 +21,7 @@ import (
 var (
 	ErrEmptyDatabase        = errors.New("name of database should not be empty")
 	ErrEmptyTable           = errors.New("name of table should not be be empty")
+	ErrEmptyInserts         = errors.New("at least one insert is required in InsertsRequest")
 	ErrEmptyTimestamp       = errors.New("timestamp should not be empty")
 	ErrEmptyQuery           = errors.New("query should not be empty, assign Sql, InstantPromql or RangePromql")
 	ErrEmptyKey             = errors.New("key should not be empty")

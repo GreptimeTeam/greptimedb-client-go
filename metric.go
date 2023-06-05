@@ -146,15 +146,35 @@ func fromColumn(column array.Interface, idx int) (any, error) {
 		return typedColumn.Value(idx), nil
 	case *array.Int32:
 		return typedColumn.Value(idx), nil
+	case *array.Int16:
+		return typedColumn.Value(idx), nil
+	case *array.Int8:
+		return typedColumn.Value(idx), nil
 	case *array.Uint64:
 		return typedColumn.Value(idx), nil
 	case *array.Uint32:
 		return typedColumn.Value(idx), nil
+	case *array.Uint16:
+		return typedColumn.Value(idx), nil
+	case *array.Uint8:
+		return typedColumn.Value(idx), nil
 	case *array.Float64:
+		return typedColumn.Value(idx), nil
+	case *array.Float32:
 		return typedColumn.Value(idx), nil
 	case *array.String:
 		return typedColumn.Value(idx), nil
 	case *array.Boolean:
+		return typedColumn.Value(idx), nil
+	case *array.Binary:
+		return typedColumn.Value(idx), nil
+	case *array.Time32:
+		return typedColumn.Value(idx), nil
+	case *array.Time64:
+		return typedColumn.Value(idx), nil
+	case *array.Date32:
+		return typedColumn.Value(idx), nil
+	case *array.Date64:
 		return typedColumn.Value(idx), nil
 	case *array.Timestamp:
 		dataType, ok := column.DataType().(*arrow.TimestampType)

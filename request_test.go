@@ -94,22 +94,44 @@ func TestQueryBuildPromqlRequest(t *testing.T) {
 }
 
 func TestInsertBuilder(t *testing.T) {
+	cfg := &Config{}
 	r := InsertRequest{}
 
-	// empty database
-	req, err := r.build(&Config{})
-	assert.Equal(t, ErrEmptyDatabase, err)
-	assert.Nil(t, req)
-
 	// empty table
-	r.header = header{"public"}
-	req, err = r.build(&Config{})
+	req, err := r.build()
 	assert.Equal(t, ErrEmptyTable, err)
 	assert.Nil(t, req)
 
 	// empty series
 	r.WithTable("monitor")
-	req, err = r.build(&Config{})
+	req, err = r.build()
 	assert.Equal(t, ErrNoSeriesInMetric, err)
 	assert.Nil(t, req)
+
+	series := Series{}
+	series.AddTag("host", "fake host")
+	series.AddField("memory", 2.3)
+	series.SetTimestamp(time.Now())
+	metric := Metric{}
+	metric.AddSeries(series)
+	r.WithMetric(metric)
+
+	rs := InsertsRequest{}
+
+	// empty database
+	reqs, err := rs.build(cfg)
+	assert.Equal(t, ErrEmptyDatabase, err)
+	assert.Nil(t, reqs)
+
+	// empty inserts
+	rs.WithDatabase("public")
+	reqs, err = rs.build(cfg)
+	assert.Equal(t, ErrEmptyInserts, err)
+	assert.Nil(t, reqs)
+
+	// normal
+	rs.Insert(r)
+	reqs, err = rs.build(cfg)
+	assert.Nil(t, err)
+	assert.NotNil(t, reqs)
 }

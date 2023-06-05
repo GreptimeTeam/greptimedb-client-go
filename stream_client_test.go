@@ -52,7 +52,7 @@ func TestStreamInsert(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(host).WithPort(port).WithDatabase(database).WithDialOptions(options...).WithCallOptions()
+	cfg := NewCfg(host).WithPort(grpcPort).WithDatabase(database).WithDialOptions(options...).WithCallOptions()
 	streamClient, err := NewStreamClient(cfg)
 	assert.Nil(t, err)
 
@@ -72,7 +72,11 @@ func TestStreamInsert(t *testing.T) {
 
 		req := InsertRequest{}
 		req.WithTable(table).WithMetric(metric)
-		err = streamClient.Send(context.Background(), req)
+
+		reqs := InsertsRequest{}
+		reqs.Insert(req)
+
+		err = streamClient.Send(context.Background(), reqs)
 		assert.Nil(t, err)
 	}
 
