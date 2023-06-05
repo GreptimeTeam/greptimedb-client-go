@@ -57,15 +57,13 @@ metric.SetTimestampAlias("timestamp")
 
 #### Prometheus
 
-We also support querying with RangePromql and Promql(TODO).
-
-you can visit [promql_test.go](promql_test.go) for details
+How to query with RangePromql and Promql, you can visit [promql_test.go](query_promql_test.go) for details
 
 #### Stream Insert
 
-You can send several insert request by `Send()` and notify DB no more messages by `CloseAndRecv()`
+You can send several insert requests by `Send()` and notify GreptimeDB no more messages by `CloseAndRecv()`
 
-you can visit [stream_client_test.go](stream_client_test.go) for details
+You can visit [stream_client_test.go](stream_client_test.go) for details
 
 ## License
 

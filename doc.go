@@ -18,7 +18,7 @@
 //
 // You can call [NewClient] with [Config] to init a concurrent safe [Client], and
 // construct rows of data by [Metric] and [Series], call [Client.Insert] to insert
-// [InsertRequest] into greptimedb, and call [Client.Query] to retrieve data from
+// [InsertsRequest] into greptimedb, and call [Client.Query] to retrieve data from
 // greptimedb via [QueryRequest].
 //
 // # Promql

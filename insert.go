@@ -18,9 +18,62 @@ import (
 	greptimepb "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
 )
 
+type InsertsRequest struct {
+	header  header
+	inserts []InsertRequest
+}
+
+// WithDatabase helps to specify different database from the default one.
+func (r *InsertsRequest) WithDatabase(database string) *InsertsRequest {
+	r.header = header{
+		database: database,
+	}
+	return r
+}
+
+// Insert will include one insert into this InsertsRequest
+func (r *InsertsRequest) Insert(insert InsertRequest) *InsertsRequest {
+	if r.inserts == nil {
+		r.inserts = make([]InsertRequest, 0)
+	}
+
+	r.inserts = append(r.inserts, insert)
+
+	return r
+}
+
+func (r InsertsRequest) build(cfg *Config) (*greptimepb.GreptimeRequest, error) {
+	header, err := r.header.build(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(r.inserts) == 0 {
+		return nil, ErrEmptyInserts
+	}
+
+	reqs := make([]*greptimepb.InsertRequest, 0, len(r.inserts))
+	for _, insert := range r.inserts {
+		req, err := insert.build()
+		if err != nil {
+			return nil, err
+		}
+		reqs = append(reqs, req)
+	}
+
+	req := greptimepb.GreptimeRequest_Inserts{
+		Inserts: &greptimepb.InsertRequests{Inserts: reqs},
+	}
+
+	return &greptimepb.GreptimeRequest{
+		Header:  header,
+		Request: &req,
+	}, nil
+
+}
+
 // InsertRequest insert metric to specified table. You can also specify the database in header.
 type InsertRequest struct {
-	header header
 	table  string
 	metric Metric
 }
@@ -35,24 +88,11 @@ func (r *InsertRequest) WithMetric(metric Metric) *InsertRequest {
 	return r
 }
 
-// WithDatabase helps to specify different database from the default one.
-func (r *InsertRequest) WithDatabase(database string) *InsertRequest {
-	r.header = header{
-		database: database,
-	}
-	return r
-}
-
 func (r *InsertRequest) RowCount() uint32 {
 	return uint32(len(r.metric.series))
 }
 
-func (r *InsertRequest) build(cfg *Config) (*greptimepb.GreptimeRequest, error) {
-	header, err := r.header.build(cfg)
-	if err != nil {
-		return nil, err
-	}
-
+func (r *InsertRequest) build() (*greptimepb.InsertRequest, error) {
 	if isEmptyString(r.table) {
 		return nil, ErrEmptyTable
 	}
@@ -62,13 +102,10 @@ func (r *InsertRequest) build(cfg *Config) (*greptimepb.GreptimeRequest, error) 
 		return nil, err
 	}
 
-	req := greptimepb.GreptimeRequest_Insert{
-		Insert: &greptimepb.InsertRequest{
-			TableName:    r.table,
-			Columns:      columns,
-			RowCount:     r.RowCount(),
-			RegionNumber: 0,
-		},
-	}
-	return &greptimepb.GreptimeRequest{Header: header, Request: &req}, nil
+	return &greptimepb.InsertRequest{
+		TableName:    r.table,
+		Columns:      columns,
+		RowCount:     r.RowCount(),
+		RegionNumber: 0,
+	}, nil
 }

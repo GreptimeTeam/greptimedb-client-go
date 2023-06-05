@@ -66,7 +66,7 @@ func (qr *QueryResult) UnmarshalJSON(b []byte) error {
 		qr.Val = mv
 
 	default:
-		err = fmt.Errorf("unexpected value type %q", v.Type)
+		err = fmt.Errorf("unexpected value type '%s' with data: '%s'", v.Type.String(), string(b))
 	}
 	return err
 }

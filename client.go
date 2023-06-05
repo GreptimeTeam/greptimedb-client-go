@@ -61,8 +61,8 @@ func NewClient(cfg *Config) (*Client, error) {
 	}, nil
 }
 
-// Insert helps to insert multiple rows into greptimedb
-func (c *Client) Insert(ctx context.Context, req InsertRequest) (uint32, error) {
+// Insert helps to insert multiple rows of multiple tables into greptimedb
+func (c *Client) Insert(ctx context.Context, req InsertsRequest) (uint32, error) {
 	request, err := req.build(c.cfg)
 	if err != nil {
 		return 0, err

@@ -59,7 +59,7 @@ func TestInsertAndQueryWithRangePromQL(t *testing.T) {
 	options := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	cfg := NewCfg(host).WithPort(port).WithDatabase(database).WithDialOptions(options...)
+	cfg := NewCfg(host).WithPort(grpcPort).WithDatabase(database).WithDialOptions(options...)
 	client, err := NewClient(cfg)
 	assert.Nil(t, err)
 
@@ -78,9 +78,12 @@ func TestInsertAndQueryWithRangePromQL(t *testing.T) {
 	}
 
 	insertReq := InsertRequest{}
-	insertReq.WithDatabase(database).WithTable(table).WithMetric(metric)
+	insertReq.WithTable(table).WithMetric(metric)
 
-	n, err := client.Insert(context.Background(), insertReq)
+	insertsReq := InsertsRequest{}
+	insertsReq.WithDatabase(database).Insert(insertReq)
+
+	n, err := client.Insert(context.Background(), insertsReq)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(len(insertMonitors)), n)
 

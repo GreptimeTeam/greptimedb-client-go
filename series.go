@@ -180,12 +180,13 @@ func (s *Series) GetString(key string) (string, bool) {
 }
 
 func (s *Series) GetBytes(key string) ([]byte, bool) {
-	val, exist := s.GetString(key)
+	val, exist := s.Get(key)
 	if !exist {
 		return nil, exist
 	}
 
-	return []byte(val), true
+	v, ok := val.([]byte)
+	return v, ok
 }
 
 // GetTimestamp get timestamp field
