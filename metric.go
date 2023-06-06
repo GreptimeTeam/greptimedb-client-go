@@ -22,9 +22,9 @@ import (
 	"time"
 
 	greptimepb "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
-	"github.com/apache/arrow/go/arrow"
-	"github.com/apache/arrow/go/arrow/array"
-	"github.com/apache/arrow/go/arrow/flight"
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/apache/arrow/go/v13/arrow/flight"
 )
 
 // Metric represents multiple rows of data, and also Metric can specify
@@ -137,7 +137,7 @@ func extractPrecision(field *arrow.Field) (time.Duration, error) {
 }
 
 // fromColumn retrieves arrow value from the column at idx position
-func fromColumn(column array.Interface, idx int) (any, error) {
+func fromColumn(column arrow.Array, idx int) (any, error) {
 	if column.IsNull(idx) {
 		return nil, nil
 	}
@@ -168,6 +168,10 @@ func fromColumn(column array.Interface, idx int) (any, error) {
 		return typedColumn.Value(idx), nil
 	case *array.Binary:
 		return typedColumn.Value(idx), nil
+	case *array.LargeBinary:
+		return typedColumn.Value(idx), nil
+	case *array.FixedSizeBinary:
+		return typedColumn.Value(idx), nil
 	case *array.Time32:
 		return typedColumn.Value(idx), nil
 	case *array.Time64:
@@ -179,7 +183,7 @@ func fromColumn(column array.Interface, idx int) (any, error) {
 	case *array.Timestamp:
 		dataType, ok := column.DataType().(*arrow.TimestampType)
 		if !ok {
-			return nil, fmt.Errorf("unsupported arrow type '%T' for '%s'", typedColumn, column.DataType().Name())
+			return nil, fmt.Errorf("unsupported arrow timestamp type '%T' for '%s'", typedColumn, column.DataType().Name())
 		}
 		value := int64(typedColumn.Value(idx))
 		switch dataType.Unit {
@@ -192,7 +196,7 @@ func fromColumn(column array.Interface, idx int) (any, error) {
 		case arrow.Nanosecond:
 			return time.Unix(0, value), nil
 		default:
-			return nil, fmt.Errorf("unsupported arrow type '%T' for '%s'", typedColumn, column.DataType().Name())
+			return nil, fmt.Errorf("unsupported arrow timestamp type '%T' for '%s'", typedColumn, column.DataType().Name())
 		}
 	default:
 		return nil, fmt.Errorf("unsupported arrow type '%T' for '%s'", typedColumn, column.DataType().Name())

@@ -18,7 +18,7 @@ import (
 	"context"
 
 	greptimepb "github.com/GreptimeTeam/greptime-proto/go/greptime/v1"
-	"github.com/apache/arrow/go/arrow/flight"
+	"github.com/apache/arrow/go/v13/arrow/flight"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )

@@ -570,9 +570,9 @@ func TestDataTypes(t *testing.T) {
 		float64V float64
 		float32V float32
 		stringV  string
-		// byteV    []byte
-		boolV bool
-		timeV time.Time
+		byteV    []byte
+		boolV    bool
+		timeV    time.Time
 	}
 
 	data := datatype{
@@ -589,9 +589,9 @@ func TestDataTypes(t *testing.T) {
 		float64V: 64.0,
 		float32V: 32.0,
 		stringV:  "string",
-		// byteV:    []byte("byte"),
-		boolV: true,
-		timeV: time.UnixMilli(1677728740012),
+		byteV:    []byte("byte"),
+		boolV:    true,
+		timeV:    time.UnixMilli(1677728740012),
 	}
 
 	client := newClient(t)
@@ -635,9 +635,8 @@ func TestDataTypes(t *testing.T) {
 	assert.Nil(t, series.AddStringTag("string_v_tag", data.stringV))
 	assert.Nil(t, series.AddStringField("string_v_field", data.stringV))
 
-	// TODO(yuanbohan): support []byte
-	// assert.Nil(t, series.AddBytesTag("byte_v_tag", data.byteV))
-	// assert.Nil(t, series.AddBytesField("byte_v_field", data.byteV))
+	assert.Nil(t, series.AddBytesTag("byte_v_tag", data.byteV))
+	assert.Nil(t, series.AddBytesField("byte_v_field", data.byteV))
 
 	// bool
 	assert.Nil(t, series.AddBoolTag("bool_v_tag", data.boolV))
@@ -729,10 +728,10 @@ func TestDataTypes(t *testing.T) {
 	assert.True(t, ok)
 
 	// bytes
-	// byteV, ok := series.GetBytes("byte_v_tag")
-	// assert.True(t, ok)
-	// _, ok = series.GetBytes("byte_v_field")
-	// assert.True(t, ok)
+	byteV, ok := series.GetBytes("byte_v_tag")
+	assert.True(t, ok)
+	_, ok = series.GetBytes("byte_v_field")
+	assert.True(t, ok)
 
 	// bool
 	boolV, ok := series.GetBool("bool_v_tag")
@@ -757,9 +756,9 @@ func TestDataTypes(t *testing.T) {
 		float64V: float64V,
 		float32V: float32(float32V),
 		stringV:  stringV,
-		// byteV:    byteV,
-		boolV: boolV,
-		timeV: timeV,
+		byteV:    byteV,
+		boolV:    boolV,
+		timeV:    timeV,
 	}
 	assert.Equal(t, data, querydata)
 }
@@ -779,44 +778,43 @@ func TestCreateTableInAdvance(t *testing.T) {
 		" f32 float," +
 		" f64 double," +
 		" bool boolean," +
-		// TODO(yuanbohan): support []byte
-		// " bytes varbinary," +
+		" bytes varbinary," +
 		" times TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP," +
 		" TIME INDEX (times)," +
 		" PRIMARY KEY(id))"
 	createTable(t, schema)
 
 	type datatype struct {
-		id   string
-		i64  int64
-		i32  int32
-		i16  int16
-		i8   int8
-		u64  uint64
-		u32  uint32
-		u16  uint16
-		u8   uint8
-		f64  float64
-		f32  float32
-		bool bool
-		// bytes []byte
+		id    string
+		i64   int64
+		i32   int32
+		i16   int16
+		i8    int8
+		u64   uint64
+		u32   uint32
+		u16   uint16
+		u8    uint8
+		f64   float64
+		f32   float32
+		bool  bool
+		bytes []byte
 	}
 
 	now := time.Now()
 	data := datatype{
-		id:  "test",
-		i64: 64,
-		i32: 32,
-		i16: 16,
-		i8:  8,
-		u64: 64,
-		u32: 32,
-		u16: 16,
-		u8:  8,
-		f64: 64.0,
-		f32: 32.0,
-		// bytes: []byte("byte"),
-		bool: true,
+		id:    "test",
+		i64:   64,
+		i32:   32,
+		i16:   16,
+		i8:    8,
+		u64:   64,
+		u32:   32,
+		u16:   16,
+		u8:    8,
+		f64:   64.0,
+		f32:   32.0,
+		bytes: []byte("byte"),
+		bool:  true,
 	}
 
 	client := newClient(t)
@@ -842,8 +840,8 @@ func TestCreateTableInAdvance(t *testing.T) {
 	assert.Nil(t, series.AddField("f64", data.f64))
 	assert.Nil(t, series.AddField("f32", data.f32))
 
-	// TODO(yuanbohan): support []byte
-	// assert.Nil(t, series.AddField("bytes", data.bytes))
+	// []byte
+	assert.Nil(t, series.AddField("bytes", data.bytes))
 
 	// bool
 	assert.Nil(t, series.AddBoolField("bool", data.bool))
@@ -905,9 +903,9 @@ func TestCreateTableInAdvance(t *testing.T) {
 	stringV, ok := series.Get("id")
 	assert.True(t, ok)
 
-	// TODO(yuanbohan): support []byte
-	// byteV, ok := series.Get("bytes")
-	// assert.True(t, ok)
+	// []byte
+	byteV, ok := series.Get("bytes")
+	assert.True(t, ok)
 
 	// bool
 	boolV, ok := series.Get("bool")
@@ -929,8 +927,8 @@ func TestCreateTableInAdvance(t *testing.T) {
 		f64: float64V.(float64),
 		f32: float32V.(float32),
 
-		// bytes: byteV.([]byte),
-		bool: boolV.(bool),
+		bytes: byteV.([]byte),
+		bool:  boolV.(bool),
 	}
 	assert.Equal(t, data, querydata)
 
