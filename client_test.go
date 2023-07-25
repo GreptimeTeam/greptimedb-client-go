@@ -49,7 +49,7 @@ var (
 
 func init() {
 	repo := "greptime/greptimedb"
-	tag := "0.3.0-alpha"
+	tag := "0.3.2"
 
 	var err error
 	pool, err := dockertest.NewPool("")
@@ -186,11 +186,13 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
 	reqs := InsertsRequest{}
-	reqs.WithDatabase(database).Insert(req)
+	reqs.WithDatabase(database).Append(req)
 
-	n, err := client.Insert(context.Background(), reqs)
+	resp, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(len(insertMonitors)), n)
+	assert.True(t, ParseRespHeader(resp).IsSuccess())
+	assert.False(t, ParseRespHeader(resp).IsRateLimited())
+	assert.Equal(t, uint32(len(insertMonitors)), resp.GetAffectedRows().GetValue())
 
 	// Query with metric
 	queryReq := QueryRequest{}
@@ -252,11 +254,13 @@ func TestPrecisionSecond(t *testing.T) {
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
 	reqs := InsertsRequest{}
-	reqs.WithDatabase(database).Insert(req)
+	reqs.WithDatabase(database).Append(req)
 
-	n, err := client.Insert(context.Background(), reqs)
+	resp, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), n)
+	assert.True(t, ParseRespHeader(resp).IsSuccess())
+	assert.False(t, ParseRespHeader(resp).IsRateLimited())
+	assert.Equal(t, uint32(1), resp.GetAffectedRows().GetValue())
 
 	queryReq := QueryRequest{}
 	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
@@ -305,11 +309,13 @@ func TestNilInColumn(t *testing.T) {
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
 	reqs := InsertsRequest{}
-	reqs.WithDatabase(database).Insert(req)
+	reqs.WithDatabase(database).Append(req)
 
-	n, err := client.Insert(context.Background(), reqs)
+	resp, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(len(insertMonitors)), n)
+	assert.True(t, ParseRespHeader(resp).IsSuccess())
+	assert.False(t, ParseRespHeader(resp).IsRateLimited())
+	assert.Equal(t, uint32(len(insertMonitors)), resp.GetAffectedRows().GetValue())
 
 	// Query with metric
 	queryReq := QueryRequest{}
@@ -359,10 +365,12 @@ func TestNoNeedAuth(t *testing.T) {
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
 	reqs := InsertsRequest{}
-	reqs.WithDatabase(database).Insert(req)
-	n, err := client.Insert(context.Background(), reqs)
+	reqs.WithDatabase(database).Append(req)
+	resp, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), n)
+	assert.True(t, ParseRespHeader(resp).IsSuccess())
+	assert.False(t, ParseRespHeader(resp).IsRateLimited())
+	assert.Equal(t, uint32(1), resp.GetAffectedRows().GetValue())
 
 	queryReq := QueryRequest{}
 	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
@@ -389,10 +397,12 @@ func TestInsertSameColumnWithDifferentType(t *testing.T) {
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
 	reqs := InsertsRequest{}
-	reqs.WithDatabase(database).Insert(req)
-	n, err := client.Insert(context.Background(), reqs)
+	reqs.WithDatabase(database).Append(req)
+	resp, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), n)
+	assert.True(t, ParseRespHeader(resp).IsSuccess())
+	assert.False(t, ParseRespHeader(resp).IsRateLimited())
+	assert.Equal(t, uint32(1), resp.GetAffectedRows().GetValue())
 
 	// insert again but with different type
 	series = Series{}
@@ -404,8 +414,8 @@ func TestInsertSameColumnWithDifferentType(t *testing.T) {
 	req = InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
 	reqs = InsertsRequest{}
-	reqs.WithDatabase(database).Insert(req)
-	n, err = client.Insert(context.Background(), reqs)
+	reqs.WithDatabase(database).Append(req)
+	_, err = client.Insert(context.Background(), reqs)
 	assert.NotNil(t, err)
 	assert.ErrorContains(t, err, "Type of column count does not match type in schema, expect Int64(Int64Type), given Float64(Float64Type)")
 }
@@ -425,10 +435,12 @@ func TestInsertTimestampWithDifferentPrecision(t *testing.T) {
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
 	reqs := InsertsRequest{}
-	reqs.WithDatabase(database).Insert(req)
-	n, err := client.Insert(context.Background(), reqs)
+	reqs.WithDatabase(database).Append(req)
+	resp, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), n)
+	assert.True(t, ParseRespHeader(resp).IsSuccess())
+	assert.False(t, ParseRespHeader(resp).IsRateLimited())
+	assert.Equal(t, uint32(1), resp.GetAffectedRows().GetValue())
 
 	// insert again but with different type
 	series = Series{}
@@ -441,8 +453,8 @@ func TestInsertTimestampWithDifferentPrecision(t *testing.T) {
 	req = InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
 	reqs = InsertsRequest{}
-	reqs.WithDatabase(database).Insert(req)
-	n, err = client.Insert(context.Background(), reqs)
+	reqs.WithDatabase(database).Append(req)
+	_, err = client.Insert(context.Background(), reqs)
 	assert.NotNil(t, err)
 	assert.ErrorContains(t, err, "Type of column ts does not match type in schema, expect Timestamp(Second(TimestampSecondType)), given Timestamp(Millisecond(TimestampMillisecondType))")
 }
@@ -463,10 +475,12 @@ func TestGetNonMatchedTypeColumn(t *testing.T) {
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
 	reqs := InsertsRequest{}
-	reqs.WithDatabase(database).Insert(req)
-	n, err := client.Insert(context.Background(), reqs)
+	reqs.WithDatabase(database).Append(req)
+	resp, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), n)
+	assert.True(t, ParseRespHeader(resp).IsSuccess())
+	assert.False(t, ParseRespHeader(resp).IsRateLimited())
+	assert.Equal(t, uint32(1), resp.GetAffectedRows().GetValue())
 
 	// Query with metric
 	queryReq := QueryRequest{}
@@ -517,10 +531,12 @@ func TestGetNotExistColumn(t *testing.T) {
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
 	reqs := InsertsRequest{}
-	reqs.WithDatabase(database).Insert(req)
-	n, err := client.Insert(context.Background(), reqs)
+	reqs.WithDatabase(database).Append(req)
+	resp, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), n)
+	assert.True(t, ParseRespHeader(resp).IsSuccess())
+	assert.False(t, ParseRespHeader(resp).IsRateLimited())
+	assert.Equal(t, uint32(1), resp.GetAffectedRows().GetValue())
 
 	// Query with metric
 	queryReq := QueryRequest{}
@@ -648,11 +664,13 @@ func TestDataTypes(t *testing.T) {
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
 	reqs := InsertsRequest{}
-	reqs.WithDatabase(database).Insert(req)
+	reqs.WithDatabase(database).Append(req)
 
-	n, err := client.Insert(context.Background(), reqs)
+	resp, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), n)
+	assert.True(t, ParseRespHeader(resp).IsSuccess())
+	assert.False(t, ParseRespHeader(resp).IsRateLimited())
+	assert.Equal(t, uint32(1), resp.GetAffectedRows().GetValue())
 
 	// Query with metric
 	queryReq := QueryRequest{}
@@ -857,11 +875,13 @@ func TestCreateTableInAdvance(t *testing.T) {
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
 	reqs := InsertsRequest{}
-	reqs.WithDatabase(database).Insert(req)
+	reqs.WithDatabase(database).Append(req)
 
-	n, err := client.Insert(context.Background(), reqs)
+	resp, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), n)
+	assert.True(t, ParseRespHeader(resp).IsSuccess())
+	assert.False(t, ParseRespHeader(resp).IsRateLimited())
+	assert.Equal(t, uint32(1), resp.GetAffectedRows().GetValue())
 
 	// Query with metric
 	queryReq := QueryRequest{}

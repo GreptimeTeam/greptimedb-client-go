@@ -3,7 +3,7 @@ module github.com/GreptimeTeam/greptimedb-client-go
 go 1.20
 
 require (
-	github.com/GreptimeTeam/greptime-proto v0.0.0-20230602083745-4398d20c56d5
+	github.com/GreptimeTeam/greptime-proto v0.3.0
 	github.com/apache/arrow/go/v13 v13.0.0-20230606035815-e2ae492b6324
 	github.com/bits-and-blooms/bitset v1.7.0
 	github.com/ory/dockertest/v3 v3.10.0

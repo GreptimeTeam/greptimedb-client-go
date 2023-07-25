@@ -62,18 +62,12 @@ func NewClient(cfg *Config) (*Client, error) {
 }
 
 // Insert helps to insert multiple rows of multiple tables into greptimedb
-func (c *Client) Insert(ctx context.Context, req InsertsRequest) (uint32, error) {
+func (c *Client) Insert(ctx context.Context, req InsertsRequest) (*greptimepb.GreptimeResponse, error) {
 	request, err := req.build(c.cfg)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-
-	resp, err := c.greptimeClient.Handle(ctx, request)
-	if err != nil {
-		return 0, err
-	}
-
-	return resp.GetAffectedRows().Value, nil
+	return c.greptimeClient.Handle(ctx, request, c.cfg.CallOptions...)
 }
 
 // Query helps to retrieve data from greptimedb
@@ -87,8 +81,7 @@ func (c *Client) Query(ctx context.Context, req QueryRequest) (*Metric, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	sr, err := c.flightClient.DoGet(ctx, &flight.Ticket{Ticket: b})
+	sr, err := c.flightClient.DoGet(ctx, &flight.Ticket{Ticket: b}, c.cfg.CallOptions...)
 	if err != nil {
 		return nil, err
 	}
@@ -102,16 +95,10 @@ func (c *Client) Query(ctx context.Context, req QueryRequest) (*Metric, error) {
 }
 
 // PromqlQuery helps to retrieve data from greptimedb via InstantQuery or RangeQuery
-func (c *Client) PromqlQuery(ctx context.Context, req QueryRequest) ([]byte, error) {
+func (c *Client) PromqlQuery(ctx context.Context, req QueryRequest) (*greptimepb.PromqlResponse, error) {
 	request, err := req.buildPromqlRequest(c.cfg)
 	if err != nil {
 		return nil, err
 	}
-
-	resp, err := c.promqlClient.Handle(ctx, request)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.GetBody(), nil
+	return c.promqlClient.Handle(ctx, request, c.cfg.CallOptions...)
 }

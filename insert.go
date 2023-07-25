@@ -19,20 +19,20 @@ import (
 )
 
 type InsertsRequest struct {
-	header  header
+	header  reqHeader
 	inserts []InsertRequest
 }
 
 // WithDatabase helps to specify different database from the default one.
 func (r *InsertsRequest) WithDatabase(database string) *InsertsRequest {
-	r.header = header{
+	r.header = reqHeader{
 		database: database,
 	}
 	return r
 }
 
-// Insert will include one insert into this InsertsRequest
-func (r *InsertsRequest) Insert(insert InsertRequest) *InsertsRequest {
+// Append will include one insert into this InsertsRequest
+func (r *InsertsRequest) Append(insert InsertRequest) *InsertsRequest {
 	if r.inserts == nil {
 		r.inserts = make([]InsertRequest, 0)
 	}
