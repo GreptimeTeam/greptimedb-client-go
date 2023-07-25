@@ -22,7 +22,7 @@ import (
 )
 
 func TestHeaderBuild(t *testing.T) {
-	h := &header{}
+	h := &reqHeader{}
 
 	gh, err := h.build(&Config{})
 	assert.ErrorIs(t, err, ErrEmptyDatabase)

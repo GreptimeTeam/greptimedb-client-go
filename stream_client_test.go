@@ -74,7 +74,7 @@ func TestStreamInsert(t *testing.T) {
 		req.WithTable(table).WithMetric(metric)
 
 		reqs := InsertsRequest{}
-		reqs.Insert(req)
+		reqs.Append(req)
 
 		err = streamClient.Send(context.Background(), reqs)
 		assert.Nil(t, err)

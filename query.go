@@ -35,13 +35,17 @@ type query interface {
 // At least one of Sql, InstantPromql, RangePromql MUST be spicified.
 // If multiple fields are specified, the field specified later will be used
 type QueryRequest struct {
-	header header
+	header reqHeader
 	query  query
+}
+
+func NewQueryRequest() *QueryRequest {
+	return &QueryRequest{}
 }
 
 // WithDatabase helps to specify different database from the default one.
 func (r *QueryRequest) WithDatabase(database string) *QueryRequest {
-	r.header = header{
+	r.header = reqHeader{
 		database: database,
 	}
 	return r

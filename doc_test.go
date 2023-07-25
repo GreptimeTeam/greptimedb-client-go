@@ -89,8 +89,8 @@ func insert() {
 	// You can insert data of different tables into greptimedb in one InsertsRequest.
 	// This insertsRequest includes two InsertRequest of two different tables
 	insertsRequest.
-		Insert(constructInsertRequest(monitorTable)).
-		Insert(constructInsertRequest("temperatures"))
+		Append(constructInsertRequest(monitorTable)).
+		Append(constructInsertRequest("temperatures"))
 
 	// if you want to insert into different table in one request, you can construct
 	// another InsertRequest, and include it via: insertsRequest.Insert(insertRequest)
@@ -99,12 +99,12 @@ func insert() {
 	// insertsRequest.WithDatabase("your database")
 
 	// Fire the real Inserts request and Get the affected number of rows
-	n, err := client.Insert(context.Background(), insertsRequest)
+	resp, err := client.Insert(context.Background(), insertsRequest)
 	if err != nil {
 		fmt.Printf("fail to insert, err: %+v\n", err)
 		return
 	}
-	fmt.Printf("AffectedRows: %d\n", n)
+	fmt.Printf("AffectedRows: %d\n", resp.GetAffectedRows().GetValue())
 }
 
 // queryViaSql via Sql
@@ -161,9 +161,9 @@ func queryViaInstantPromql() {
 	}
 
 	// you can use prom package to unmarshal the response as you want
-	result, err := prom.UnmarshalApiResponse(resp)
+	result, err := prom.UnmarshalApiResponse(resp.GetBody())
 	if err != nil {
-		fmt.Printf("failed to unmarshal instant promql, body: %s, err: %+v", string(resp), err)
+		fmt.Printf("failed to unmarshal instant promql, body: %s, err: %+v", string(resp.GetBody()), err)
 		return
 	}
 	fmt.Printf("%s:\n%+v\n", result.Type, result.Val)
@@ -184,9 +184,9 @@ func queryViaRangePromql() {
 	}
 
 	// you can use prom package to unmarshal the response as you want
-	result, err := prom.UnmarshalApiResponse(resp)
+	result, err := prom.UnmarshalApiResponse(resp.GetBody())
 	if err != nil {
-		fmt.Printf("failed to unmarshal instant promql, body: %s, err: %+v", string(resp), err)
+		fmt.Printf("failed to unmarshal instant promql, body: %s, err: %+v", string(resp.GetBody()), err)
 		return
 	}
 	fmt.Printf("%s:\n%+v\n", result.Type, result.Val)

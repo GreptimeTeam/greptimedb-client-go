@@ -130,7 +130,7 @@ func TestInsertBuilder(t *testing.T) {
 	assert.Nil(t, reqs)
 
 	// normal
-	rs.Insert(r)
+	rs.Append(r)
 	reqs, err = rs.build(cfg)
 	assert.Nil(t, err)
 	assert.NotNil(t, reqs)
