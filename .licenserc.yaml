@@ -8,12 +8,19 @@ header:
     spdx-id: Apache-2.0
     copyright-owner: Greptime Team
 
-  paths:
-    - '*.go'
+  # paths:
+  #   - '*.go'
 
   paths-ignore:
-    - '*.md'
+    - 'main'
+    - '.github'
+    - '.gitignore'
     - 'LICENSE'
+    - '*.md'
+    - "*.yml"
+    - "*.yaml"
+    - 'go.mod'
+    - 'go.sum'
 
   comment: on-failure
 

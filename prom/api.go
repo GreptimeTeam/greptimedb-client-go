@@ -1,30 +1,71 @@
+// Copyright 2023 Greptime Team
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package prom
 
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/prometheus/common/model"
 )
 
+// apiResponse implements error interface
 type apiResponse struct {
 	Status string          `json:"status"`
 	Data   json.RawMessage `json:"data"`
+
+	Type string `json:"errorType"`
+	Msg  string `json:"error"`
 }
 
-func UnmarshalApiResponse(resp []byte) (*QueryResult, error) {
-	var result apiResponse
-	if err := json.Unmarshal(resp, &result); err != nil {
+func (r *apiResponse) isError() bool {
+	return !strings.EqualFold(r.Status, "success")
+}
+
+// IsRateLimited checkes if this error is caused by rate limit restriction
+func (e *apiResponse) isRateLimited() bool {
+	return strings.EqualFold(e.Type, "RateLimited")
+}
+
+func (e *apiResponse) Error() string {
+	return fmt.Sprintf("%s: %s", e.Type, e.Msg)
+}
+
+func UnmarshalApiResponse(body []byte) (*QueryResult, error) {
+	var resp apiResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
 		return nil, err
 	}
 
+	if resp.isError() {
+		return nil, &resp
+	}
+
 	var res QueryResult
-	if err := json.Unmarshal(result.Data, &res); err != nil {
-		fmt.Printf("failed to unmarshal range promql, body:%s, err: %+v", result.Data, err)
+	if err := json.Unmarshal(resp.Data, &res); err != nil {
+		fmt.Printf("failed to unmarshal range promql, body:%s, err: %+v", resp.Data, err)
 		return nil, err
 	}
 
 	return &res, nil
+}
+
+func IsRateLimitedError(err error) bool {
+	e, ok := err.(*apiResponse)
+	return ok && e.isRateLimited()
 }
 
 // QueryResult contains result data for a query.
@@ -66,7 +107,7 @@ func (qr *QueryResult) UnmarshalJSON(b []byte) error {
 		qr.Val = mv
 
 	default:
-		err = fmt.Errorf("unexpected value type '%s' with data: '%s'", v.Type.String(), string(b))
+		err = fmt.Errorf("unexpected value type %q with data: '%s'", v.Type.String(), string(b))
 	}
 	return err
 }
