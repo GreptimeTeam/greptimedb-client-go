@@ -103,9 +103,8 @@ func (r *InsertRequest) build() (*greptimepb.InsertRequest, error) {
 	}
 
 	return &greptimepb.InsertRequest{
-		TableName:    r.table,
-		Columns:      columns,
-		RowCount:     r.RowCount(),
-		RegionNumber: 0,
+		TableName: r.table,
+		Columns:   columns,
+		RowCount:  r.RowCount(),
 	}, nil
 }

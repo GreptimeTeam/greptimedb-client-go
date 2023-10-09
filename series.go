@@ -23,7 +23,7 @@ import (
 
 type column struct {
 	typ      greptimepb.ColumnDataType
-	semantic greptimepb.Column_SemanticType
+	semantic greptimepb.SemanticType
 }
 
 func checkColumnEquality(key string, col1, col2 column) error {
@@ -194,7 +194,7 @@ func (s *Series) GetTimestamp() time.Time {
 	return s.timestamp
 }
 
-func (s *Series) add(name string, val any, semantic greptimepb.Column_SemanticType) error {
+func (s *Series) add(name string, val any, semantic greptimepb.SemanticType) error {
 	key, err := toColumnName(name)
 	if err != nil {
 		return err
@@ -236,7 +236,7 @@ func (s *Series) add(name string, val any, semantic greptimepb.Column_SemanticTy
 //   - [Series.AddIntTag]
 //   - ...
 func (s *Series) AddTag(key string, val any) error {
-	return s.add(key, val, greptimepb.Column_TAG)
+	return s.add(key, val, greptimepb.SemanticType_TAG)
 }
 
 // AddFloatTag helps to constrain the key to be float64 type, if you want to
@@ -284,7 +284,7 @@ func (s *Series) AddBytesTag(key string, val []byte) error {
 // AddField prepare field column, and old value will be replaced if same field is set.
 // the length of key CAN NOT be longer than 100
 func (s *Series) AddField(key string, val any) error {
-	return s.add(key, val, greptimepb.Column_FIELD)
+	return s.add(key, val, greptimepb.SemanticType_FIELD)
 }
 
 // AddFloatField helps to constrain the key to be float64 type, if you want to

@@ -49,7 +49,8 @@ var (
 
 func init() {
 	repo := "greptime/greptimedb"
-	tag := "0.3.2"
+	// tag := "0.3.2"
+	tag := "v0.4.0-nightly-20231009"
 
 	var err error
 	pool, err := dockertest.NewPool("")
@@ -180,7 +181,13 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 		series.AddField("cpu", monitor.cpu)
 		series.AddField("temperature", monitor.temperature)
 		series.AddField("is_authed", monitor.isAuthed)
+
 		metric.AddSeries(series)
+	}
+
+	fmt.Printf("before len: %v\n", len(metric.GetSeries()))
+	for _, series := range metric.GetSeries() {
+		fmt.Printf("%#v\n\n", series)
 	}
 
 	req := InsertRequest{}
@@ -201,6 +208,10 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 	resMetric, err := client.Query(context.Background(), queryReq)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(resMetric.GetSeries()))
+	fmt.Printf("after len: %v\n", len(resMetric.GetSeries()))
+	for _, series := range resMetric.GetSeries() {
+		fmt.Printf("%#v\n\n", series)
+	}
 
 	queryMonitors := []monitor{}
 	for _, series := range resMetric.GetSeries() {
@@ -225,6 +236,8 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 			isAuthed:    isAuthed,
 		})
 	}
+	fmt.Printf("%#v\n", queryMonitors)
+
 	assert.Equal(t, insertMonitors, queryMonitors)
 
 	// query but no data
