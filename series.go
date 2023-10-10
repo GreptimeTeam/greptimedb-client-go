@@ -49,7 +49,7 @@ type Series struct {
 	columns map[string]column
 	vals    map[string]any
 
-	timestamp time.Time // required
+	timestamp time.Time // required for inserting
 }
 
 // GetTagsAndFields get all column names from metric, except timestamp column
@@ -189,9 +189,14 @@ func (s *Series) GetBytes(key string) ([]byte, bool) {
 	return v, ok
 }
 
-// GetTimestamp get timestamp field
-func (s *Series) GetTimestamp() time.Time {
-	return s.timestamp
+func (s *Series) GetTimestamp(key string) (time.Time, bool) {
+	val, exist := s.Get(key)
+	if !exist {
+		return time.Time{}, exist
+	}
+
+	v, ok := val.(time.Time)
+	return v, ok
 }
 
 func (s *Series) add(name string, val any, semantic greptimepb.SemanticType) error {

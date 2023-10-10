@@ -174,8 +174,8 @@ func TestGreptimeColumn(t *testing.T) {
 func TestWithoutTimestamp(t *testing.T) {
 	series := Series{}
 	metric := Metric{}
-	err := metric.AddSeries(series)
-	assert.Equal(t, ErrEmptyTimestamp, err)
+	err := metric.AddSeries(series) // timestamp can be nil for querying
+	assert.Nil(t, err)
 }
 
 func TestSetColumn(t *testing.T) {

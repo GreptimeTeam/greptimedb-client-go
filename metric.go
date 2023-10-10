@@ -17,7 +17,6 @@ package greptime
 import (
 	"errors"
 	"fmt"
-	"io"
 	"math"
 	"time"
 
@@ -58,29 +57,22 @@ func buildMetricFromReader(r *flight.Reader) (*Metric, error) {
 		return nil, errors.New("Internal Error, empty reader pointer")
 	}
 
-	record, err := r.Reader.Read()
-	if err == io.EOF {
-		return &metric, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	fields := r.Schema().Fields()
-
-	for i := 0; i < int(record.NumRows()); i++ {
-		series := Series{}
-		for j := 0; j < int(record.NumCols()); j++ {
-			column := record.Column(j)
-			colVal, err := fromColumn(column, i)
-			if err != nil {
+	for r.Next() {
+		record := r.Record()
+		for i := 0; i < int(record.NumRows()); i++ {
+			series := Series{}
+			for j := 0; j < int(record.NumCols()); j++ {
+				column := record.Column(j)
+				colVal, err := fromColumn(column, i)
+				if err != nil {
+					return nil, err
+				}
+				series.AddField(fields[j].Name, colVal)
+			}
+			if err := metric.AddSeries(series); err != nil {
 				return nil, err
 			}
-			series.AddField(fields[j].Name, colVal)
-		}
-
-		if err := metric.AddSeries(series); err != nil {
-			return nil, err
 		}
 	}
 
