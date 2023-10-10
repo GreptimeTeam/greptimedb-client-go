@@ -99,7 +99,8 @@ func TestStreamInsert(t *testing.T) {
 		host, ok := series.Get("host")
 		assert.True(t, ok)
 
-		ts := series.GetTimestamp()
+		ts, ok := series.GetTimestamp("ts")
+		assert.True(t, ok)
 
 		temperature, ok := series.Get("temperature")
 		assert.True(t, ok)

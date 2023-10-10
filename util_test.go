@@ -134,11 +134,11 @@ func TestConvertValue(t *testing.T) {
 
 	// time.Time
 	var originTime time.Time = time.UnixMilli(1677571339623)
-	var expectTime int64 = int64(1677571339623)
+	// var expectTime int64 = int64(1677571339623)
 	val, err = convert(originTime)
 	assert.Nil(t, err)
-	assert.Equal(t, expectTime, val.val)
-	assert.Equal(t, greptime.ColumnDataType_TIMESTAMP_MILLISECOND, val.typ)
+	assert.Equal(t, originTime, val.val)
+	assert.Equal(t, greptime.ColumnDataType_DATETIME, val.typ)
 
 	// type not supported
 	_, err = convert(time.April)
@@ -260,11 +260,11 @@ func TestConvertValuePtr(t *testing.T) {
 
 	// time.Time
 	var originTime time.Time = time.UnixMilli(1677571339623)
-	var expectTime int64 = int64(1677571339623)
+	// var expectTime int64 = int64(1677571339623)
 	val, err = convert(&originTime)
 	assert.Nil(t, err)
-	assert.Equal(t, expectTime, val.val)
-	assert.Equal(t, greptime.ColumnDataType_TIMESTAMP_MILLISECOND, val.typ)
+	assert.Equal(t, originTime, val.val)
+	assert.Equal(t, greptime.ColumnDataType_DATETIME, val.typ)
 
 	// type not supported
 	_, err = convert(&map[string]any{})

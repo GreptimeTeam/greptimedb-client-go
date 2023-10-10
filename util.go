@@ -64,9 +64,8 @@ func convert(v any) (*value, error) {
 		return newValue(t, greptimepb.ColumnDataType_INT16), nil
 	case int8:
 		return newValue(t, greptimepb.ColumnDataType_INT8), nil
-	// TODO(vinland-avalon): convert with different precision
 	case time.Time:
-		return newValue(t.UnixMilli(), greptimepb.ColumnDataType_TIMESTAMP_MILLISECOND), nil
+		return newValue(t, greptimepb.ColumnDataType_DATETIME), nil
 
 	case *bool:
 		return newValue(*t, greptimepb.ColumnDataType_BOOLEAN), nil
@@ -98,9 +97,8 @@ func convert(v any) (*value, error) {
 		return newValue(*t, greptimepb.ColumnDataType_INT16), nil
 	case *int8:
 		return newValue(*t, greptimepb.ColumnDataType_INT8), nil
-	// TODO(vinland-avalon): convert with different precision, as `time.Time` abovementioned
 	case *time.Time:
-		return newValue(t.UnixMilli(), greptimepb.ColumnDataType_TIMESTAMP_MILLISECOND), nil
+		return newValue(*t, greptimepb.ColumnDataType_DATETIME), nil
 	default:
 		return nil, fmt.Errorf("the type '%T' is not supported", t)
 	}

@@ -49,7 +49,8 @@ var (
 
 func init() {
 	repo := "greptime/greptimedb"
-	tag := "0.3.2"
+	// tag := "0.3.2"
+	tag := "v0.4.0-nightly-20231009"
 
 	var err error
 	pool, err := dockertest.NewPool("")
@@ -148,20 +149,22 @@ func TestInvalidClient(t *testing.T) {
 
 func TestInsertAndQueryWithSql(t *testing.T) {
 	table := "test_insert_and_query_with_sql"
+	ts1 := time.Now().Add(-1 * time.Minute).UnixMilli()
+	ts2 := time.Now().Add(-2 * time.Minute).UnixMilli()
 	insertMonitors := []monitor{
 		{
 			host:        "127.0.0.1",
-			ts:          time.UnixMicro(1677728740000001),
-			memory:      22,
-			cpu:         0.45,
-			temperature: -1,
+			ts:          time.UnixMilli(ts1),
+			memory:      21,
+			cpu:         0.81,
+			temperature: 21,
 			isAuthed:    true,
 		},
 		{
 			host:        "127.0.0.2",
-			ts:          time.UnixMicro(1677728740012002),
-			memory:      28,
-			cpu:         0.80,
+			ts:          time.UnixMilli(ts2),
+			memory:      22,
+			cpu:         0.82,
 			temperature: 22,
 			isAuthed:    true,
 		},
@@ -175,18 +178,21 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 	for _, monitor := range insertMonitors {
 		series := Series{}
 		series.AddTag("host", monitor.host)
-		series.SetTimestamp(monitor.ts)
+
 		series.AddField("memory", monitor.memory)
 		series.AddField("cpu", monitor.cpu)
 		series.AddField("temperature", monitor.temperature)
 		series.AddField("is_authed", monitor.isAuthed)
+
+		series.SetTimestamp(monitor.ts)
+
 		metric.AddSeries(series)
 	}
 
 	req := InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
 	reqs := InsertsRequest{}
-	reqs.WithDatabase(database).Append(req)
+	reqs.Append(req)
 
 	resp, err := client.Insert(context.Background(), reqs)
 	assert.Nil(t, err)
@@ -196,8 +202,7 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 
 	// Query with metric
 	queryReq := QueryRequest{}
-	queryReq.WithSql(fmt.Sprintf("SELECT * FROM %s", table)).WithDatabase(database)
-
+	queryReq.WithSql("SELECT * FROM " + table)
 	resMetric, err := client.Query(context.Background(), queryReq)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(resMetric.GetSeries()))
@@ -215,7 +220,9 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 		isAuthed, ok := series.GetBool("is_authed")
 		assert.True(t, ok)
 
-		ts := series.GetTimestamp()
+		ts, ok := series.GetTimestamp("ts")
+		assert.True(t, ok)
+
 		queryMonitors = append(queryMonitors, monitor{
 			host:        host,
 			ts:          ts,
@@ -225,6 +232,7 @@ func TestInsertAndQueryWithSql(t *testing.T) {
 			isAuthed:    isAuthed,
 		})
 	}
+
 	assert.Equal(t, insertMonitors, queryMonitors)
 
 	// query but no data
@@ -268,7 +276,8 @@ func TestPrecisionSecond(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(resMetric.GetSeries()))
 
-	resTime := resMetric.GetSeries()[0].GetTimestamp()
+	resTime, ok := resMetric.GetSeries()[0].GetTimestamp("ts")
+	assert.True(t, ok)
 	// since the precision is second, others should not equal
 	assert.Equal(t, nano, resTime)
 	assert.NotEqual(t, sec, resTime)
@@ -326,17 +335,19 @@ func TestNilInColumn(t *testing.T) {
 	assert.Equal(t, 2, len(resMetric.GetSeries()))
 
 	resSeries0 := resMetric.GetSeries()[0]
-	ts := resSeries0.GetTimestamp()
+	ts, ok := resSeries0.GetTimestamp("ts")
+	assert.True(t, ok)
 
 	assert.Equal(t, insertMonitors[0].ts, ts)
-	_, ok := resSeries0.Get("memory")
+	_, ok = resSeries0.Get("memory")
 	assert.False(t, ok)
 	cpu, ok := resSeries0.Get("cpu")
 	assert.True(t, ok)
 	assert.Equal(t, insertMonitors[0].cpu, cpu.(float64))
 
 	resSeries1 := resMetric.GetSeries()[1]
-	ts = resSeries1.GetTimestamp()
+	ts, ok = resSeries1.GetTimestamp("ts")
+	assert.True(t, ok)
 
 	assert.Equal(t, insertMonitors[1].ts, ts)
 	memory, ok := resSeries1.Get("memory")
@@ -378,7 +389,8 @@ func TestNoNeedAuth(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(resMetric.GetSeries()))
 
-	resTime := resMetric.GetSeries()[0].GetTimestamp()
+	resTime, ok := resMetric.GetSeries()[0].GetTimestamp("ts")
+	assert.True(t, ok)
 	// since the precision is second, others should not equal
 	assert.NotEqual(t, nano, resTime)
 }
@@ -417,7 +429,7 @@ func TestInsertSameColumnWithDifferentType(t *testing.T) {
 	reqs.WithDatabase(database).Append(req)
 	_, err = client.Insert(context.Background(), reqs)
 	assert.NotNil(t, err)
-	assert.ErrorContains(t, err, "Type of column count does not match type in schema, expect Int64(Int64Type), given Float64(Float64Type)")
+	assert.ErrorContains(t, err, "reason: column count expect type Int64(Int64Type), given: FLOAT64(10)")
 }
 
 func TestInsertTimestampWithDifferentPrecision(t *testing.T) {
@@ -456,7 +468,7 @@ func TestInsertTimestampWithDifferentPrecision(t *testing.T) {
 	reqs.WithDatabase(database).Append(req)
 	_, err = client.Insert(context.Background(), reqs)
 	assert.NotNil(t, err)
-	assert.ErrorContains(t, err, "Type of column ts does not match type in schema, expect Timestamp(Second(TimestampSecondType)), given Timestamp(Millisecond(TimestampMillisecondType))")
+	assert.ErrorContains(t, err, "reason: column ts expect type Timestamp(Second(TimestampSecondType))")
 }
 
 func TestGetNonMatchedTypeColumn(t *testing.T) {
@@ -748,6 +760,7 @@ func TestDataTypes(t *testing.T) {
 	// bytes
 	byteV, ok := series.GetBytes("byte_v_tag")
 	assert.True(t, ok)
+
 	_, ok = series.GetBytes("byte_v_field")
 	assert.True(t, ok)
 
@@ -758,7 +771,8 @@ func TestDataTypes(t *testing.T) {
 	_, ok = series.GetBool("bool_v_field")
 	assert.True(t, ok)
 
-	timeV := series.GetTimestamp()
+	timeV, ok := series.GetTimestamp("time_v")
+	assert.True(t, ok)
 
 	querydata := datatype{
 		int64V:   int64V,
@@ -952,6 +966,7 @@ func TestCreateTableInAdvance(t *testing.T) {
 	}
 	assert.Equal(t, data, querydata)
 
-	timeV := series.GetTimestamp()
+	timeV, ok := series.GetTimestamp("times")
+	assert.True(t, ok)
 	assert.Equal(t, now.Unix(), timeV.Unix())
 }

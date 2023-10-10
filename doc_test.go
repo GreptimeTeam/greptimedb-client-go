@@ -143,7 +143,7 @@ func queryViaSql() {
 		monitor.region, _ = series.GetString("region")
 		monitor.cpu, _ = series.GetFloat("cpu")     // also, you can directly GetFloat
 		monitor.memory, _ = series.GetInt("memory") // also, you can directly GetInt
-		monitor.ts = series.GetTimestamp()          // GetTimestamp
+		monitor.ts, _ = series.GetTimestamp("ts")   // GetTimestamp
 		monitors = append(monitors, *monitor)
 	}
 	fmt.Println(monitors)

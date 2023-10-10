@@ -17,7 +17,6 @@ package greptime
 import (
 	"errors"
 	"fmt"
-	"io"
 	"math"
 	"time"
 
@@ -58,59 +57,26 @@ func buildMetricFromReader(r *flight.Reader) (*Metric, error) {
 		return nil, errors.New("Internal Error, empty reader pointer")
 	}
 
-	record, err := r.Reader.Read()
-	if err == io.EOF {
-		return &metric, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
 	fields := r.Schema().Fields()
-	timestampIndex := extractTimestampIndex(fields)
-
-	precision := time.Millisecond
-	if timestampIndex != -1 {
-		precision, err = extractPrecision(&fields[timestampIndex])
-		if err != nil {
-			return nil, err
-		}
-
-		if err = metric.SetTimestampAlias(fields[timestampIndex].Name); err != nil {
-			return nil, err
-		}
-	}
-	metric.SetTimePrecision(precision)
-
-	for i := 0; i < int(record.NumRows()); i++ {
-		series := Series{}
-		for j := 0; j < int(record.NumCols()); j++ {
-			column := record.Column(j)
-			colVal, err := fromColumn(column, i)
-			if err != nil {
-				return nil, err
-			}
-			if j == timestampIndex {
-				series.SetTimestamp(colVal.(time.Time))
-			} else {
+	for r.Next() {
+		record := r.Record()
+		for i := 0; i < int(record.NumRows()); i++ {
+			series := Series{}
+			for j := 0; j < int(record.NumCols()); j++ {
+				column := record.Column(j)
+				colVal, err := fromColumn(column, i)
+				if err != nil {
+					return nil, err
+				}
 				series.AddField(fields[j].Name, colVal)
 			}
+			if err := metric.AddSeries(series); err != nil {
+				return nil, err
+			}
 		}
-		metric.AddSeries(series)
 	}
 
 	return &metric, nil
-}
-
-func extractTimestampIndex(fields []arrow.Field) int {
-	for i, field := range fields {
-		if res := field.Metadata.FindKey("greptime:time_index"); res != -1 {
-			if field.Metadata.Values()[res] == "true" {
-				return i
-			}
-		}
-	}
-	return -1
 }
 
 func extractPrecision(field *arrow.Field) (time.Duration, error) {
@@ -248,10 +214,6 @@ func (m *Metric) GetTimestampAlias() string {
 //   - same column name MUST have same schema, which means Tag,Field,Timestamp and
 //     data type MUST BE the same of the same column name in different rows
 func (m *Metric) AddSeries(s Series) error {
-	if s.timestamp.IsZero() {
-		return ErrEmptyTimestamp
-	}
-
 	if m.columns == nil {
 		m.columns = map[string]column{}
 	}
@@ -356,7 +318,7 @@ func (m *Metric) intoTimestampColumn() (*greptimepb.Column, error) {
 	}
 	tsColumn := &greptimepb.Column{
 		ColumnName:   m.GetTimestampAlias(),
-		SemanticType: greptimepb.Column_TIMESTAMP,
+		SemanticType: greptimepb.SemanticType_TIMESTAMP,
 		Datatype:     datatype,
 		Values:       &greptimepb.Column_Values{},
 		NullMask:     nil,
@@ -413,13 +375,13 @@ func setColumn(col *greptimepb.Column, val any) error {
 	case greptimepb.ColumnDataType_BINARY:
 		col.Values.BinaryValues = append(col.Values.BinaryValues, val.([]byte))
 	case greptimepb.ColumnDataType_TIMESTAMP_SECOND:
-		col.Values.TsSecondValues = append(col.Values.TsSecondValues, val.(int64))
+		col.Values.TimestampSecondValues = append(col.Values.TimestampSecondValues, val.(int64))
 	case greptimepb.ColumnDataType_TIMESTAMP_MILLISECOND:
-		col.Values.TsMillisecondValues = append(col.Values.TsMillisecondValues, val.(int64))
+		col.Values.TimestampMillisecondValues = append(col.Values.TimestampMillisecondValues, val.(int64))
 	case greptimepb.ColumnDataType_TIMESTAMP_MICROSECOND:
-		col.Values.TsMicrosecondValues = append(col.Values.TsMicrosecondValues, val.(int64))
+		col.Values.TimestampMicrosecondValues = append(col.Values.TimestampMicrosecondValues, val.(int64))
 	case greptimepb.ColumnDataType_TIMESTAMP_NANOSECOND:
-		col.Values.TsNanosecondValues = append(col.Values.TsNanosecondValues, val.(int64))
+		col.Values.TimestampNanosecondValues = append(col.Values.TimestampNanosecondValues, val.(int64))
 	default:
 		return fmt.Errorf("unknown column data type: %v", col.Datatype)
 	}
