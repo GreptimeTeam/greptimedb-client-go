@@ -9,14 +9,14 @@ Provide API for using GreptimeDB client in Go.
 ## Installation
 
 ```sh
-go get github.com/GreptimeTeam/greptimedb-client-go
+go get -u github.com/GreptimeTeam/greptimedb-client-go
 ```
 
-## Example
+## Documentation
 
-you can visit [Documentation][document] for usage details and documentation,
+visit [docs](./docs) to get complete examples. You can also visit [Documentation][document] more details.
 
-## Usage
+## API reference
 
 #### Datatype Supported
 
@@ -28,41 +28,12 @@ you can visit [Documentation][document] for usage details and documentation,
 - string
 - time.Time
 
-#### Timestamp
+#### Customize metric Timestamp
 
 you can customize timestamp index via calling methods of [Metric][metric_doc]
 
-##### precision
-
-The default timestamp column precision is `Millisecond`, you can set a different precision.
-And once the precision is setted, you can not change it any more.
-
-- time.Second
-- time.Millisecond
-- time.Microsecond
-- time.Nanosecond
-
-```go
-metric.SetTimePrecision(time.Microsecond)
-```
-
-##### alias
-
-The default timestamp column name is `ts`, if you want to use another name, you can change it:
-
-```go
-metric.SetTimestampAlias("timestamp")
-```
-
-#### Prometheus
-
-How to query with RangePromql and Promql, you can visit [promql_test.go](query_promql_test.go) for details
-
-#### Stream Insert
-
-You can send several insert requests by `Send()` and notify GreptimeDB no more messages by `CloseAndRecv()`
-
-You can visit [stream_client_test.go](stream_client_test.go) for details
+- `metric.SetTimePrecision(time.Microsecond)`
+- `metric.SetTimestampAlias("timestamp")`
 
 ## License
 

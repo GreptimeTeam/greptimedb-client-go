@@ -49,8 +49,7 @@ var (
 
 func init() {
 	repo := "greptime/greptimedb"
-	// tag := "0.3.2"
-	tag := "v0.4.0-nightly-20231009"
+	tag := "v0.4.3"
 
 	var err error
 	pool, err := dockertest.NewPool("")
@@ -425,6 +424,7 @@ func TestInsertSameColumnWithDifferentType(t *testing.T) {
 
 	req = InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
+
 	reqs = InsertsRequest{}
 	reqs.WithDatabase(database).Append(req)
 	_, err = client.Insert(context.Background(), reqs)
@@ -464,6 +464,7 @@ func TestInsertTimestampWithDifferentPrecision(t *testing.T) {
 
 	req = InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
+
 	reqs = InsertsRequest{}
 	reqs.WithDatabase(database).Append(req)
 	_, err = client.Insert(context.Background(), reqs)
