@@ -49,8 +49,7 @@ var (
 
 func init() {
 	repo := "greptime/greptimedb"
-	// tag := "0.3.2"
-	tag := "v0.4.0-nightly-20231009"
+	tag := "v0.4.3"
 
 	var err error
 	pool, err := dockertest.NewPool("")

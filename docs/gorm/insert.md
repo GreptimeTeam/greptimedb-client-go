@@ -1,3 +1,7 @@
+Inserting
+==
+
+```go
 package insert
 
 import (
@@ -21,11 +25,11 @@ type Monitor struct {
 }
 
 type Greptime struct {
-	Host     string // default is 127.0.0.1
-	Port     string // default is 4001
+	Host     string
+	Port     string
 	User     string
 	Password string
-	Database string // default is public
+	Database string
 
 	Client gc.Client
 }
@@ -109,3 +113,4 @@ func main() {
 
 	fmt.Println("insert success via greptimedb-client")
 }
+```

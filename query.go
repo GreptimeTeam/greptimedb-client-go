@@ -32,7 +32,7 @@ type query interface {
 // But if you expect the response format is the same as Prometheus, you should consider
 // [PromqlRequest].
 //
-// At least one of Sql, InstantPromql, RangePromql MUST be spicified.
+// At least one of Sql, InstantPromql, RangePromql MUST be specified.
 // If multiple fields are specified, the field specified later will be used
 type QueryRequest struct {
 	header reqHeader

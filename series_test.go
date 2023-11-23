@@ -120,7 +120,7 @@ func TestSeriesTagAndFieldCanNotContainSameKey(t *testing.T) {
 
 	err = s.AddIntField(key, 1)
 	assert.NotNil(t, err)
-	assert.Equal(t, fmt.Sprintf("Tag and Field MUST NOT contain same key: '%s'", key), err.Error())
+	assert.Equal(t, fmt.Sprintf("tag and field MUST NOT contain same key: %q", key), err.Error())
 
 	// type checks before tag/field
 	err = s.AddFloatField(key, 1)
