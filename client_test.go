@@ -425,6 +425,7 @@ func TestInsertSameColumnWithDifferentType(t *testing.T) {
 
 	req = InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
+
 	reqs = InsertsRequest{}
 	reqs.WithDatabase(database).Append(req)
 	_, err = client.Insert(context.Background(), reqs)
@@ -464,6 +465,7 @@ func TestInsertTimestampWithDifferentPrecision(t *testing.T) {
 
 	req = InsertRequest{}
 	req.WithTable(table).WithMetric(metric)
+
 	reqs = InsertsRequest{}
 	reqs.WithDatabase(database).Append(req)
 	_, err = client.Insert(context.Background(), reqs)

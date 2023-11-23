@@ -31,7 +31,7 @@ func checkColumnEquality(key string, col1, col2 column) error {
 		return fmt.Errorf("the type of '%s' does not match: '%v' and '%v'", key, col1.typ, col2.typ)
 	}
 	if col1.semantic != col2.semantic {
-		return fmt.Errorf("Tag and Field MUST NOT contain same key: '%s'", key)
+		return fmt.Errorf("tag and field MUST NOT contain same key: %q", key)
 	}
 
 	return nil
@@ -236,7 +236,7 @@ func (s *Series) add(name string, val any, semantic greptimepb.SemanticType) err
 
 // AddTag prepare tag column, and old value will be replaced if same tag is set.
 // the length of key CAN NOT be longer than 100.
-// If you want to contain the column type, you can directly use like:
+// If you want to constrain the column type, you can directly use like:
 //   - [Series.AddFloatTag]
 //   - [Series.AddIntTag]
 //   - ...
