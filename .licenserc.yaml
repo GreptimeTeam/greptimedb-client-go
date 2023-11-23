@@ -12,6 +12,7 @@ header:
   #   - '*.go'
 
   paths-ignore:
+    - 'docs'
     - 'main'
     - '.github'
     - '.gitignore'
