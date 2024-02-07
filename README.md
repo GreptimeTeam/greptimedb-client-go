@@ -6,6 +6,8 @@
 
 Provide API for using GreptimeDB client in Go.
 
+NOTE: This repository is deprecated. Please visit [ingester-go][ingester-go] for detail.
+
 ## Installation
 
 ```sh
@@ -43,3 +45,4 @@ between open contributions and allowing you to use the software however you want
 <!-- links -->
 [document]: https://pkg.go.dev/github.com/GreptimeTeam/greptimedb-client-go
 [metric_doc]: https://pkg.go.dev/github.com/GreptimeTeam/greptimedb-client-go#Metric
+[ingester-go]: https://github.com/GreptimeTeam/greptimedb-ingester-go
